@@ -1,0 +1,332 @@
+/* Reset and Layout Test */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 50px;
+    width: 100%;
+    z-index: 0;
+}
+
+/* Map Layer Optionss */
+.map-layer-options {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 8px;  /* Reduced padding */
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.map-layer-options label {
+    font-size: 12px;  /* Smaller label text */
+    margin-bottom: 2px;
+    display: block;
+}
+
+.map-layer-options select {
+    font-size: 11px;  /* Smaller select text */
+    padding: 4px 6px;  /* Smaller padding inside select */
+    height: auto;  /* Override Bootstrap's default height */
+    width: auto;  /* Make width fit content */
+    min-width: 120px;  /* Minimum width to ensure readability */
+}
+
+.map-layer-options button {
+    display: block;
+    margin: 5px 0;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Mapbox Popup Close Button */
+.mapboxgl-popup-close-button {
+    outline: none;
+    box-shadow: none;
+    background: none;
+}
+
+.mapboxgl-popup-close-button:focus,
+.mapboxgl-popup-close-button:active {
+    outline: none;
+    box-shadow: none;
+    background: none;
+}
+
+/* Tabs at Bottom */
+.tabs {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    background-color: #333;
+}
+
+.draw-route-tab,
+.tab {
+    width: 25%;
+    text-align: center;
+    line-height: 50px;
+    color: white;
+    cursor: pointer;
+}
+
+.draw-route-tab {
+    background-color: #2c3e50;
+}
+
+.draw-route-tab.active,
+.tab.active {
+    background-color: #34495e; /* Darker background for active tabs */
+}
+
+/* Dropdown Tabs (Button Group) */
+#contribute-dropdown {
+    display: none;
+    position: absolute;
+    bottom: 60px;
+    left: 15px; /* Center it over the Contribute tab (half of 25% width) */
+    transform: none; /* Remove the transform */
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 5px;
+    text-align: center;
+    max-width: 250px;
+    z-index: 999;
+}
+
+#contribute-dropdown .btn {
+    color: #333;
+    cursor: pointer;
+    padding: 4px 6px; /* Reduced padding */
+    font-size: 10px; /* Smaller font size */
+    transition: background-color 0.3s ease;
+    border-radius: 3px;
+    border: none;
+    margin: 0 2px;
+}
+
+#contribute-dropdown .btn:hover {
+    background-color: #1d1096;
+    color: white;
+}
+
+#contribute-dropdown .btn.active {
+    background-color: #1d1096;
+    color: #ffffff;
+}
+
+
+/* Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    padding: 0;
+    max-height: 17vh;
+    overflow-y: auto;
+}
+
+.modal.show {
+    display: block;
+}
+
+.small-modal {
+    width: 250px;
+    padding: 10px;
+}
+
+.modal-content {
+    padding: 10px;
+    background-color: white;
+    border-radius: 5px;
+    margin: 0;
+}
+
+.modal-content h4 {
+    font-size: 16px;
+    margin: 8px 0;
+}
+
+.modal-content label {
+    font-size: 12px;
+    margin: 4px 0;
+}
+
+.modal-content div {
+    margin-bottom: 10px;
+}
+
+/* Segment Modal */
+#segment-modal {
+    background-color: rgba(255, 255, 255, 0.95);
+    max-height: 40vh;
+}
+
+#segment-modal h4 {
+    font-size: 16px;
+    margin: 0 0 10px;
+}
+
+#segment-modal .close {
+    display: block;
+    text-align: right;
+    padding: 5px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* Modal Button */
+.modal-content button,
+#segment-modal button {
+    margin-top: 10px;
+    padding: 6px 12px;
+    font-size: 14px;
+    width: 100%;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#segment-modal .btn-danger:hover {
+    background-color: rgb(123, 11, 11) !important;
+}
+
+/* Control Panel */
+#control-panel {
+    display: none;
+    position: absolute;
+    bottom: 100px;
+    left: 15px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+/* Drawing Options */
+.drawing-options {
+    margin-top: 10px;
+}
+
+.drawing-options h5 {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.drawing-options label {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+#applyDrawingOptionsButton {
+    margin-top: 10px;
+}
+
+/* Comments Section */
+#comments-section {
+    margin-top: 10px;
+}
+
+#comments-list .comment {
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+#add-comment textarea {
+    width: 100%;
+    resize: none;
+}
+
+#gravel-style {
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 250px !important;  /* Set fixed width */
+    margin: 0;
+}
+
+#gravel-style .btn-group {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+#gravel-style button {
+    flex: 1;
+    margin: 0;
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+#undo-btn, #reset-btn, #save-btn {
+    width: auto !important;  /* Override the full width */
+}
+
+.drawing-options {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.drawing-options label {
+    white-space: nowrap;  /* Prevent text wrapping */
+    margin-bottom: 8px;   /* Add some spacing between options */
+    font-size: 13px;      /* Slightly larger font */
+}
+
+/* Style the button group at the bottom */
+#gravel-style .btn-group,
+#gravel-style .btn {
+    width: 100%;          /* Make buttons full width */
+    margin-top: 10px;     /* Add space above buttons */
+    display: flex;        /* Use flexbox for button layout */
+    gap: 5px;            /* Add space between buttons */
+}
+
+#draw-route-control-panel,
+#photo-upload-control-panel {
+    position: absolute !important;
+    bottom: 20px !important;
+    left: 10px !important;
+    z-index: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.control-panel {
+    position: absolute !important;
+    z-index: 1 !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+/* Reset any modal-like properties */
+.control-panel .modal,
+.control-panel .modal-content {
+    position: relative !important;
+    display: block !important;
+    margin: 0 !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+}
