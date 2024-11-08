@@ -12,7 +12,7 @@ let selectedLineStyle = 'solid'; // Default to solid line
 let originalPins = []; // Store user-added pins
 let lastSnappedPoint = null; // Track the last successfully snapped point
 
-// Gravel type color mappingf
+// Gravel type color mapping
 const gravelColors = {
     0: '#01bf11', // Easiest // Green
     1: '#0050c1', // Intermediate // Blue
