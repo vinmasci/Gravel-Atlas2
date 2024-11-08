@@ -1,7 +1,7 @@
 import { useUser } from '@auth0/nextjs-auth0';
-
 import { useEffect } from 'react';
 import Head from 'next/head';
+import indexHtml from '../public/index.html';
 
 export default function Home() {
   useEffect(() => {
@@ -27,14 +27,8 @@ export default function Home() {
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
         <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
       </Head>
-
-
-      
       {/* Load the HTML content */}
-      <div dangerouslySetInnerHTML={{ 
-        __html: require('fs').readFileSync('./index.html', 'utf8') 
-      }} />
-
+      <div dangerouslySetInnerHTML={{ __html: indexHtml }} />
       {/* External Scripts */}
       <script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
       <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
