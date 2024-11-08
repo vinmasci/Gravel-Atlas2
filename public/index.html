@@ -478,7 +478,23 @@ async function compressAndUploadImage(file) {
 </div>
 
 
-
+<!-- Drawing Options Modal -->
+<div id="drawingOptionsModal" class="modal">
+    <div class="modal-content small-modal"> <!-- Add class 'small-modal' for smaller size -->
+      <h4>Select Road Type and Color</h4>
+      <div>
+        <h5>Gravel Type (Color):</h5>
+        <label><input type="radio" name="gravelType" value="0"> Blue (Bad or rough asphalt)</label>
+        <label><input type="radio" name="gravelType" value="1"> Green (Non-technical)</label>
+        <label><input type="radio" name="gravelType" value="2"> Yellow (Slightly technical)</label>
+        <label><input type="radio" name="gravelType" value="3"> Red (Technical)</label>
+        <label><input type="radio" name="gravelType" value="4"> Dark Red (Very technical)</label>
+        <label><input type="radio" name="gravelType" value="5"> Black Red (Hike-a-bike)</label>
+      </div>
+      
+      <button id="applyDrawingOptionsButton">Apply</button>
+    </div>
+</div>
 
 <div id="control-panel" class="btn-group" style="display: block;"></div>
 
