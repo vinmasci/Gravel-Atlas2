@@ -108,17 +108,17 @@ body {
 
 /* Dropdown Tabs (Button Group) */
 #contribute-dropdown {
-    display: none; /* Initially hidden */
+    display: none;
     position: absolute;
-    bottom: 60px; /* Adjust this based on the height of the bottom tabs */
-    left: 10%; /* Move further left (adjust this percentage as needed) */
-    transform: translateX(-50%); /* Center adjust */
+    bottom: 60px;
+    left: 12.5%; /* Center it over the Contribute tab (half of 25% width) */
+    transform: none; /* Remove the transform */
     background-color: #f9f9f9;
     border-radius: 5px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 5px; /* Reduced padding to make it smaller */
+    padding: 5px;
     text-align: center;
-    max-width: 250px; /* Ensure it doesn’t take up full width */
+    max-width: 250px;
     z-index: 999;
 }
 
@@ -284,6 +284,23 @@ body {
     margin: 0;
 }
 
+#gravel-style .btn-group {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+#gravel-style button {
+    flex: 1;
+    margin: 0;
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+#undo-btn, #reset-btn, #save-btn {
+    width: auto !important;  /* Override the full width */
+}
+
 .drawing-options {
     margin-top: 10px;
     width: 100%;
@@ -404,9 +421,11 @@ body {
             <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
             <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
         </div>
-        <button id="undo-btn" class="btn btn-primary" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-size: 14px;">Undo</button>
-        <button id="reset-btn" class="btn btn-warning" style="font-size: 14px;">Reset</button>
-        <button id="save-btn" class="btn btn-success" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px; font-size: 14px;">Save</button>
+        <div class="btn-group">
+            <button id="undo-btn" class="btn btn-primary" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-size: 14px;">Undo</button>
+            <button id="reset-btn" class="btn btn-warning" style="font-size: 14px;">Reset</button>
+            <button id="save-btn" class="btn btn-success" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px; font-size: 14px;">Save</button>
+        </div>
     </div>
 </div>
 
