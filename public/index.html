@@ -37,9 +37,23 @@ body {
     right: 10px;
     z-index: 10;
     background-color: rgba(255, 255, 255, 0.8);
-    padding: 10px;
+    padding: 8px;  /* Reduced padding */
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.map-layer-options label {
+    font-size: 12px;  /* Smaller label text */
+    margin-bottom: 2px;
+    display: block;
+}
+
+.map-layer-options select {
+    font-size: 11px;  /* Smaller select text */
+    padding: 4px 6px;  /* Smaller padding inside select */
+    height: auto;  /* Override Bootstrap's default height */
+    width: auto;  /* Make width fit content */
+    min-width: 120px;  /* Minimum width to ensure readability */
 }
 
 .map-layer-options button {
