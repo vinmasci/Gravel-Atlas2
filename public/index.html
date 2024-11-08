@@ -276,10 +276,32 @@ body {
 }
 
 #gravel-style {
-    position: relative !important;  /* Override any absolute positioning */
-    z-index: 1 !important;         /* Ensure proper stacking */
-    margin: 0 !important;          /* Reset margins */
-    width: 100% !important;        /* Full width of parent */
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 250px !important;  /* Set fixed width */
+    margin: 0;
+}
+
+.drawing-options {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.drawing-options label {
+    white-space: nowrap;  /* Prevent text wrapping */
+    margin-bottom: 8px;   /* Add some spacing between options */
+    font-size: 13px;      /* Slightly larger font */
+}
+
+/* Style the button group at the bottom */
+#gravel-style .btn-group,
+#gravel-style .btn {
+    width: 100%;          /* Make buttons full width */
+    margin-top: 10px;     /* Add space above buttons */
+    display: flex;        /* Use flexbox for button layout */
+    gap: 5px;            /* Add space between buttons */
 }
 
 #draw-route-control-panel,
