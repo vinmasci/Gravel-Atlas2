@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapbox Project</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Pro -->
+    <script src="https://kit.fontawesome.com/b02e210188.js" crossorigin="anonymous"></script>
+    <!-- Compressor -->  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/compressorjs/1.0.7/compressor.min.js"></script>
+
+
+
+<style>
+/* Reset and Layout */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 50px;
+    width: 100%;
+    z-index: 0;
+}
+
+/* Map Layer Options */
+.map-layer-options {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.map-layer-options button {
+    display: block;
+    margin: 5px 0;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Mapbox Popup Close Button */
+.mapboxgl-popup-close-button {
+    outline: none;
+    box-shadow: none;
+    background: none;
+}
+
+.mapboxgl-popup-close-button:focus,
+.mapboxgl-popup-close-button:active {
+    outline: none;
+    box-shadow: none;
+    background: none;
+}
+
+/* Tabs at Bottom */
+.tabs {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    background-color: #333;
+}
+
+.draw-route-tab,
+.tab {
+    width: 25%;
+    text-align: center;
+    line-height: 50px;
+    color: white;
+    cursor: pointer;
+}
+
+.draw-route-tab {
+    background-color: #2c3e50;
+}
+
+.draw-route-tab.active,
+.tab.active {
+    background-color: #34495e; /* Darker background for active tabs */
+}
+
+/* Dropdown Tabs (Button Group) */
+#contribute-dropdown {
+    display: none; /* Initially hidden */
+    position: absolute;
+    bottom: 60px; /* Adjust this based on the height of the bottom tabs */
+    left: 10%; /* Move further left (adjust this percentage as needed) */
+    transform: translateX(-50%); /* Center adjust */
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 5px; /* Reduced padding to make it smaller */
+    text-align: center;
+    max-width: 250px; /* Ensure it doesn’t take up full width */
+    z-index: 999;
+}
+
+#contribute-dropdown .btn {
+    color: #333;
+    cursor: pointer;
+    padding: 4px 6px; /* Reduced padding */
+    font-size: 10px; /* Smaller font size */
+    transition: background-color 0.3s ease;
+    border-radius: 3px;
+    border: none;
+    margin: 0 2px;
+}
+
+#contribute-dropdown .btn:hover {
+    background-color: #1d1096;
+    color: white;
+}
+
+#contribute-dropdown .btn.active {
+    background-color: #1d1096;
+    color: #ffffff;
+}
+
+
+/* Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    padding: 0;
+    max-height: 17vh;
+    overflow-y: auto;
+}
+
+.modal.show {
+    display: block;
+}
+
+.small-modal {
+    width: 250px;
+    padding: 10px;
+}
+
+.modal-content {
+    padding: 10px;
+    background-color: white;
+    border-radius: 5px;
+    margin: 0;
+}
+
+.modal-content h4 {
+    font-size: 16px;
+    margin: 8px 0;
+}
+
+.modal-content label {
+    font-size: 12px;
+    margin: 4px 0;
+}
+
+.modal-content div {
+    margin-bottom: 10px;
+}
+
+/* Segment Modal */
+#segment-modal {
+    background-color: rgba(255, 255, 255, 0.95);
+    max-height: 40vh;
+}
+
+#segment-modal h4 {
+    font-size: 16px;
+    margin: 0 0 10px;
+}
+
+#segment-modal .close {
+    display: block;
+    text-align: right;
+    padding: 5px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* Modal Button */
+.modal-content button,
+#segment-modal button {
+    margin-top: 10px;
+    padding: 6px 12px;
+    font-size: 14px;
+    width: 100%;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#segment-modal .btn-danger:hover {
+    background-color: rgb(123, 11, 11) !important;
+}
+
+/* Control Panel */
+#control-panel {
+    display: none;
+    position: absolute;
+    bottom: 100px;
+    left: 20px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+/* Drawing Options */
+.drawing-options {
+    margin-top: 10px;
+}
+
+.drawing-options h5 {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.drawing-options label {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+#applyDrawingOptionsButton {
+    margin-top: 10px;
+}
+
+/* Comments Section */
+#comments-section {
+    margin-top: 10px;
+}
+
+#comments-list .comment {
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+#add-comment textarea {
+    width: 100%;
+    resize: none;
+}
+
+</style>
+
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="dropArea"></div> <!-- Make sure this is present in your HTML -->
+
+<div class="map-layer-options">
+    <label for="tileLayerSelect">Select Map Layer:</label>
+    <select id="tileLayerSelect" class="form-control">
+        <option value="reset">Classic Setting</option>
+        <option value="googleMap">Google Map</option>
+        <option value="googleSatellite">Google Satellite</option>
+        <option value="googleHybrid">Google Hybrid</option>
+        <option value="osmCycle">OSM Cycle</option>
+    </select>
+</div>
+
+<!-- Segment Info Modal -->
+<div id="segment-modal" class="modal">
+    <div class="modal-content">
+        <!-- Header with Segment Title -->
+        <div class="modal-header" style="margin: 0;">
+            <p id="segment-details" style="font-size: medium; font-weight: bold; margin: 0;">Segment Title</p>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        
+        <!-- Body with Comments Section -->
+        <div class="modal-body">
+            <div id="comments-section">
+                <h5>Comments</h5>
+                <div id="comments-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
+                    <!-- Existing comments will be dynamically added here -->
+                </div>
+                <div id="add-comment">
+                    <textarea id="comment-input" placeholder="Add a comment..." class="form-control" rows="2"></textarea>
+                    <button id="submit-comment" class="btn btn-primary mt-2" onclick="addComment()">Submit</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer with Buttons and Route ID -->
+        <div class="modal-footer" style="display: flex; flex-direction: column; align-items: flex-end;">
+            <!-- Buttons with smaller size -->
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <button id="flag-segment" class="btn btn-warning" style="font-size: 12px; padding: 4px 8px;">Flag</button>
+                <button id="delete-segment" class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;">Delete</button>
+            </div>
+            <!-- Route ID positioned below the buttons -->
+            <p id="route-id" style="font-size: x-small; color: gray; margin: 0;">Route ID: </p>
+        </div>
+    </div>
+</div>
+
+
+<!-- Control Panel -->
+<div id="control-panel" class="btn-group">
+    
+<!-- Draw Route Control Panel -->
+<div id="draw-route-control-panel" class="control-panel" style="display: none;">
+    <div id="gravel-style" style="width: 100%; margin-top: 0px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+        <div class="drawing-options">
+            <h5>Gravel Type:</h5>
+            <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+            <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #0050c1;"></i> Intermediate</label>
+            <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+            <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+            <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
+            <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+        </div>
+        <button id="undo-btn" class="btn btn-primary" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-size: 14px;">Undo</button>
+        <button id="reset-btn" class="btn btn-warning" style="font-size: 14px;">Reset</button>
+        <button id="save-btn" class="btn btn-success" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px; font-size: 14px;">Save</button>
+    </div>
+</div>
+
+<!-- Photo Upload Control Panel -->
+<div id="photo-upload-control-panel" class="control-panel" style="display: none;">
+    <div style="width: 100%; margin-top: 10px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+        <h5>Upload Photos</h5>
+        <input type="file" id="photoFilesInput" multiple accept="image/*" class="form-control" style="width: 190px; margin-bottom: 10px; font-size: 10px;" />
+        <button id="uploadPhotosBtn" class="btn btn-primary" style="padding: 5px 10px; font-size: 14px;">Upload</button>
+    </div>
+</div>
+
+
+<script>
+document.getElementById('uploadPhotosBtn').addEventListener('click', async function () {
+    const input = document.getElementById('photoFilesInput');
+    const files = Array.from(input.files);  // Convert FileList to an Array
+
+    if (files.length === 0) {
+        alert("Please select photos to upload.");
+        return;
+    }
+
+    const uploadButton = document.getElementById('uploadPhotosBtn');
+    uploadButton.innerText = "Uploading…";  // Show uploading status
+
+    // Split files into batches of 2
+    const batches = [];
+    while (files.length) {
+        batches.push(files.splice(0, 2));  // Takes up to 2 files per batch
+    }
+
+    for (const batch of batches) {
+        const formData = new FormData();
+
+        for (const file of batch) {
+            try {
+                const compressedFile = await compressAndUploadImage(file);
+                formData.append('photo', compressedFile, compressedFile.name);
+            } catch (error) {
+                console.error(`Compression failed for file ${file.name}:`, error);
+                continue;  // Skip to next file if compression fails
+            }
+        }
+
+        // Upload the current batch of files
+        try {
+            const response = await fetch('/api/upload-photo', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with status ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Batch upload successful:', result);
+        } catch (error) {
+            console.error('Batch upload failed:', error);
+        }
+
+        // Wait for a longer delay (1 second) before starting the next batch
+        await new Promise(resolve => setTimeout(resolve, 1000));  // 1000ms delay between batches
+    }
+
+    uploadButton.innerText = "Upload";  // Reset button text after upload
+    input.value = "";  // Clear file input
+});
+
+async function compressAndUploadImage(file) {
+    console.log(`Attempting to compress file: ${file.name}, original size: ${(file.size / 1024).toFixed(2)} KB`);
+
+    return new Promise((resolve, reject) => {
+        new Compressor(file, {
+            quality: 0.8, // Adjust quality as needed
+            maxWidth: 1600, // Maximum width
+            maxHeight: 1200, // Maximum height
+            success(result) {
+                console.log(`Compressed file size: ${(result.size / 1024).toFixed(2)} KB`);
+                resolve(result);  // Return the compressed file
+            },
+            error(err) {
+                console.error(`Compression failed for file ${file.name}:`, err);
+                reject(err);
+            }
+        });
+    });
+}
+</script>
+
+</div>
+
+<!-- tabs -->
+<div class="tabs">
+    <div class="tab draw-route-tab" id="draw-route-tab" onclick="toggleContributeDropdown()">
+        <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
+    </div>
+    <div class="tab" id="segments-tab">
+        <i class="fa-thin fa-route" style="color: #ffffff;"></i> Segments
+    </div>
+    <div class="tab" id="photos-tab">
+        <i class="fa-thin fa-camera-retro" style="color: #ffffff;"></i> Photos
+    </div>
+    <div class="tab" id="pois-tab">
+        <i class="fa-thin fa-map-pin" style="color: #ffffff;"></i> POIs
+    </div>
+</div>
+
+<div id="contribute-dropdown" class="btn-group" role="group" style="display: flex;">
+    <button type="button" class="btn btn-outline-secondary" onclick="showControlPanel()" id="draw-route-dropdown">Draw Route</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="showPhotoUploadPanel()" id="photo-upload-dropdown">Upload Photo</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="showTempOverlay()" id="gpx-overlay-dropdown">GPX Overlay</button>
+</div>
+
+<!-- Modal for Route Name -->
+<div id="routeNameModal" class="modal">
+    <div class="modal-content"> <!-- Increased padding and height -->
+        <h4>Street / Track or Path Name:</h4>
+        <input type="text" id="routeNameInput" placeholder="Enter road/path name" class="form-control" />
+        <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 20px;"> <!-- Align buttons side by side -->
+            <button id="confirmSaveBtn" class="btn btn-success btn-sm">Save Route</button>
+            <button onclick="closeRouteNameModal()" class="btn btn-secondary btn-sm">Cancel</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Drawing Options Modal -->
+<div id="drawingOptionsModal" class="modal">
+    <div class="modal-content small-modal"> <!-- Add class 'small-modal' for smaller size -->
+      <h4>Select Road Type and Color</h4>
+      <div>
+        <h5>Gravel Type (Color):</h5>
+        <label><input type="radio" name="gravelType" value="0"> Blue (Bad or rough asphalt)</label>
+        <label><input type="radio" name="gravelType" value="1"> Green (Non-technical)</label>
+        <label><input type="radio" name="gravelType" value="2"> Yellow (Slightly technical)</label>
+        <label><input type="radio" name="gravelType" value="3"> Red (Technical)</label>
+        <label><input type="radio" name="gravelType" value="4"> Dark Red (Very technical)</label>
+        <label><input type="radio" name="gravelType" value="5"> Black Red (Hike-a-bike)</label>
+      </div>
+      
+      <button id="applyDrawingOptionsButton">Apply</button>
+    </div>
+</div>
+
+<div id="control-panel" class="btn-group" style="display: block;"></div>
+
+<!-- Include external JS files -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<!-- Include togpx from CDN -->
+<script src="/js/ui.js"></script>
+<script src="/js/togpx.js"></script>
+<script src="/js/routes.js"></script>
+<script src="/js/map.js"></script>
+<script src="/js/markers.js"></script>
+<script src="/js/modal.js"></script>
+<script src="/js/photo.js"></script>
+
+
+<script>
+    // Ensure the map is initialized after the DOM is fully loaded.
+    document.addEventListener('DOMContentLoaded', function () {
+        initMap();  // This will call your initMap() function in map.js
+    });
+</script>
+
+<script>
+// ============================
+// SECTION: Close Modal
+// ============================
+function closeModal() {
+    console.log('Close button clicked'); // Check if this appears in the console
+    const modal = document.getElementById('segment-modal');
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+}
+</script>
+
+
+
+</body>
+</html>
