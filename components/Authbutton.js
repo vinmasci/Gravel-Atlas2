@@ -9,7 +9,7 @@ export default function AuthButton() {
     <div style={{
       position: 'absolute',
       top: '10px',
-      right: '120px',
+      left: '10px',     // Changed from right to left
       zIndex: 10,
       backgroundColor: 'rgba(255, 255, 255, 0.8)',
       padding: '8px',
