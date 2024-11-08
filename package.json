@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@auth0/nextjs-auth0": "^3.5.0",
     "@mapbox/togeojson": "^0.16.2",
     "@xmldom/xmldom": "^0.8.5",
     "aws-sdk": "^2.1691.0",
