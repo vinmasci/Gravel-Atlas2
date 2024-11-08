@@ -1,5 +1,5 @@
 import { useUser } from '@auth0/nextjs-auth0';
-import AuthButton from '../components/AuthButton';
+import AuthButton from './components/AuthButton';
 import { useEffect } from 'react';
 import Head from 'next/head';
 
