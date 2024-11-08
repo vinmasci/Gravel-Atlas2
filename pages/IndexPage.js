@@ -3,7 +3,6 @@ import React from 'react';
 const IndexPage = () => {
   return (
     <>
-      <!DOCTYPE html>
       <html lang="en">
         <head>
           <meta charSet="UTF-8" />
