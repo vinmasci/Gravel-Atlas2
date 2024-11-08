@@ -28,7 +28,7 @@ export default function Home() {
         <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
       </Head>
 
-      <AuthButton />
+
       
       {/* Load the HTML content */}
       <div dangerouslySetInnerHTML={{ 
