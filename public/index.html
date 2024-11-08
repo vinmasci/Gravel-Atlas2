@@ -282,9 +282,32 @@ body {
     width: 100% !important;        /* Full width of parent */
 }
 
-#draw-route-control-panel {
-    position: relative !important;
+#draw-route-control-panel,
+#photo-upload-control-panel {
+    position: absolute !important;
+    bottom: 100px !important;
+    left: 20px !important;
     z-index: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.control-panel {
+    position: absolute !important;
+    z-index: 1 !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+/* Reset any modal-like properties */
+.control-panel .modal,
+.control-panel .modal-content {
+    position: relative !important;
+    display: block !important;
+    margin: 0 !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
 }
 
 </style>
