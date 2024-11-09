@@ -144,13 +144,19 @@ async function login() {
     }
 
     try {
-        console.log('Starting login process...');
-        // Don't check isAuthenticated here, just redirect to login
-        await auth0.loginWithRedirect({
-            redirect_uri: 'https://gravel-atlas2.vercel.app',
-            response_type: 'code id_token',
-            scope: 'openid profile email'
-        });
+        // Clear any existing state first
+        console.log('Clearing existing state before login...');
+        await clearAuthState();
+
+        // Force a direct redirect to Auth0 login
+        const authUrl = `https://dev-8jmwfh4hugvdjwh8.au.auth0.com/authorize?` +
+            `response_type=code id_token&` +
+            `client_id=sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT&` +
+            `redirect_uri=${encodeURIComponent('https://gravel-atlas2.vercel.app')}&` +
+            `scope=openid profile email`;
+
+        console.log('Redirecting to Auth0 login...');
+        window.location.href = authUrl;
     } catch (err) {
         console.error("Login failed:", err);
     }
@@ -164,15 +170,17 @@ async function logout() {
 
     try {
         console.log('Starting logout...');
-        await clearAuthState(); // Clear state first
-        await auth0.logout({
-            returnTo: 'https://gravel-atlas2.vercel.app',
-            client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
-        });
+        // Clear local state
+        await clearAuthState();
+        
+        // Redirect to Auth0 logout
+        const logoutUrl = `https://dev-8jmwfh4hugvdjwh8.au.auth0.com/v2/logout?` +
+            `client_id=sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT&` +
+            `returnTo=${encodeURIComponent('https://gravel-atlas2.vercel.app')}`;
+            
+        window.location.href = logoutUrl;
     } catch (err) {
         console.error("Logout failed:", err);
-        // If logout fails, at least try to clear the state
-        await clearAuthState();
     }
 }
 
