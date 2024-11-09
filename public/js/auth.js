@@ -25,13 +25,11 @@ async function initializeAuth() {
         auth0 = await createAuth0Client({
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
-            authorizationParams: {
-                redirect_uri: 'https://gravel-atlas2.vercel.app',
-                response_type: 'code id_token token',
-                scope: 'openid profile email'
-            },
-            useRefreshTokens: true,
-            cacheLocation: 'localstorage'
+            redirect_uri: 'https://gravel-atlas2.vercel.app',
+            response_type: 'code',
+            scope: 'openid profile email',
+            cacheLocation: 'localstorage',
+            useRefreshTokens: true
         });
 
         console.log('Auth0 client created successfully');
