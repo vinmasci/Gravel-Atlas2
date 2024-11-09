@@ -1,20 +1,28 @@
 // public/js/auth.js
 let auth0 = null;
+let initAttempts = 0;
+const MAX_ATTEMPTS = 5;
 
 async function initializeAuth() {
     try {
-        // Make sure Auth0 is loaded
-        if (typeof Auth0Client === 'undefined') {
-            console.error('Auth0Client not found. Waiting...');
-            // Wait a bit and try again
-            setTimeout(initializeAuth, 100);
+        console.log('Checking for Auth0...', typeof createAuth0Client);
+        
+        if (typeof createAuth0Client === 'undefined') {
+            initAttempts++;
+            console.log(`Attempt ${initAttempts} of ${MAX_ATTEMPTS}`);
+            
+            if (initAttempts >= MAX_ATTEMPTS) {
+                console.error('Failed to initialize Auth0 after maximum attempts');
+                return;
+            }
+            
+            setTimeout(initializeAuth, 500);
             return;
         }
 
         console.log('Creating Auth0 client...');
         
-        // Create new Auth0Client instance
-        auth0 = new Auth0Client({
+        auth0 = await createAuth0Client({
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             authorizationParams: {
@@ -23,23 +31,12 @@ async function initializeAuth() {
         });
 
         console.log('Auth0 client created successfully');
-
-        // Check for the code and state parameters
-        const query = window.location.search;
-        if (query.includes("code=") && query.includes("state=")) {
-            await auth0.handleRedirectCallback();
-            window.history.replaceState({}, document.title, "/");
-        }
-
-        // Update UI after everything is initialized
         await updateUI();
         
     } catch (err) {
         console.error("Error initializing Auth0:", err);
     }
 }
-
-// Rest of your code remains the same...
 
 async function updateUI() {
     // Check if auth0 is initialized
