@@ -29,9 +29,9 @@ async function clearAuthState() {
             userInfo.style.display = "none";
             userInfo.innerHTML = '';
         }
-
-        // Force page reload to clear any remaining state
-        window.location.reload();
+        
+        // Remove the page reload - this was causing the loop
+        // window.location.reload();
     } catch (err) {
         console.error('Error clearing auth state:', err);
     }
@@ -70,8 +70,8 @@ async function initializeAuth() {
 
         console.log('Auth0 client created successfully');
 
-        // Force clear any existing tokens
-        await clearAuthState();
+        // Remove the clearAuthState call from here
+        // await clearAuthState();
 
         // Check for the authentication code in the URL
         if (window.location.search.includes("code=")) {
