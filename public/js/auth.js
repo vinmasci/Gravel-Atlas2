@@ -27,8 +27,10 @@ async function initializeAuth() {
             clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             authorizationParams: {
                 redirect_uri: 'https://gravel-atlas2.vercel.app',
-                response_type: 'code'
+                response_type: 'code id_token token',
+                scope: 'openid profile email'
             },
+            useRefreshTokens: true,
             cacheLocation: 'localstorage'
         });
 
