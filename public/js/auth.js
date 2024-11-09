@@ -144,19 +144,11 @@ async function login() {
     }
 
     try {
-        // Clear any existing state first
-        console.log('Clearing existing state before login...');
-        await clearAuthState();
-
-        // Force a direct redirect to Auth0 login
-        const authUrl = `https://dev-8jmwfh4hugvdjwh8.au.auth0.com/authorize?` +
-            `response_type=code id_token&` +
-            `client_id=sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT&` +
-            `redirect_uri=${encodeURIComponent('https://gravel-atlas2.vercel.app')}&` +
-            `scope=openid profile email`;
-
-        console.log('Redirecting to Auth0 login...');
-        window.location.href = authUrl;
+        console.log('Starting login process...');
+        await auth0.loginWithRedirect({
+            appState: { returnTo: window.location.pathname },
+            nonce: Math.random().toString(36).substring(2)
+        });
     } catch (err) {
         console.error("Login failed:", err);
     }
