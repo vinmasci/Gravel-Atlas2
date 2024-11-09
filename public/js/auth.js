@@ -26,8 +26,9 @@ async function initializeAuth() {
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             authorizationParams: {
-                redirect_uri: window.location.origin
-            }
+                redirect_uri: 'https://gravel-atlas2.vercel.app'
+            },
+            cacheLocation: 'localstorage'
         });
 
         console.log('Auth0 client created successfully');
