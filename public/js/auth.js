@@ -63,8 +63,12 @@ async function initializeAuth() {
                 console.error('Error handling redirect:', callbackError);
                 await clearAuthState();
             }
+        } else {
+            console.log('No authentication code found in the URL. Continuing without redirect.');
         }
 
+        // Check the authentication state after initialization
+        await checkAuthState();
         await updateUI();
     } catch (err) {
         console.error("Error initializing Auth0:", err);
@@ -109,6 +113,28 @@ async function updateUI() {
         }
     } catch (err) {
         console.error("Error updating UI:", err);
+    }
+}
+
+async function checkAuthState() {
+    if (!auth0) {
+        console.error('Auth0 client not initialized');
+        return false;
+    }
+
+    try {
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Current auth state:', isAuthenticated ? 'Logged In' : 'Logged Out');
+        
+        if (isAuthenticated) {
+            const user = await auth0.getUser();
+            console.log('Current user:', user);
+        }
+        
+        return isAuthenticated;
+    } catch (err) {
+        console.error('Error checking auth state:', err);
+        return false;
     }
 }
 
