@@ -87,6 +87,7 @@ async function initializeAuth() {
         }
 
         await updateUI();
+        await checkAuthState();
 
     } catch (err) {
         console.error("Error initializing Auth0:", err);
@@ -134,6 +135,28 @@ async function updateUI() {
     }
 }
 
+async function checkAuthState() {
+    if (!auth0) {
+        console.error('Auth0 client not initialized');
+        return false;
+    }
+
+    try {
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Current auth state:', isAuthenticated ? 'Logged In' : 'Logged Out');
+        
+        if (isAuthenticated) {
+            const user = await auth0.getUser();
+            console.log('Current user:', user);
+        }
+        
+        return isAuthenticated;
+    } catch (err) {
+        console.error('Error checking auth state:', err);
+        return false;
+    }
+}
+
 // ============================
 // SECTION: Authentication Actions
 // ============================
@@ -149,6 +172,8 @@ async function login() {
             appState: { returnTo: window.location.pathname },
             nonce: Math.random().toString(36).substring(2)
         });
+        // Add this line:
+        await checkAuthState();
     } catch (err) {
         console.error("Login failed:", err);
     }
@@ -162,15 +187,12 @@ async function logout() {
 
     try {
         console.log('Starting logout...');
-        // Clear local state
-        await clearAuthState();
-        
-        // Redirect to Auth0 logout
-        const logoutUrl = `https://dev-8jmwfh4hugvdjwh8.au.auth0.com/v2/logout?` +
-            `client_id=sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT&` +
-            `returnTo=${encodeURIComponent('https://gravel-atlas2.vercel.app')}`;
-            
-        window.location.href = logoutUrl;
+        await auth0.logout({
+            returnTo: 'https://gravel-atlas2.vercel.app',
+            client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
+        });
+        // Add this line:
+        await checkAuthState();
     } catch (err) {
         console.error("Logout failed:", err);
     }
