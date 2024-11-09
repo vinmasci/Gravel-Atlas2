@@ -11,13 +11,14 @@ const MAX_ATTEMPTS = 5;
 async function clearAuthState() {
     console.log('Clearing auth state...');
     try {
-        // Clear localStorage
-        localStorage.removeItem('auth0.is.authenticated');
-        localStorage.removeItem('auth0.cache.token.access_token');
-        localStorage.removeItem('auth0.cache.token.id_token');
-        localStorage.removeItem('auth0.cache.token.refresh_token');
+        // Clear all Auth0-related items from localStorage
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('auth0')) {
+                localStorage.removeItem(key);
+            }
+        });
         
-        // Force UI update
+        // Reset UI
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
@@ -28,6 +29,9 @@ async function clearAuthState() {
             userInfo.style.display = "none";
             userInfo.innerHTML = '';
         }
+
+        // Force page reload to clear any remaining state
+        window.location.reload();
     } catch (err) {
         console.error('Error clearing auth state:', err);
     }
@@ -141,6 +145,7 @@ async function login() {
 
     try {
         console.log('Starting login process...');
+        // Don't check isAuthenticated here, just redirect to login
         await auth0.loginWithRedirect({
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             response_type: 'code id_token',
@@ -159,12 +164,15 @@ async function logout() {
 
     try {
         console.log('Starting logout...');
+        await clearAuthState(); // Clear state first
         await auth0.logout({
             returnTo: 'https://gravel-atlas2.vercel.app',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
         });
     } catch (err) {
         console.error("Logout failed:", err);
+        // If logout fails, at least try to clear the state
+        await clearAuthState();
     }
 }
 
