@@ -32,14 +32,24 @@ async function initializeAuth() {
 
         console.log('Auth0 client created successfully');
 
-        // Check if user is returning from login
+        // Check for the authentication code in the URL
         if (window.location.search.includes("code=")) {
-            await auth0.handleRedirectCallback();
-            // Clean the URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            try {
+                console.log('Handling redirect callback...');
+                await auth0.handleRedirectCallback();
+                console.log('Redirect handled successfully');
+                // Remove the code from the URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // Force UI update after successful login
+                await updateUI();
+            } catch (callbackError) {
+                console.error('Error handling redirect:', callbackError);
+            }
         }
 
-        // Check authentication state and update UI
+        // Always check authentication state and update UI
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Initial authentication state:', isAuthenticated);
         await updateUI();
 
     } catch (err) {
@@ -55,11 +65,16 @@ async function updateUI() {
 
     try {
         const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Authentication state:', isAuthenticated);
+        console.log('Updating UI. Authentication state:', isAuthenticated);
         
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
+
+        if (!loginBtn || !logoutBtn || !userInfo) {
+            console.error('Required UI elements not found');
+            return;
+        }
 
         if (isAuthenticated) {
             const user = await auth0.getUser();
@@ -88,13 +103,16 @@ async function login() {
     try {
         const isAuthenticated = await auth0.isAuthenticated();
         if (!isAuthenticated) {
-            console.log('Initiating login redirect...');
-            await auth0.loginWithRedirect();
+            console.log('Starting login redirect...');
+            await auth0.loginWithRedirect({
+                redirect_uri: 'https://gravel-atlas2.vercel.app'
+            });
         } else {
-            console.log('User is already logged in');
+            console.log('Already logged in, updating UI...');
+            await updateUI();
         }
     } catch (err) {
-        console.error("Log in failed:", err);
+        console.error("Login failed:", err);
     }
 }
 
@@ -105,12 +123,13 @@ async function logout() {
     }
 
     try {
-        console.log('Logging out...');
+        console.log('Starting logout...');
         await auth0.logout({
-            returnTo: window.location.origin
+            returnTo: 'https://gravel-atlas2.vercel.app',
+            client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
         });
     } catch (err) {
-        console.error("Log out failed:", err);
+        console.error("Logout failed:", err);
     }
 }
 
@@ -123,10 +142,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById("logoutBtn");
     
     if (loginBtn) {
-        loginBtn.addEventListener('click', () => login());
+        loginBtn.removeEventListener('click', login); // Remove any existing handlers
+        loginBtn.addEventListener('click', login);
+        console.log('Login button handler added');
+    } else {
+        console.error('Login button not found');
     }
+    
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => logout());
+        logoutBtn.removeEventListener('click', logout); // Remove any existing handlers
+        logoutBtn.addEventListener('click', logout);
+        console.log('Logout button handler added');
+    } else {
+        console.error('Logout button not found');
     }
 
     // Initialize Auth0
