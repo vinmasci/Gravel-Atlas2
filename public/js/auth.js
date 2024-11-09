@@ -1,14 +1,20 @@
 // public/js/auth.js
 let auth0 = null;
+let retryCount = 0;
+const MAX_RETRIES = 10;
 
 function waitForAuth0() {
     if (typeof createAuth0Client !== 'undefined') {
-        // Auth0 is loaded, initialize
+        console.log('Auth0 loaded successfully');
         initializeAuth();
     } else {
-        // Check again in 100ms
-        console.log('Waiting for Auth0 to load...');
-        setTimeout(waitForAuth0, 100);
+        retryCount++;
+        if (retryCount <= MAX_RETRIES) {
+            console.log(`Waiting for Auth0 to load... (attempt ${retryCount}/${MAX_RETRIES})`);
+            setTimeout(waitForAuth0, 500);  // Increased delay to 500ms
+        } else {
+            console.error('Failed to load Auth0 after maximum retries');
+        }
     }
 }
 
