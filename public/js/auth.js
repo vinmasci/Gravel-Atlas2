@@ -3,8 +3,18 @@ let auth0 = null;
 
 async function initializeAuth() {
     try {
-        // Create the auth0 client
-        auth0 = await createAuth0Client({
+        // Make sure Auth0 is loaded
+        if (typeof Auth0Client === 'undefined') {
+            console.error('Auth0Client not found. Waiting...');
+            // Wait a bit and try again
+            setTimeout(initializeAuth, 100);
+            return;
+        }
+
+        console.log('Creating Auth0 client...');
+        
+        // Create new Auth0Client instance
+        auth0 = new Auth0Client({
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             authorizationParams: {
@@ -12,15 +22,12 @@ async function initializeAuth() {
             }
         });
 
-        // Log successful creation
         console.log('Auth0 client created successfully');
 
         // Check for the code and state parameters
         const query = window.location.search;
         if (query.includes("code=") && query.includes("state=")) {
-            // Handle the redirect and get tokens
             await auth0.handleRedirectCallback();
-            // Clean the URL
             window.history.replaceState({}, document.title, "/");
         }
 
@@ -31,6 +38,8 @@ async function initializeAuth() {
         console.error("Error initializing Auth0:", err);
     }
 }
+
+// Rest of your code remains the same...
 
 async function updateUI() {
     // Check if auth0 is initialized
