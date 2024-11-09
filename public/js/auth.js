@@ -10,12 +10,10 @@ async function initializeAuth() {
         if (typeof createAuth0Client === 'undefined') {
             initAttempts++;
             console.log(`Attempt ${initAttempts} of ${MAX_ATTEMPTS}`);
-            
             if (initAttempts >= MAX_ATTEMPTS) {
                 console.error('Failed to initialize Auth0 after maximum attempts');
                 return;
             }
-            
             setTimeout(initializeAuth, 500);
             return;
         }
@@ -24,7 +22,7 @@ async function initializeAuth() {
         
         auth0 = await createAuth0Client({
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
-            client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',  // Changed from clientId to client_id
+            client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             response_type: 'code',
             scope: 'openid profile email',
@@ -33,15 +31,23 @@ async function initializeAuth() {
         });
 
         console.log('Auth0 client created successfully');
+
+        // Check if user is returning from login
+        if (window.location.search.includes("code=")) {
+            await auth0.handleRedirectCallback();
+            // Clean the URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // Check authentication state and update UI
         await updateUI();
-        
+
     } catch (err) {
         console.error("Error initializing Auth0:", err);
     }
 }
 
 async function updateUI() {
-    // Check if auth0 is initialized
     if (!auth0) {
         console.error('Auth0 client not initialized');
         return;
@@ -49,12 +55,16 @@ async function updateUI() {
 
     try {
         const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Authentication state:', isAuthenticated);
+        
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
 
         if (isAuthenticated) {
             const user = await auth0.getUser();
+            console.log('User info:', user);
+            
             loginBtn.style.display = "none";
             logoutBtn.style.display = "block";
             userInfo.style.display = "block";
@@ -74,8 +84,15 @@ async function login() {
         console.error('Auth0 client not initialized');
         return;
     }
+
     try {
-        await auth0.loginWithRedirect();
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('Initiating login redirect...');
+            await auth0.loginWithRedirect();
+        } else {
+            console.log('User is already logged in');
+        }
     } catch (err) {
         console.error("Log in failed:", err);
     }
@@ -86,7 +103,9 @@ async function logout() {
         console.error('Auth0 client not initialized');
         return;
     }
+
     try {
+        console.log('Logging out...');
         await auth0.logout({
             returnTo: window.location.origin
         });
