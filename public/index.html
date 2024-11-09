@@ -9,8 +9,8 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://kit.fontawesome.com/b02e210188.js" crossorigin="anonymous"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
-    <script src="/js/auth.js" defer></script>
-  </head>
+    <script src="js/auth.js"></script>
+</head>
 
 <body>
 
@@ -353,21 +353,18 @@ body {
     top: 10px;
     left: 10px;
     z-index: 2;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 8px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 #auth-container button {
     padding: 6px 12px;
     border: none;
     border-radius: 4px;
-    background-color: #2c3e50;  /* Dark blue from your theme */
+    background-color: #2c3e50;
     color: white;
     cursor: pointer;
     font-size: 12px;
-    transition: background-color 0.2s ease;  /* Smooth hover transition */
+    transition: background-color 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);  /* Shadow on button instead of container */
 }
 
 #auth-container button:hover {
@@ -384,9 +381,10 @@ body {
 
 #userInfo {
     font-size: 14px;
-    color: #333;
+    color: white;  /* Changed to white since no background */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);  /* Make text readable on any background */
     margin-left: 8px;
-    display: inline-block;  /* Better text alignment */
+    display: inline-block;
     vertical-align: middle;
 }
     </style>
@@ -395,16 +393,7 @@ body {
 <div id="map"></div>
 
 <!-- Auth container as a sibling, not a child of map -->
-<div id="auth-container" style="
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 2;
-    background-color: white;
-    padding: 10px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-">
+<div id="auth-container">
     <button id="loginBtn" class="map-button">Log In</button>
     <button id="logoutBtn" class="map-button" style="display: none;">Log Out</button>
     <span id="userInfo" style="display: none; margin-left: 10px;"></span>
