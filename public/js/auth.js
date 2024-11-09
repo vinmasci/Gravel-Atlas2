@@ -2,8 +2,6 @@
 // SECTION: Initial Setup
 // ============================
 let auth0 = null;
-let initAttempts = 0;
-const MAX_ATTEMPTS = 5;
 
 // ============================
 // SECTION: Auth State Management
@@ -39,19 +37,6 @@ async function clearAuthState() {
 // ============================
 async function initializeAuth() {
     try {
-        console.log('Checking for Auth0...', typeof createAuth0Client);
-        
-        if (typeof createAuth0Client === 'undefined') {
-            initAttempts++;
-            console.log(`Attempt ${initAttempts} of ${MAX_ATTEMPTS}`);
-            if (initAttempts >= MAX_ATTEMPTS) {
-                console.error('Failed to initialize Auth0 after maximum attempts');
-                return;
-            }
-            setTimeout(initializeAuth, 500);
-            return;
-        }
-
         console.log('Creating Auth0 client...');
         
         auth0 = await createAuth0Client({
@@ -81,8 +66,6 @@ async function initializeAuth() {
         }
 
         await updateUI();
-        await checkAuthState();
-
     } catch (err) {
         console.error("Error initializing Auth0:", err);
         await clearAuthState();
@@ -129,28 +112,6 @@ async function updateUI() {
     }
 }
 
-async function checkAuthState() {
-    if (!auth0) {
-        console.error('Auth0 client not initialized');
-        return false;
-    }
-
-    try {
-        const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Current auth state:', isAuthenticated ? 'Logged In' : 'Logged Out');
-        
-        if (isAuthenticated) {
-            const user = await auth0.getUser();
-            console.log('Current user:', user);
-        }
-        
-        return isAuthenticated;
-    } catch (err) {
-        console.error('Error checking auth state:', err);
-        return false;
-    }
-}
-
 // ============================
 // SECTION: Authentication Actions
 // ============================
@@ -166,7 +127,6 @@ async function login() {
             appState: { returnTo: window.location.pathname },
             nonce: Math.random().toString(36).substring(2)
         });
-        await checkAuthState();
     } catch (err) {
         console.error("Login failed:", err);
     }
@@ -184,7 +144,6 @@ async function logout() {
             returnTo: 'https://gravel-atlas2.vercel.app',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
         });
-        await checkAuthState();
     } catch (err) {
         console.error("Logout failed:", err);
     }
