@@ -24,7 +24,8 @@ async function initializeAuth() {
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
-            response_type: 'code',
+            response_type: 'code id_token',  // Changed this
+            audience: `https://${domain}/userinfo`,  // Added this
             scope: 'openid profile email',
             useRefreshTokens: true,
             cacheLocation: 'localstorage'
@@ -101,16 +102,12 @@ async function login() {
     }
 
     try {
-        const isAuthenticated = await auth0.isAuthenticated();
-        if (!isAuthenticated) {
-            console.log('Starting login redirect...');
-            await auth0.loginWithRedirect({
-                redirect_uri: 'https://gravel-atlas2.vercel.app'
-            });
-        } else {
-            console.log('Already logged in, updating UI...');
-            await updateUI();
-        }
+        console.log('Starting login process...');
+        await auth0.loginWithRedirect({
+            redirect_uri: 'https://gravel-atlas2.vercel.app',
+            response_type: 'code id_token',
+            scope: 'openid profile email'
+        });
     } catch (err) {
         console.error("Login failed:", err);
     }
