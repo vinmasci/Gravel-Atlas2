@@ -1,8 +1,41 @@
-// public/js/auth.js
+// ============================
+// SECTION: Initial Setup
+// ============================
 let auth0 = null;
 let initAttempts = 0;
 const MAX_ATTEMPTS = 5;
 
+// ============================
+// SECTION: Auth State Management
+// ============================
+async function clearAuthState() {
+    console.log('Clearing auth state...');
+    try {
+        // Clear localStorage
+        localStorage.removeItem('auth0.is.authenticated');
+        localStorage.removeItem('auth0.cache.token.access_token');
+        localStorage.removeItem('auth0.cache.token.id_token');
+        localStorage.removeItem('auth0.cache.token.refresh_token');
+        
+        // Force UI update
+        const loginBtn = document.getElementById("loginBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const userInfo = document.getElementById("userInfo");
+        
+        if (loginBtn) loginBtn.style.display = "block";
+        if (logoutBtn) logoutBtn.style.display = "none";
+        if (userInfo) {
+            userInfo.style.display = "none";
+            userInfo.innerHTML = '';
+        }
+    } catch (err) {
+        console.error('Error clearing auth state:', err);
+    }
+}
+
+// ============================
+// SECTION: Auth0 Initialization
+// ============================
 async function initializeAuth() {
     try {
         console.log('Checking for Auth0...', typeof createAuth0Client);
@@ -24,8 +57,8 @@ async function initializeAuth() {
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
-            response_type: 'code id_token',  // Changed this
-            audience: `https://${domain}/userinfo`,  // Added this
+            response_type: 'code id_token',
+            audience: 'https://dev-8jmwfh4hugvdjwh8.au.auth0.com/userinfo',
             scope: 'openid profile email',
             useRefreshTokens: true,
             cacheLocation: 'localstorage'
@@ -33,31 +66,33 @@ async function initializeAuth() {
 
         console.log('Auth0 client created successfully');
 
+        // Force clear any existing tokens
+        await clearAuthState();
+
         // Check for the authentication code in the URL
         if (window.location.search.includes("code=")) {
             try {
                 console.log('Handling redirect callback...');
                 await auth0.handleRedirectCallback();
                 console.log('Redirect handled successfully');
-                // Remove the code from the URL
                 window.history.replaceState({}, document.title, window.location.pathname);
-                // Force UI update after successful login
-                await updateUI();
             } catch (callbackError) {
                 console.error('Error handling redirect:', callbackError);
+                await clearAuthState();
             }
         }
 
-        // Always check authentication state and update UI
-        const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Initial authentication state:', isAuthenticated);
         await updateUI();
 
     } catch (err) {
         console.error("Error initializing Auth0:", err);
+        await clearAuthState();
     }
 }
 
+// ============================
+// SECTION: UI Management
+// ============================
 async function updateUI() {
     if (!auth0) {
         console.error('Auth0 client not initialized');
@@ -95,6 +130,9 @@ async function updateUI() {
     }
 }
 
+// ============================
+// SECTION: Authentication Actions
+// ============================
 async function login() {
     if (!auth0) {
         console.error('Auth0 client not initialized');
@@ -130,7 +168,9 @@ async function logout() {
     }
 }
 
-// Initialize when the page loads
+// ============================
+// SECTION: Initialization
+// ============================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing Auth0...');
     
