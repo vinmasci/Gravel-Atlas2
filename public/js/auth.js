@@ -1,51 +1,29 @@
 // public/js/auth.js
 let auth0 = null;
-let retryCount = 0;
-const MAX_RETRIES = 10;
-
-function waitForAuth0() {
-    console.log('Checking for Auth0...', typeof createAuth0Client);
-    
-    if (typeof createAuth0Client !== 'undefined') {
-        console.log('Auth0 loaded successfully, initializing...');
-        initializeAuth();
-    } else {
-        retryCount++;
-        if (retryCount <= MAX_RETRIES) {
-            console.log(`Waiting for Auth0 to load... (attempt ${retryCount}/${MAX_RETRIES})`);
-            setTimeout(waitForAuth0, 1000);  // Increased delay to 1 second
-        } else {
-            console.error('Failed to load Auth0 after maximum retries');
-        }
-    }
-}
-
-// Start checking as soon as possible
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitForAuth0);
-} else {
-    waitForAuth0();
-}
 
 async function initializeAuth() {
     try {
-        auth0 = await createAuth0Client({
-            domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
-            clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
-            authorizationParams: {
-                redirect_uri: window.location.origin
-            }
-        });
+        // Access Auth0 through the window object
+        if (!window.auth0) {
+            auth0 = await window.Auth0Client.createAuth0Client({
+                domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
+                clientId: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
+                authorizationParams: {
+                    redirect_uri: window.location.origin
+                }
+            });
+            window.auth0 = auth0; // Store for later use
+        }
 
         // Update the button states
-        updateUI();
+        await updateUI();
 
         // Check for the code and state parameters
         const query = window.location.search;
         if (query.includes("code=") && query.includes("state=")) {
             // Handle the redirect and get tokens
             await auth0.handleRedirectCallback();
-            updateUI();
+            await updateUI();
             // Clean the URL
             window.history.replaceState({}, document.title, "/");
         }
@@ -95,12 +73,12 @@ async function logout() {
     }
 }
 
-// Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', function() {
+// Wait for both DOM and Auth0 script to be ready
+window.addEventListener('load', function() {
     // Add click handlers
-    document.getElementById("loginBtn").addEventListener('click', () => login());
-    document.getElementById("logoutBtn").addEventListener('click', () => logout());
+    document.getElementById("loginBtn").addEventListener('click', login);
+    document.getElementById("logoutBtn").addEventListener('click', logout);
     
-    // Start checking for Auth0
-    waitForAuth0();
+    // Initialize Auth0
+    initializeAuth();
 });
