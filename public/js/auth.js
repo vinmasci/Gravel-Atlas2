@@ -29,9 +29,6 @@ async function clearAuthState() {
             userInfo.style.display = "none";
             userInfo.innerHTML = '';
         }
-        
-        // Remove the page reload - this was causing the loop
-        // window.location.reload();
     } catch (err) {
         console.error('Error clearing auth state:', err);
     }
@@ -69,9 +66,6 @@ async function initializeAuth() {
         });
 
         console.log('Auth0 client created successfully');
-
-        // Remove the clearAuthState call from here
-        // await clearAuthState();
 
         // Check for the authentication code in the URL
         if (window.location.search.includes("code=")) {
@@ -172,7 +166,6 @@ async function login() {
             appState: { returnTo: window.location.pathname },
             nonce: Math.random().toString(36).substring(2)
         });
-        // Add this line:
         await checkAuthState();
     } catch (err) {
         console.error("Login failed:", err);
@@ -191,7 +184,6 @@ async function logout() {
             returnTo: 'https://gravel-atlas2.vercel.app',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
         });
-        // Add this line:
         await checkAuthState();
     } catch (err) {
         console.error("Logout failed:", err);
