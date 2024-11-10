@@ -109,7 +109,7 @@ body {
     display: none;
     position: absolute;
     bottom: 60px;
-    left: 15px; /* Center it over the Contribute tab (half of 25% width) */
+    left: 8px; /* Center it over the Contribute tab (half of 25% width) */
     transform: none; /* Remove the transform */
     background-color: #f9f9f9;
     border-radius: 5px;
@@ -230,7 +230,7 @@ body {
     display: none;
     position: absolute;
     bottom: 100px;
-    left: 15px;
+    left: 5px;
     background-color: white;
     padding: 10px;
     border-radius: 8px;
@@ -284,25 +284,32 @@ body {
 
 #gravel-style .btn-group {
     display: flex;
-    flex-direction: column; /* Change to column layout */
     gap: 5px;
     margin-top: 10px;
 }
 
 #gravel-style .btn {
-    flex: none; /* Remove the flex-grow property */
+    flex: 1;
+    margin: 0;
     font-size: 14px;
     padding: 8px 12px;
-    border-radius: 8px; /* Apply consistent border-radius */
+    border-radius: 0;
 }
 
-#undo-btn,
+#undo-btn {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
 #reset-btn {
-    flex-basis: 50%; /* Make Undo and Reset buttons take up half the width */
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 #save-btn {
-    flex-basis: 100%; /* Make Save button take up the full width */
+    width: 100%;
+    border-radius: 8px;
+    margin-top: 5px;
 }
 
 .drawing-options {
@@ -316,14 +323,6 @@ body {
     font-size: 13px;      /* Slightly larger font */
 }
 
-/* Style the button group at the bottom */
-#gravel-style .btn-group,
-#gravel-style .btn {
-    width: 100%;          /* Make buttons full width */
-    margin-top: 10px;     /* Add space above buttons */
-    display: flex;        /* Use flexbox for button layout */
-    gap: 5px;            /* Add space between buttons */
-}
 
 #draw-route-control-panel,
 #photo-upload-control-panel {
