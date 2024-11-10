@@ -1,4 +1,27 @@
-// public/js/photo.js
+// photo.js
+let photoMarkers = [];
+
+// Compression function definition
+function compressImage(file) {
+    console.log(`Starting compression for ${file.name}`);
+    return new Promise((resolve, reject) => {
+        new Compressor(file, {
+            quality: 0.6,
+            maxWidth: 1600,
+            maxHeight: 1200,
+            success(result) {
+                console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${result.size/1024}KB`);
+                resolve(result);
+            },
+            error(err) {
+                console.error(`Compression error for ${file.name}:`, err);
+                reject(err);
+            }
+        });
+    });
+}
+
+// S3 Upload functions
 async function getPresignedUrl(fileType, fileName) {
     const response = await fetch(`/api/get-upload-url?fileType=${fileType}&fileName=${encodeURIComponent(fileName)}`);
     if (!response.ok) {
@@ -9,10 +32,8 @@ async function getPresignedUrl(fileType, fileName) {
 
 async function uploadToS3(file) {
     try {
-        // Get the pre-signed URL
         const { uploadURL, fileUrl } = await getPresignedUrl(file.type, file.name);
         
-        // Upload directly to S3
         const uploadResponse = await fetch(uploadURL, {
             method: 'PUT',
             body: file,
@@ -32,6 +53,7 @@ async function uploadToS3(file) {
     }
 }
 
+// Main upload handler
 async function handlePhotoUpload() {
     const input = document.getElementById('photoFilesInput');
     const files = Array.from(input.files);
@@ -49,22 +71,20 @@ async function handlePhotoUpload() {
     let failCount = 0;
 
     try {
-        // Process files in parallel with a limit of 2 concurrent uploads
-        const batchSize = 2;
-        for (let i = 0; i < files.length; i += batchSize) {
-            const batch = files.slice(i, i + batchSize);
-            uploadButton.innerText = `Uploading ${i + 1}-${Math.min(i + batchSize, files.length)} of ${files.length}`;
-
-            const batchPromises = batch.map(async (file) => {
+        for (let i = 0; i < files.length; i += 2) { // Process 2 at a time
+            const batch = files.slice(i, i + 2);
+            
+            for (const file of batch) {
                 try {
-                    // Compress the image
+                    uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
+                    
+                    // Compress
                     const compressedFile = await compressImage(file);
-                    console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${compressedFile.size/1024}KB`);
-
+                    
                     // Upload to S3
                     const fileUrl = await uploadToS3(compressedFile);
-
-                    // Save metadata to MongoDB
+                    
+                    // Save metadata
                     const metadataResponse = await fetch('/api/save-photo-metadata', {
                         method: 'POST',
                         headers: {
@@ -73,7 +93,6 @@ async function handlePhotoUpload() {
                         body: JSON.stringify({
                             url: fileUrl,
                             originalName: file.name
-                            // Add other metadata here
                         })
                     });
 
@@ -86,18 +105,16 @@ async function handlePhotoUpload() {
                     console.error(`Failed to process ${file.name}:`, error);
                     failCount++;
                 }
-            });
+            }
 
-            // Wait for current batch to complete
-            await Promise.all(batchPromises);
-            
-            // Add a small delay between batches
-            if (i + batchSize < files.length) {
+            // Small delay between batches
+            if (i + 2 < files.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
-
-        // Show final status
+    } catch (error) {
+        console.error('Upload process error:', error);
+    } finally {
         if (failCount > 0) {
             uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
         } else {
@@ -109,16 +126,113 @@ async function handlePhotoUpload() {
             await loadPhotoMarkers();
         }
 
-    } catch (error) {
-        console.error('Upload process error:', error);
-        uploadButton.innerText = "Upload Failed";
-        alert(`Error during upload: ${error.message}`);
-    } finally {
         // Reset button after delay
         setTimeout(() => {
             uploadButton.innerText = "Upload";
             uploadButton.disabled = false;
         }, 3000);
+        
         input.value = ''; // Clear input
     }
 }
+
+// Photo markers handling
+async function loadPhotoMarkers() {
+    try {
+        const response = await fetch('/api/get-photos');
+        const photos = await response.json();
+
+        console.log("Photos fetched:", photos);
+
+        if (map.getLayer('clusters')) map.removeLayer('clusters');
+        if (map.getLayer('unclustered-photo')) map.removeLayer('unclustered-photo');
+        if (map.getSource('photoMarkers')) map.removeSource('photoMarkers');
+
+        // Load marker images if needed
+        if (!map.hasImage('camera-icon-cluster')) {
+            await new Promise((resolve, reject) => {
+                map.loadImage('/cameraiconexpand.png', (error, image) => {
+                    if (error) reject(error);
+                    map.addImage('camera-icon-cluster', image);
+                    resolve();
+                });
+            });
+        }
+
+        if (!map.hasImage('camera-icon')) {
+            await new Promise((resolve, reject) => {
+                map.loadImage('/cameraicon1.png', (error, image) => {
+                    if (error) reject(error);
+                    map.addImage('camera-icon', image);
+                    resolve();
+                });
+            });
+        }
+
+        const photoGeoJSON = {
+            type: 'FeatureCollection',
+            features: photos
+                .filter(photo => photo.latitude && photo.longitude)
+                .map(photo => ({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [photo.longitude, photo.latitude]
+                    },
+                    properties: {
+                        originalName: photo.originalName,
+                        url: photo.url,
+                        _id: photo._id
+                    }
+                }))
+        };
+
+        map.addSource('photoMarkers', {
+            type: 'geojson',
+            data: photoGeoJSON,
+            cluster: true,
+            clusterMaxZoom: 14,
+            clusterRadius: 50
+        });
+
+        map.addLayer({
+            id: 'clusters',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['has', 'point_count'],
+            layout: {
+                'icon-image': 'camera-icon-cluster',
+                'icon-size': 0.4,
+                'icon-allow-overlap': true
+            }
+        });
+
+        map.addLayer({
+            id: 'unclustered-photo',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+                'icon-image': 'camera-icon',
+                'icon-size': 0.3,
+                'icon-allow-overlap': true
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading photo markers:', error);
+    }
+}
+
+function removePhotoMarkers() {
+    if (map.getLayer('clusters')) map.removeLayer('clusters');
+    if (map.getLayer('unclustered-photo')) map.removeLayer('unclustered-photo');
+    if (map.getSource('photoMarkers')) map.removeSource('photoMarkers');
+}
+
+// Event listener
+document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
+
+// Export functions that need to be accessed from other files
+window.loadPhotoMarkers = loadPhotoMarkers;
+window.removePhotoMarkers = removePhotoMarkers;
