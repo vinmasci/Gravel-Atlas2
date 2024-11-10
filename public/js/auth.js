@@ -44,28 +44,36 @@ async function initializeAuth() {
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             cacheLocation: 'localstorage',
-            audience: 'https://dev-8jmwfh4hugvdjwh8.au.auth0.com/api/v2/',
-            scope: 'openid profile email'
+            authorizationParams: {
+                response_type: 'code',  // Changed from 'token id_token' to 'code'
+                scope: 'openid profile email'
+            }
         });
 
         console.log('Auth0 client created successfully');
 
-        if (window.location.search.includes("state=") && 
-            (window.location.search.includes("code=") || window.location.search.includes("error="))) {
+        // Check for callback
+        if (window.location.search.includes("code=") || window.location.hash.includes("access_token=")) {
             try {
                 console.log('Handling redirect callback...');
-                await auth0.handleRedirectCallback();
-                console.log('Redirect handled successfully');
-                window.history.replaceState({}, document.title, '/');
+                const result = await auth0.handleRedirectCallback();
+                console.log('Redirect handled successfully:', result);
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
             } catch (callbackError) {
                 console.error('Error handling redirect:', callbackError);
                 await clearAuthState();
             }
-        } else {
-            console.log('No authentication code found in URL');
         }
 
-        await checkAuthState();
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Authentication state after initialization:', isAuthenticated);
+        
+        if (isAuthenticated) {
+            const user = await auth0.getUser();
+            console.log('User profile:', user);
+        }
+
         await updateUI();
 
     } catch (err) {
