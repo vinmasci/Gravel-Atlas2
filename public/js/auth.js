@@ -43,10 +43,15 @@ async function initializeAuth() {
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
-            response_type: 'code',
-            scope: 'openid profile email',
+            cacheLocation: 'localstorage',
             useRefreshTokens: true,
-            cacheLocation: 'localstorage'
+            // Remove response_type and scope as Auth0 will handle these
+            // Add these options:
+            authorizationParams: {
+                response_type: 'code',
+                audience: `https://dev-8jmwfh4hugvdjwh8.au.auth0.com/api/v2/`,
+                scope: 'openid profile email'
+            }
         });
 
         console.log('Auth0 client created successfully');
@@ -149,8 +154,9 @@ async function login() {
     try {
         console.log('Starting login process...');
         await auth0.loginWithRedirect({
-            appState: { returnTo: window.location.pathname },
-            nonce: Math.random().toString(36).substring(2)
+            authorizationParams: {
+                redirect_uri: 'https://gravel-atlas2.vercel.app'
+            }
         });
     } catch (err) {
         console.error("Login failed:", err);
