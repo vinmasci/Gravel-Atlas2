@@ -1,6 +1,3 @@
-// ============================
-// SECTION: Open Segment Modal
-// ============================
 async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
     
@@ -18,9 +15,11 @@ async function openSegmentModal(title, routeId) {
     // Display the segment title and route ID in the modal
     segmentTitle.innerText = title;
     routeIdElement.innerText = `Route ID: ${routeId}`;
+    console.log("Set routeId in modal:", routeId); // Debug log
 
     // Store the current routeId for use in comments
     window.currentRouteId = routeId;
+    console.log("Stored currentRouteId:", window.currentRouteId); // Debug log
 
     // Show the modal
     modal.classList.add('show');
@@ -36,25 +35,33 @@ async function openSegmentModal(title, routeId) {
 
     // Check authentication state
     const isAuthenticated = await isUserAuthenticated();
-    
+    console.log("Auth state:", isAuthenticated); // Debug log
+
     // Show/hide comment input based on authentication
     if (addCommentSection) {
         addCommentSection.style.display = isAuthenticated ? 'block' : 'none';
+        console.log("Comment section visibility:", addCommentSection.style.display); // Debug log
     }
 
     // Always render comments, regardless of authentication
-    await renderComments(routeId);
+    console.log("About to render comments for routeId:", routeId); // Debug log
+    try {
+        await renderComments(routeId);
+        console.log("Comments rendered successfully"); // Debug log
+    } catch (error) {
+        console.error("Error rendering comments:", error); // Debug log
+    }
 }
 
 // =========================
 // SECTION: Comments
 // =========================
-async function renderComments(routeId, user) {
-    const commentsList = document.getElementById('comments-list');
-    const addCommentSection = document.getElementById('add-comment');
+async function renderComments(routeId) {
+    console.log("Rendering comments for routeId:", routeId); // Debug log
     
-    if (!commentsList || !addCommentSection) {
-        console.error("Comments elements not found");
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) {
+        console.error("Comments list element not found");
         return;
     }
 
@@ -62,13 +69,15 @@ async function renderComments(routeId, user) {
 
     try {
         // Fetch comments from the database for the given routeId
+        console.log("Fetching comments from API..."); // Debug log
         const response = await fetch(`/api/comments?routeId=${routeId}`);
-
+        
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}`);
         }
 
         const comments = await response.json();
+        console.log("Received comments:", comments); // Debug log
 
         if (comments.length === 0) {
             const noCommentsDiv = document.createElement('div');
@@ -87,16 +96,15 @@ async function renderComments(routeId, user) {
             });
         }
 
-        // Show/hide comment input based on authentication
-        if (user) {
-            addCommentSection.style.display = 'block';
-        } else {
-            addCommentSection.style.display = 'none';
+        // Check authentication state for login prompt
+        const isAuthenticated = await isUserAuthenticated();
+        if (!isAuthenticated) {
             const loginPrompt = document.createElement('div');
             loginPrompt.className = 'login-prompt';
             loginPrompt.innerHTML = '<p>Please <a href="#" onclick="login()">log in</a> to add comments.</p>';
             commentsList.appendChild(loginPrompt);
         }
+
     } catch (error) {
         console.error('Error fetching comments:', error);
         commentsList.innerHTML = '<div class="error">Error loading comments. Please try again later.</div>';
