@@ -8,6 +8,7 @@ async function openSegmentModal(title, routeId) {
     const segmentTitle = document.getElementById('segment-details');
     const routeIdElement = document.getElementById('route-id');
     const deleteButton = document.getElementById('delete-segment');
+    const addCommentSection = document.getElementById('add-comment');
 
     if (!modal || !segmentTitle || !routeIdElement || !deleteButton) {
         console.error("Modal, segment title, route ID element, or delete button not found.");
@@ -21,11 +22,7 @@ async function openSegmentModal(title, routeId) {
     // Store the current routeId for use in comments
     window.currentRouteId = routeId;
 
-    // Check if the user is logged in using Auth0
-    const isAuthenticated = await isUserAuthenticated();
-    const user = isAuthenticated ? await getCurrentUser() : null;
-
-    // Show the modal regardless of authentication
+    // Show the modal
     modal.classList.add('show');
     modal.style.display = 'block';
 
@@ -37,8 +34,16 @@ async function openSegmentModal(title, routeId) {
         deleteSegment(routeId);
     };
 
-    // Render comments for the segment
-    await renderComments(routeId, user);
+    // Check authentication state
+    const isAuthenticated = await isUserAuthenticated();
+    
+    // Show/hide comment input based on authentication
+    if (addCommentSection) {
+        addCommentSection.style.display = isAuthenticated ? 'block' : 'none';
+    }
+
+    // Always render comments, regardless of authentication
+    await renderComments(routeId);
 }
 
 // =========================
