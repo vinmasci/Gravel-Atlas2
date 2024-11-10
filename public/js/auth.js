@@ -128,6 +128,19 @@ async function updateUI() {
     }
 }
 
+async function isUserAuthenticated() {
+    if (!auth0) {
+        console.error('Auth0 client not initialized');
+        return false;
+    }
+    try {
+        return await auth0.isAuthenticated();
+    } catch (err) {
+        console.error('Error checking authentication:', err);
+        return false;
+    }
+}
+
 async function checkAuthState() {
     if (!auth0) {
         console.error('Auth0 client not initialized');

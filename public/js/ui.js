@@ -198,11 +198,31 @@ document.addEventListener('DOMContentLoaded', function () {
     dropdown.style.display = 'none'; // Ensure hidden on page load
 });
 
-// Toggle the dropdown visibility and the active state of the Contribute tab
-function toggleContributeDropdown() {
+async function toggleContributeDropdown() {
+    // First check authentication
+    const isAuthenticated = await isUserAuthenticated();
     const dropdown = document.getElementById('contribute-dropdown');
     const contributeTab = document.getElementById('draw-route-tab');
+    const loginRequired = document.querySelector('.login-required');
 
+    if (!isAuthenticated) {
+        console.log("User not authenticated");
+        // Show login required message
+        if (loginRequired) {
+            loginRequired.style.display = 'inline';
+        }
+        // Prompt user to login
+        alert('Please log in to access contribution features');
+        login(); // This will trigger the Auth0 login
+        return;
+    }
+
+    // Hide login required message if authenticated
+    if (loginRequired) {
+        loginRequired.style.display = 'none';
+    }
+
+    // Existing dropdown toggle logic
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
         console.log("Opening dropdown and setting active state");
         dropdown.style.display = 'flex'; // Show the dropdown
