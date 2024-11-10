@@ -157,8 +157,13 @@ async function renderComments(routeId) {
 
 async function deleteComment(commentId) {
     try {
-        const response = await fetch(`/api/comments/${commentId}`, {
+        // Updated API endpoint format
+        const response = await fetch('/api/comments', {
             method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ commentId }) // Send the ID in the request body
         });
         
         if (!response.ok) {

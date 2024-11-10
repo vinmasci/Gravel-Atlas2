@@ -15,14 +15,12 @@ export default async function handler(req, res) {
         const db = client.db('photoApp');
         const collection = db.collection('comments');
 
-        // GET comments
         if (req.method === 'GET') {
             const { routeId } = req.query;
             const comments = await collection.find({ routeId }).toArray();
             return res.status(200).json(comments);
         }
 
-        // POST new comment
         if (req.method === 'POST') {
             const { routeId, username, text } = req.body;
             console.log('Received POST request with body:', { routeId, username, text });
@@ -46,24 +44,28 @@ export default async function handler(req, res) {
             return res.status(201).json({ ...comment, _id: result.insertedId });
         }
 
-        // DELETE comment
         if (req.method === 'DELETE') {
-            const commentId = req.url.split('/').pop();
-            await collection.deleteOne({ _id: new ObjectId(commentId) });
-            return res.status(200).json({ message: 'Comment deleted successfully' });
+            const { commentId } = JSON.parse(req.body);
+            console.log('Attempting to delete comment:', commentId);
+
+            if (!commentId) {
+                return res.status(400).json({ error: 'Comment ID is required' });
+            }
+
+            try {
+                const result = await collection.deleteOne({ _id: new ObjectId(commentId) });
+                
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({ error: 'Comment not found' });
+                }
+                
+                return res.status(200).json({ message: 'Comment deleted successfully' });
+            } catch (error) {
+                console.error('Error deleting comment:', error);
+                return res.status(500).json({ error: 'Error deleting comment' });
+            }
         }
 
-        // Flag comment
-        if (req.method === 'POST' && req.url.includes('/flag')) {
-            const commentId = req.url.split('/')[2]; // Extract ID from /comments/{id}/flag
-            await collection.updateOne(
-                { _id: new ObjectId(commentId) },
-                { $set: { flagged: true } }
-            );
-            return res.status(200).json({ message: 'Comment flagged successfully' });
-        }
-
-        // If none of the above methods match
         res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
 
