@@ -101,7 +101,12 @@ async function renderComments(routeId, user) {
 async function addComment() {
     const commentInput = document.getElementById('comment-input');
     const commentText = commentInput.value.trim();
-    const routeId = window.currentRouteId;
+    
+    // Get routeId from the element where we stored it
+    const routeIdElement = document.getElementById('route-id');
+    const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
+
+    console.log('Adding comment with routeId:', routeId); // Debug log
 
     if (!commentText) {
         alert('Please enter a comment.');
@@ -121,14 +126,15 @@ async function addComment() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                routeId: routeId,
+                routeId: routeId,  // Now we're sending the actual routeId
                 username: user.name || user.email,
                 text: commentText
             })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(`HTTP error ${response.status}: ${errorData.error}`);
         }
 
         // Clear input and refresh comments
