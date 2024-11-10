@@ -45,9 +45,11 @@ async function initializeAuth() {
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             cacheLocation: 'localstorage',
             authorizationParams: {
-                response_type: 'code',  // Changed from 'token id_token' to 'code'
+                response_type: 'code',
                 scope: 'openid profile email'
-            }
+            },
+            useRefreshTokens: false,  // Added this
+            timeoutInSeconds: 60      // Added this
         });
 
         console.log('Auth0 client created successfully');
