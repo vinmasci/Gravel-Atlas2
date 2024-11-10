@@ -15,7 +15,7 @@
 
     <style>
         /* Reset and Layout Testss */
-        body {
+body {
     margin: 0;
     padding: 0;
 }
@@ -28,29 +28,30 @@
     z-index: 0;
 }
 
+/* Map Layer Optionss */
 .map-layer-options {
     position: absolute;
     top: 10px;
     right: 10px;
     z-index: 10;
     background-color: rgba(255, 255, 255, 0.8);
-    padding: 8px;
+    padding: 8px;  /* Reduced padding */
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .map-layer-options label {
-    font-size: 12px;
+    font-size: 12px;  /* Smaller label text */
     margin-bottom: 2px;
     display: block;
 }
 
 .map-layer-options select {
-    font-size: 11px;
-    padding: 4px 6px;
-    height: auto;
-    width: auto;
-    min-width: 120px;
+    font-size: 11px;  /* Smaller select text */
+    padding: 4px 6px;  /* Smaller padding inside select */
+    height: auto;  /* Override Bootstrap's default height */
+    width: auto;  /* Make width fit content */
+    min-width: 120px;  /* Minimum width to ensure readability */
 }
 
 .map-layer-options button {
@@ -61,6 +62,7 @@
     cursor: pointer;
 }
 
+/* Mapbox Popup Close Button */
 .mapboxgl-popup-close-button {
     outline: none;
     box-shadow: none;
@@ -74,6 +76,7 @@
     background: none;
 }
 
+/* Tabs at Bottom */
 .tabs {
     position: fixed;
     bottom: 0;
@@ -98,15 +101,16 @@
 
 .draw-route-tab.active,
 .tab.active {
-    background-color: #34495e;
+    background-color: #34495e; /* Darker background for active tabs *//
 }
 
+/* Dropdown Tabs (Button Group) */
 #contribute-dropdown {
     display: none;
     position: absolute;
     bottom: 60px;
-    left: 4px;
-    transform: none;
+    left: 8px; /* Center it over the Contribute tab (half of 25% width) */
+    transform: none; /* Remove the transform */
     background-color: #f9f9f9;
     border-radius: 5px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
@@ -119,8 +123,8 @@
 #contribute-dropdown .btn {
     color: #333;
     cursor: pointer;
-    padding: 4px 6px;
-    font-size: 10px;
+    padding: 4px 6px; /* Reduced padding */
+    font-size: 10px; /* Smaller font size */
     transition: background-color 0.3s ease;
     border-radius: 3px;
     border: none;
@@ -137,6 +141,8 @@
     color: #ffffff;
 }
 
+
+/* Modal Styling */
 .modal {
     display: none;
     position: fixed;
@@ -183,6 +189,7 @@
     margin-bottom: 10px;
 }
 
+/* Segment Modal */
 #segment-modal {
     background-color: rgba(255, 255, 255, 0.95);
     max-height: 40vh;
@@ -201,6 +208,7 @@
     cursor: pointer;
 }
 
+/* Modal Button */
 .modal-content button,
 #segment-modal button {
     margin-top: 10px;
@@ -217,38 +225,20 @@
     background-color: rgb(123, 11, 11) !important;
 }
 
+/* Control Panel */
 #control-panel {
-    position: absolute !important;
-    bottom: 20px !important;
-    left: 10px !important;
-    z-index: 1 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-#draw-route-control-panel {
-    position: absolute !important;
-    bottom: 20px !important;
-    left: 10px !important;
-    z-index: 1 !important;
-    width: 100%;
+    display: none;
+    position: absolute;
+    bottom: 100px;
+    left: 5px;
     background-color: white;
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
 }
 
-#draw-route-control-panel .drawing-options {
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-#draw-route-control-panel .btn-group {
-    display: flex;
-    gap: 5px;
-    margin-top: 10px;
-}
-
+/* Drawing Options */
 .drawing-options {
     margin-top: 10px;
 }
@@ -268,6 +258,7 @@
     margin-top: 10px;
 }
 
+/* Comments Section */
 #comments-section {
     margin-top: 10px;
 }
@@ -282,7 +273,7 @@
     resize: none;
 }
 
-#gravel-style {
+    #gravel-style {
     width: 100% !important;
     margin-top: 0px;
     background-color: white;
@@ -301,7 +292,7 @@
     flex: 1;
     font-size: 14px;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 8px; /* Apply consistent border-radius to all buttons */
 }
 
 #undo-btn {
@@ -325,10 +316,11 @@
 }
 
 .drawing-options label {
-    white-space: nowrap;
-    margin-bottom: 8px;
-    font-size: 13px;
+    white-space: nowrap;  /* Prevent text wrapping */
+    margin-bottom: 8px;   /* Add some spacing between options */
+    font-size: 13px;      /* Slightly larger font */
 }
+
 
 #draw-route-control-panel,
 #photo-upload-control-panel {
@@ -347,6 +339,7 @@
     box-shadow: none !important;
 }
 
+/* Reset any modal-like properties */
 .control-panel .modal,
 .control-panel .modal-content {
     position: relative !important;
@@ -373,15 +366,15 @@
     cursor: pointer;
     font-size: 12px;
     transition: background-color 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);  /* Shadow on button instead of container */
 }
 
 #auth-container button:hover {
-    background-color: #34495e;
+    background-color: #34495e;  /* Slightly lighter blue on hover */
 }
 
 #auth-container #logoutBtn {
-    background-color: #95a5a6;
+    background-color: #95a5a6;  /* Different color for logout */
 }
 
 #auth-container #logoutBtn:hover {
@@ -390,8 +383,8 @@
 
 #userInfo {
     font-size: 14px;
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    color: white;  /* Changed to white since no background */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);  /* Make text readable on any background */
     margin-left: 8px;
     display: inline-block;
     vertical-align: middle;
@@ -458,24 +451,25 @@
 
 
 <!-- Control Panel -->
-<div id="control-panel">
-</div>
-
+<div id="control-panel" class="btn-group">
+    
 <!-- Draw Route Control Panel -->
-<div id="draw-route-control-panel" style="position: absolute !important; bottom: 20px !important; left: 10px !important; z-index: 1 !important; width: 100%; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
-    <div class="drawing-options" style="margin-top: 0; margin-bottom: 10px;">
-        <h5>Gravel Type:</h5>
-        <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
-        <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #0050c1;"></i> Intermediate</label>
-        <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
-        <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
-        <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
-        <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
-    </div>
-    <div class="btn-group" style="display: flex; gap: 5px; margin-top: 10px;">
-        <button id="undo-btn" class="btn btn-primary">Undo</button>
-        <button id="reset-btn" class="btn btn-warning">Reset</button>
-        <button id="save-btn" class="btn btn-success">Save</button>
+<div id="draw-route-control-panel" class="control-panel" style="display: none;">
+    <div id="gravel-style" style="width: 100%; margin-top: 0px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+        <div class="drawing-options">
+            <h5>Gravel Type:</h5>
+            <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+            <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #0050c1;"></i> Intermediate</label>
+            <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+            <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+            <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
+            <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+        </div>
+        <div class="btn-group">
+            <button id="undo-btn" class="btn btn-primary" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-size: 14px;">Undo</button>
+            <button id="reset-btn" class="btn btn-warning" style="font-size: 14px;">Reset</button>
+            <button id="save-btn" class="btn btn-success" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px; font-size: 14px;">Save</button>
+        </div>
     </div>
 </div>
 
