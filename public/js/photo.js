@@ -1,69 +1,27 @@
 // public/js/photo.js
 async function compressImage(file) {
+    // First check if Compressor is available
+    if (typeof Compressor === 'undefined') {
+        console.warn('Compressor library not found, proceeding with original file');
+        return file;
+    }
+
     return new Promise((resolve, reject) => {
         new Compressor(file, {
             quality: 0.8,
             maxWidth: 1600,
             maxHeight: 1200,
+            convertSize: 1000000, // Convert to JPG if larger than 1MB
             success(result) {
+                console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${result.size/1024}KB`);
                 resolve(result);
             },
             error(err) {
-                reject(err);
+                console.warn(`Compression failed for ${file.name}, using original file:`, err);
+                resolve(file); // Fallback to original file instead of rejecting
             }
         });
     });
-}
-
-// Function to extract EXIF data
-function extractExifData(arrayBuffer) {
-    try {
-        const parser = exifParser.create(arrayBuffer);
-        const exifData = parser.parse();
-        if (exifData.tags.GPSLatitude && exifData.tags.GPSLongitude) {
-            return {
-                latitude: exifData.tags.GPSLatitude,
-                longitude: exifData.tags.GPSLongitude
-            };
-        }
-    } catch (error) {
-        console.warn('EXIF extraction failed:', error);
-    }
-    return { latitude: null, longitude: null };
-}
-
-async function uploadToS3(file) {
-    try {
-        // Get pre-signed URL
-        const response = await fetch(
-            `/api/get-upload-url?fileType=${file.type}&fileName=${encodeURIComponent(file.name)}`,
-            { method: 'GET' }
-        );
-        
-        if (!response.ok) {
-            throw new Error('Failed to get upload URL');
-        }
-        
-        const { uploadURL, fileUrl } = await response.json();
-
-        // Upload to S3
-        const uploadResponse = await fetch(uploadURL, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type
-            }
-        });
-
-        if (!uploadResponse.ok) {
-            throw new Error('Upload to S3 failed');
-        }
-
-        return fileUrl;
-    } catch (error) {
-        console.error('S3 upload error:', error);
-        throw error;
-    }
 }
 
 async function handlePhotoUpload() {
@@ -79,77 +37,100 @@ async function handlePhotoUpload() {
     uploadButton.disabled = true;
     uploadButton.innerText = "Uploading...";
 
+    // Process files in batches of 2
+    const batchSize = 2;
+    let successCount = 0;
+    let failureCount = 0;
+
     try {
-        // Process files in batches of 3
-        const batchSize = 3;
         for (let i = 0; i < files.length; i += batchSize) {
             const batch = files.slice(i, i + batchSize);
-            
-            // Update button text with progress
             uploadButton.innerText = `Uploading ${i + 1} of ${files.length}...`;
 
-            const batchPromises = batch.map(async (file) => {
-                // Read file for EXIF data
-                const arrayBuffer = await file.arrayBuffer();
-                const { latitude, longitude } = extractExifData(arrayBuffer);
+            const formData = new FormData();
 
-                // Compress image
-                const compressedFile = await compressImage(file);
-                
-                // Upload to S3
-                const fileUrl = await uploadToS3(compressedFile);
+            for (const file of batch) {
+                try {
+                    console.log(`Processing ${file.name}, size: ${file.size/1024}KB`);
+                    const compressedFile = await compressImage(file);
+                    formData.append('photo', compressedFile, compressedFile.name);
+                } catch (error) {
+                    console.error(`Error processing ${file.name}:`, error);
+                    failureCount++;
+                    continue;
+                }
+            }
 
-                // Save metadata
-                const metadataResponse = await fetch('/api/save-photo-metadata', {
+            try {
+                const response = await fetch('/api/upload-photo', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url: fileUrl,
-                        latitude,
-                        longitude,
-                        originalName: file.name
-                    })
+                    body: formData
                 });
 
-                if (!metadataResponse.ok) {
-                    throw new Error('Failed to save photo metadata');
+                if (!response.ok) {
+                    throw new Error(`Server responded with status ${response.status}`);
                 }
 
-                return metadataResponse.json();
-            });
+                const result = await response.json();
+                console.log('Batch upload successful:', result);
+                successCount += batch.length;
+            } catch (error) {
+                console.error('Batch upload failed:', error);
+                failureCount += batch.length;
+            }
 
-            // Wait for current batch to complete
-            await Promise.all(batchPromises);
-            
-            // Add a small delay between batches
+            // Add delay between batches
             if (i + batchSize < files.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
 
+        // Update UI with final status
+        if (failureCount === 0) {
+            uploadButton.innerText = "Upload Complete!";
+        } else {
+            uploadButton.innerText = `Completed: ${successCount} success, ${failureCount} failed`;
+        }
+
         // Refresh the photo markers
         await loadPhotoMarkers();
-        
-        uploadButton.innerText = "Upload Complete!";
-        setTimeout(() => {
-            uploadButton.innerText = "Upload";
-            uploadButton.disabled = false;
-        }, 2000);
-
-        // Clear the file input
-        input.value = '';
 
     } catch (error) {
-        console.error('Upload failed:', error);
+        console.error('Upload process error:', error);
         uploadButton.innerText = "Upload Failed";
+    } finally {
+        // Reset button after 3 seconds
         setTimeout(() => {
             uploadButton.innerText = "Upload";
             uploadButton.disabled = false;
-        }, 2000);
+        }, 3000);
+
+        // Clear input
+        input.value = '';
     }
 }
 
 // Add event listener to photo upload button
 document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
+
+// Optional: Add drag and drop support
+const dropArea = document.getElementById('dropArea');
+if (dropArea) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        document.getElementById('photoFilesInput').files = files;
+        handlePhotoUpload();
+    }
+}
