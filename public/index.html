@@ -229,7 +229,7 @@ body {
 #control-panel {
     display: none;
     position: absolute;
-    bottom: 20px;
+    bottom: 70px;
     left: 1px;
     background-color: white;
     padding: 10px;
@@ -398,25 +398,16 @@ body {
         <div class="modal-body">
             <div id="comments-section">
                 <h5>Comments</h5>
-                <div id="comments-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
+                <div id="comments-list">
                     <!-- Existing comments will be dynamically added here -->
                 </div>
                 <div id="add-comment">
                     <textarea id="comment-input" placeholder="Add a comment..." class="form-control" rows="2"></textarea>
-                    <button id="submit-comment" class="btn btn-primary mt-2" onclick="addComment()">Submit</button>
+                    <button id="submit-comment" class="btn btn-primary mt-2" onclick="(async () => await addComment())()">Submit</button>
                 </div>
+                <!-- Route ID moved to bottom -->
+                <div id="route-id" style="font-size: 6px; color: #cccccc; margin-top: 10px; text-align: right;"></div>
             </div>
-        </div>
-        
-        <!-- Footer with Buttons and Route ID -->
-        <div class="modal-footer" style="display: flex; flex-direction: column; align-items: flex-end;">
-            <!-- Buttons with smaller size -->
-            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                <button id="flag-segment" class="btn btn-warning" style="font-size: 12px; padding: 4px 8px;">Flag</button>
-                <button id="delete-segment" class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;">Delete</button>
-            </div>
-            <!-- Route ID positioned below the buttons -->
-            <p id="route-id" style="font-size: x-small; color: gray; margin: 0;">Route ID: </p>
         </div>
     </div>
 </div>
