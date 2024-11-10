@@ -47,20 +47,23 @@ async function initializeAuth() {
             authorizationParams: {
                 response_type: 'code',
                 scope: 'openid profile email'
-            },
-            useRefreshTokens: false,  // Added this
-            timeoutInSeconds: 60      // Added this
+            }
         });
 
         console.log('Auth0 client created successfully');
 
-        // Check for callback
-        if (window.location.search.includes("code=") || window.location.hash.includes("access_token=")) {
+        // Here's where the updated code goes
+        if (window.location.search.includes("code=")) {
             try {
                 console.log('Handling redirect callback...');
                 const result = await auth0.handleRedirectCallback();
-                console.log('Redirect handled successfully:', result);
-                // Clean up URL
+                console.log('Redirect handled successfully', result);
+                
+                // Add this to handle the return state
+                if (result.appState && result.appState.returnTo) {
+                    window.location.href = result.appState.returnTo;
+                }
+                
                 window.history.replaceState({}, document.title, window.location.pathname);
             } catch (callbackError) {
                 console.error('Error handling redirect:', callbackError);
@@ -68,6 +71,7 @@ async function initializeAuth() {
             }
         }
 
+        // Rest of your existing code...
         const isAuthenticated = await auth0.isAuthenticated();
         console.log('Authentication state after initialization:', isAuthenticated);
         
@@ -150,16 +154,11 @@ async function checkAuthState() {
 // SECTION: Authentication Actions
 // ============================
 async function login() {
-    if (!auth0) {
-        console.error('Auth0 client not initialized');
-        return;
-    }
-
     try {
         console.log('Starting login process...');
         await auth0.loginWithRedirect({
-            authorizationParams: {
-                redirect_uri: 'https://gravel-atlas2.vercel.app'
+            appState: { 
+                returnTo: window.location.pathname 
             }
         });
     } catch (err) {
