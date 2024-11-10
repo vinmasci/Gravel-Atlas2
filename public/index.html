@@ -273,7 +273,7 @@ body {
     resize: none;
 }
 
-    #gravel-style {
+#gravel-style {
     width: 100% !important;
     margin-top: 0px;
     background-color: white;
@@ -292,7 +292,7 @@ body {
     flex: 1;
     font-size: 14px;
     padding: 8px 12px;
-    border-radius: 8px; /* Apply consistent border-radius to all buttons */
+    border-radius: 8px;
 }
 
 #undo-btn {
@@ -465,10 +465,12 @@ body {
             <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
             <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
         </div>
-        <div class="btn-group">
-            <button id="undo-btn" class="btn btn-primary" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-size: 14px;">Undo</button>
-            <button id="reset-btn" class="btn btn-warning" style="font-size: 14px;">Reset</button>
-            <button id="save-btn" class="btn btn-success" style="border-top-right-radius: 8px; border-bottom-right-radius: 8px; font-size: 14px;">Save</button>
+        <div id="gravel-style" style="width: 100% !important; margin-top: 0px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+            <div class="btn-group">
+                <button id="undo-btn" class="btn btn-primary">Undo</button>
+                <button id="reset-btn" class="btn btn-warning">Reset</button>
+                <button id="save-btn" class="btn btn-success">Save</button>
+            </div>
         </div>
     </div>
 </div>
