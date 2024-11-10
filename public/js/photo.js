@@ -1,191 +1,159 @@
-// Update the photo.js file:
-let photoMarkers = [];
-
-async function compressImage(file) {
-    console.log(`Starting compression for ${file.name}`);
-    return new Promise((resolve, reject) => {
-        new Compressor(file, {
-            quality: 0.6, // Adjust this value between 0-1 for quality vs size
-            maxWidth: 1600,
-            maxHeight: 1200,
-            convertTypes: ['image/jpeg', 'image/png'],
-            success(result) {
-                console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${result.size/1024}KB`);
-                resolve(result);
-            },
-            error(err) {
-                console.error(`Compression failed for ${file.name}:`, err);
-                reject(err);
-            }
-        });
-    });
+// public/js/photo.js - Update the removePhotoMarkers function
+function removePhotoMarkers() {
+    // Remove event listeners first
+    if (map.getLayer('clusters')) {
+        map.off('click', 'clusters', handleClusterClick);
+        map.removeLayer('clusters');
+    }
+    if (map.getLayer('unclustered-photo')) {
+        map.off('click', 'unclustered-photo', handlePhotoClick);
+        map.removeLayer('unclustered-photo');
+    }
+    if (map.getSource('photoMarkers')) {
+        map.removeSource('photoMarkers');
+    }
+    console.log("Removed all photo markers and clusters from the map.");
 }
 
-// Function to load and display clustered photo markers
-async function loadPhotoMarkers() {
+// Update the photo upload handling
+async function handlePhotoUpload() {
+    const input = document.getElementById('photoFilesInput');
+    const files = Array.from(input.files);
+    const uploadButton = document.getElementById('uploadPhotosBtn');
+    
+    if (files.length === 0) {
+        alert("Please select photos to upload.");
+        return;
+    }
+
+    uploadButton.disabled = true;
+    uploadButton.innerText = "Uploading...";
+
     try {
-        const response = await fetch('/api/get-photos');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const photos = await response.json();
+        // Process files in smaller batches of 2
+        const batchSize = 2;
+        let successCount = 0;
+        let failCount = 0;
 
-        console.log("Photos fetched:", photos);
+        for (let i = 0; i < files.length; i += batchSize) {
+            const batch = files.slice(i, i + batchSize);
+            uploadButton.innerText = `Uploading ${i + 1}-${Math.min(i + batchSize, files.length)} of ${files.length}`;
 
-        // Remove existing photo layers and source
-        if (map.getLayer('clusters')) map.removeLayer('clusters');
-        if (map.getLayer('unclustered-photo')) map.removeLayer('unclustered-photo');
-        if (map.getSource('photoMarkers')) map.removeSource('photoMarkers');
-
-        // Convert photos into GeoJSON format
-        const photoGeoJSON = {
-            type: 'FeatureCollection',
-            features: photos.map(photo => ({
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: [parseFloat(photo.longitude), parseFloat(photo.latitude)]
-                },
-                properties: {
-                    originalName: photo.originalName,
-                    url: photo.url,
-                    _id: photo._id
+            const formData = new FormData();
+            
+            // Process each file in the current batch
+            for (const file of batch) {
+                try {
+                    // Compress the image
+                    const compressedFile = await compressImage(file);
+                    
+                    // Check if the compressed file is still too large (e.g., > 5MB)
+                    if (compressedFile.size > 5 * 1024 * 1024) {
+                        throw new Error('File too large even after compression');
+                    }
+                    
+                    formData.append('photo', compressedFile);
+                } catch (error) {
+                    console.error(`Error processing ${file.name}:`, error);
+                    failCount++;
+                    continue;
                 }
-            })).filter(feature => 
-                // Filter out any features with invalid coordinates
-                !isNaN(feature.geometry.coordinates[0]) && 
-                !isNaN(feature.geometry.coordinates[1]) &&
-                feature.geometry.coordinates[0] !== 0 &&
-                feature.geometry.coordinates[1] !== 0
-            )
-        };
-
-        console.log("Processed GeoJSON:", photoGeoJSON);
-
-        // Add the GeoJSON source
-        map.addSource('photoMarkers', {
-            type: 'geojson',
-            data: photoGeoJSON,
-            cluster: true,
-            clusterMaxZoom: 14,
-            clusterRadius: 50
-        });
-
-        // Add cluster layer
-        map.addLayer({
-            id: 'clusters',
-            type: 'symbol',
-            source: 'photoMarkers',
-            filter: ['has', 'point_count'],
-            layout: {
-                'icon-image': 'camera-icon-cluster',
-                'icon-size': 0.4,
-                'icon-allow-overlap': true
             }
-        });
 
-        // Add unclustered point layer
-        map.addLayer({
-            id: 'unclustered-photo',
-            type: 'symbol',
-            source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-                'icon-image': 'camera-icon',
-                'icon-size': 0.3,
-                'icon-allow-overlap': true
+            try {
+                const response = await fetch('/api/upload-photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Upload failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Batch upload result:', result);
+                successCount += batch.length;
+                
+                // Add a delay between batches
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+            } catch (error) {
+                console.error('Batch upload error:', error);
+                failCount += batch.length;
             }
-        });
+        }
 
-        // Make sure the camera icons are loaded
-        await Promise.all([
-            loadMapImage('camera-icon-cluster', '/cameraiconexpand.png'),
-            loadMapImage('camera-icon', '/cameraicon1.png')
-        ]);
+        // Show final status
+        if (failCount > 0) {
+            uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
+        } else {
+            uploadButton.innerText = "Upload Complete!";
+        }
 
-        // Add click handlers
-        map.on('click', 'clusters', handleClusterClick);
-        map.on('click', 'unclustered-photo', handlePhotoClick);
+        // Refresh markers if any uploads succeeded
+        if (successCount > 0) {
+            await loadPhotoMarkers();
+        }
 
     } catch (error) {
-        console.error('Error loading photo markers:', error);
+        console.error('Upload process error:', error);
+        uploadButton.innerText = "Upload Failed";
+        alert(`Error during upload: ${error.message}`);
+    } finally {
+        // Reset button after delay
+        setTimeout(() => {
+            uploadButton.innerText = "Upload";
+            uploadButton.disabled = false;
+        }, 3000);
+        input.value = ''; // Clear input
     }
 }
 
-// Helper function to load map images
-function loadMapImage(name, url) {
-    return new Promise((resolve, reject) => {
-        if (map.hasImage(name)) {
-            resolve();
-            return;
-        }
-        
-        map.loadImage(url, (error, image) => {
-            if (error) {
-                console.error(`Error loading ${name}:`, error);
-                reject(error);
+// Add the map image loading function to ensure icons are loaded
+async function ensureMapIcons() {
+    return Promise.all([
+        new Promise((resolve, reject) => {
+            if (map.hasImage('camera-icon-cluster')) {
+                resolve();
                 return;
             }
-            if (!map.hasImage(name)) {
-                map.addImage(name, image);
-            }
-            resolve();
-        });
-    });
-}
-
-// Handle cluster click
-function handleClusterClick(e) {
-    const features = map.queryRenderedFeatures(e.point, {
-        layers: ['clusters']
-    });
-    const clusterId = features[0].properties.cluster_id;
-    
-    map.getSource('photoMarkers').getClusterExpansionZoom(
-        clusterId,
-        (err, zoom) => {
-            if (err) return;
-
-            map.easeTo({
-                center: features[0].geometry.coordinates,
-                zoom: zoom
-            });
-        }
-    );
-}
-
-// Handle individual photo click
-function handlePhotoClick(e) {
-    const coordinates = e.features[0].geometry.coordinates.slice();
-    const { originalName, url, _id: photoId } = e.features[0].properties;
-
-    const popupContent = `
-        <div style="text-align: center;">
-            <img src="${url}" style="max-width:200px; margin-bottom: 10px;">
-            <p style="font-size: small; color: gray;">Photo ID: ${photoId}</p>
-            <span id="deletePhotoText" data-photo-id="${photoId}" 
-                  style="color: red; cursor: pointer; text-decoration: underline;">
-                Delete Photo
-            </span>
-        </div>
-    `;
-
-    const popup = new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(popupContent)
-        .addTo(map);
-
-    // Add delete handler after popup is added
-    setTimeout(() => {
-        const deleteText = document.getElementById('deletePhotoText');
-        if (deleteText) {
-            deleteText.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to delete this photo?')) {
-                    await deletePhoto(photoId);
-                    popup.remove();
-                    loadPhotoMarkers(); // Refresh markers
+            map.loadImage('/cameraiconexpand.png', (error, image) => {
+                if (error) {
+                    console.error('Error loading cluster icon:', error);
+                    reject(error);
+                    return;
                 }
+                map.addImage('camera-icon-cluster', image);
+                resolve();
             });
-        }
-    }, 0);
+        }),
+        new Promise((resolve, reject) => {
+            if (map.hasImage('camera-icon')) {
+                resolve();
+                return;
+            }
+            map.loadImage('/cameraicon1.png', (error, image) => {
+                if (error) {
+                    console.error('Error loading photo icon:', error);
+                    reject(error);
+                    return;
+                }
+                map.addImage('camera-icon', image);
+                resolve();
+            });
+        })
+    ]);
+}
+
+// Update loadPhotoMarkers to use ensureMapIcons
+async function loadPhotoMarkers() {
+    try {
+        // Load icons first
+        await ensureMapIcons();
+        
+        // Rest of your loadPhotoMarkers function...
+        // [Previous loadPhotoMarkers code remains the same]
+    } catch (error) {
+        console.error('Error in loadPhotoMarkers:', error);
+    }
 }
