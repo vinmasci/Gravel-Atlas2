@@ -56,28 +56,75 @@ async function openSegmentModal(title, routeId) {
 // =========================
 // SECTION: Comments
 // =========================
-async function renderComments(routeId) {
-    console.log("Rendering comments for routeId:", routeId); // Debug log
+function createCommentElement(comment, currentUser) {
+    const commentDiv = document.createElement('div');
+    commentDiv.className = 'comment';
     
+    // Create content div
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'comment-content';
+    contentDiv.innerHTML = `
+        <strong>${comment.username}</strong>: ${comment.text}
+        <div class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</div>
+    `;
+    
+    // Create actions div
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'comment-actions';
+    
+    // Add delete button only if it's the user's comment
+    if (currentUser && comment.username === currentUser.name) {
+        const deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        deleteButton.className = 'delete-comment';
+        deleteButton.onclick = async () => {
+            if (confirm('Are you sure you want to delete this comment?')) {
+                await deleteComment(comment._id);
+            }
+        };
+        actionsDiv.appendChild(deleteButton);
+    }
+    
+    // Add flag button for all users except the comment author
+    if (currentUser && comment.username !== currentUser.name) {
+        const flagButton = document.createElement('button');
+        flagButton.innerHTML = '<i class="fa-solid fa-flag"></i>';
+        flagButton.className = 'flag-comment';
+        flagButton.onclick = () => {
+            if (confirm('Are you sure you want to flag this comment?')) {
+                flagComment(comment._id);
+            }
+        };
+        actionsDiv.appendChild(flagButton);
+    }
+    
+    commentDiv.appendChild(contentDiv);
+    commentDiv.appendChild(actionsDiv);
+    return commentDiv;
+}
+
+async function renderComments(routeId) {
+    console.log("Rendering comments for routeId:", routeId);
     const commentsList = document.getElementById('comments-list');
     if (!commentsList) {
         console.error("Comments list element not found");
         return;
     }
 
-    commentsList.innerHTML = ''; // Clear previous comments
+    commentsList.innerHTML = '';
 
     try {
-        // Fetch comments from the database for the given routeId
-        console.log("Fetching comments from API..."); // Debug log
-        const response = await fetch(`/api/comments?routeId=${routeId}`);
-        
+        const [currentUser, response] = await Promise.all([
+            getCurrentUser(),
+            fetch(`/api/comments?routeId=${routeId}`)
+        ]);
+
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}`);
         }
 
         const comments = await response.json();
-        console.log("Received comments:", comments); // Debug log
+        console.log("Received comments:", comments);
 
         if (comments.length === 0) {
             const noCommentsDiv = document.createElement('div');
@@ -86,40 +133,74 @@ async function renderComments(routeId) {
             commentsList.appendChild(noCommentsDiv);
         } else {
             comments.forEach((comment) => {
-                const commentDiv = document.createElement('div');
-                commentDiv.className = 'comment';
-                commentDiv.innerHTML = `
-                    <strong>${comment.username}</strong>: ${comment.text}
-                    <div class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</div>
-                `;
-                commentsList.appendChild(commentDiv);
+                const commentElement = createCommentElement(comment, currentUser);
+                commentsList.appendChild(commentElement);
             });
         }
 
-        // Check authentication state for login prompt
-        const isAuthenticated = await isUserAuthenticated();
-        if (!isAuthenticated) {
+        // Show/hide comment input based on authentication
+        const addCommentSection = document.getElementById('add-comment');
+        if (currentUser) {
+            addCommentSection.style.display = 'block';
+        } else {
+            addCommentSection.style.display = 'none';
             const loginPrompt = document.createElement('div');
             loginPrompt.className = 'login-prompt';
             loginPrompt.innerHTML = '<p>Please <a href="#" onclick="login()">log in</a> to add comments.</p>';
             commentsList.appendChild(loginPrompt);
         }
-
     } catch (error) {
         console.error('Error fetching comments:', error);
         commentsList.innerHTML = '<div class="error">Error loading comments. Please try again later.</div>';
     }
 }
 
+async function deleteComment(commentId) {
+    try {
+        const response = await fetch(`/api/comments/${commentId}`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete comment');
+        }
+        
+        // Get the current routeId from the modal
+        const routeIdElement = document.getElementById('route-id');
+        const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
+        
+        // Refresh comments after successful deletion
+        await renderComments(routeId);
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Failed to delete comment. Please try again.');
+    }
+}
+
+async function flagComment(commentId) {
+    try {
+        const response = await fetch(`/api/comments/${commentId}/flag`, {
+            method: 'POST',
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to flag comment');
+        }
+        
+        alert('Comment has been flagged for review.');
+    } catch (error) {
+        console.error('Error flagging comment:', error);
+        alert('Failed to flag comment. Please try again.');
+    }
+}
+
 async function addComment() {
     const commentInput = document.getElementById('comment-input');
     const commentText = commentInput.value.trim();
-    
-    // Get routeId from the element where we stored it
     const routeIdElement = document.getElementById('route-id');
     const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
 
-    console.log('Adding comment with routeId:', routeId); // Debug log
+    console.log('Adding comment with routeId:', routeId);
 
     if (!commentText) {
         alert('Please enter a comment.');
@@ -139,7 +220,7 @@ async function addComment() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                routeId: routeId,  // Now we're sending the actual routeId
+                routeId: routeId,
                 username: user.name || user.email,
                 text: commentText
             })
@@ -152,13 +233,12 @@ async function addComment() {
 
         // Clear input and refresh comments
         commentInput.value = '';
-        await renderComments(routeId, user);
+        await renderComments(routeId);
     } catch (error) {
         console.error('Error saving comment:', error);
         alert('Error saving comment. Please try again.');
     }
 }
-
 // ============================
 // SECTION: Delete Segment
 // ============================
