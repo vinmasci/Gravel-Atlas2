@@ -191,8 +191,37 @@ body {
 
 /* Segment Modal */
 #segment-modal {
+    width: 400px; /* Increased width */
+    max-height: 80vh; /* Increased height */
     background-color: rgba(255, 255, 255, 0.95);
-    max-height: 40vh;
+}
+
+#segment-modal .modal-content {
+    padding: 15px;
+}
+
+#comments-list {
+    max-height: none !important; /* Remove the fixed height */
+    overflow-y: visible !important; /* Remove separate scrolling */
+}
+
+#route-id {
+    font-size: 6px;
+    color: #cccccc;
+    text-align: right;
+    margin-top: 10px;
+    position: relative;
+    bottom: 0;
+}
+
+.modal-body {
+    padding: 15px 0;
+}
+
+.comment {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 5px;
 }
 
 #segment-modal h4 {
