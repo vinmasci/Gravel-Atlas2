@@ -157,17 +157,17 @@ async function renderComments(routeId) {
 
 async function deleteComment(commentId) {
     try {
-        // Updated API endpoint format
         const response = await fetch('/api/comments', {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json' // Important!
             },
-            body: JSON.stringify({ commentId }) // Send the ID in the request body
+            body: JSON.stringify({ commentId: commentId }) // Properly stringify the body
         });
         
         if (!response.ok) {
-            throw new Error('Failed to delete comment');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete comment');
         }
         
         // Get the current routeId from the modal

@@ -45,7 +45,13 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'DELETE') {
-            const { commentId } = JSON.parse(req.body);
+            // Log the raw request body for debugging
+            console.log('Raw DELETE request body:', req.body);
+            
+            // Check if req.body is already an object
+            const data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+            const { commentId } = data;
+            
             console.log('Attempting to delete comment:', commentId);
 
             if (!commentId) {
@@ -53,7 +59,9 @@ export default async function handler(req, res) {
             }
 
             try {
-                const result = await collection.deleteOne({ _id: new ObjectId(commentId) });
+                const result = await collection.deleteOne({ 
+                    _id: new ObjectId(commentId) 
+                });
                 
                 if (result.deletedCount === 0) {
                     return res.status(404).json({ error: 'Comment not found' });
@@ -62,7 +70,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ message: 'Comment deleted successfully' });
             } catch (error) {
                 console.error('Error deleting comment:', error);
-                return res.status(500).json({ error: 'Error deleting comment' });
+                return res.status(500).json({ error: 'Error deleting comment', details: error.message });
             }
         }
 
