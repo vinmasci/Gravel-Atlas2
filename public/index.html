@@ -218,36 +218,29 @@
 }
 
 #control-panel {
-    display: flex;
-    flex-direction: column;
     position: absolute !important;
     bottom: 20px !important;
     left: 10px !important;
     z-index: 1 !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: none !important;
-    box-shadow: none !important;
 }
 
 #draw-route-control-panel {
+    position: absolute !important;
+    bottom: 20px !important;
+    left: 10px !important;
+    z-index: 1 !important;
     width: 100%;
-    margin-top: 10px;
     background-color: white;
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-#draw-route-control-panel .drawing-options h5 {
-    margin: 8px 0;
-    font-size: 14px;
-}
-
-#draw-route-control-panel .drawing-options label {
-    font-size: 12px;
-    display: block;
-    margin-bottom: 5px;
+#draw-route-control-panel .drawing-options {
+    margin-top: 0;
+    margin-bottom: 10px;
 }
 
 #draw-route-control-panel .btn-group {
@@ -487,25 +480,24 @@
 
 
 <!-- Control Panel -->
-<div id="control-panel" class="btn-group">
-    <!-- Draw Route Control Panel -->
-    <div id="draw-route-control-panel" style="display: none;">
-        <div id="gravel-style" style="width: 100%; margin-top: 0px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
-            <div class="drawing-options">
-                <h5>Gravel Type:</h5>
-                <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
-                <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #0050c1;"></i> Intermediate</label>
-                <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
-                <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
-                <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
-                <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
-            </div>
-            <div class="btn-group">
-                <button id="undo-btn" class="btn btn-primary">Undo</button>
-                <button id="reset-btn" class="btn btn-warning">Reset</button>
-                <button id="save-btn" class="btn btn-success">Save</button>
-            </div>
-        </div>
+<div id="control-panel">
+</div>
+
+<!-- Draw Route Control Panel -->
+<div id="draw-route-control-panel" style="position: absolute !important; bottom: 20px !important; left: 10px !important; z-index: 1 !important; width: 100%; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+    <div class="drawing-options" style="margin-top: 0; margin-bottom: 10px;">
+        <h5>Gravel Type:</h5>
+        <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+        <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #0050c1;"></i> Intermediate</label>
+        <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+        <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+        <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #ffa801"></i> Rail Trail</label>
+        <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+    </div>
+    <div class="btn-group" style="display: flex; gap: 5px; margin-top: 10px;">
+        <button id="undo-btn" class="btn btn-primary">Undo</button>
+        <button id="reset-btn" class="btn btn-warning">Reset</button>
+        <button id="save-btn" class="btn btn-success">Save</button>
     </div>
 </div>
 
