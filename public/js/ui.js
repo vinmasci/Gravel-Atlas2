@@ -19,6 +19,10 @@ async function openSegmentModal(title, routeId) {
 
     // Check if the user is logged in
     const user = await getCurrentUser();
+    if (!user) {
+        alert("You must be logged in to view and add comments.");
+        return;
+    }
 
     // Show the modal
     modal.classList.add('show');
