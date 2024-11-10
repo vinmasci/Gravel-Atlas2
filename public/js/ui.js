@@ -199,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 async function toggleContributeDropdown() {
-    // First check authentication
     const isAuthenticated = await isUserAuthenticated();
     const dropdown = document.getElementById('contribute-dropdown');
     const contributeTab = document.getElementById('draw-route-tab');
@@ -212,8 +211,7 @@ async function toggleContributeDropdown() {
             loginRequired.style.display = 'inline';
         }
         // Prompt user to login
-        alert('Please log in to access contribution features');
-        login(); // This will trigger the Auth0 login
+        await login();
         return;
     }
 
