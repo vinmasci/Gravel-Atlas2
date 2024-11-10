@@ -274,29 +274,35 @@ body {
 }
 
 #gravel-style {
+    width: 100% !important;
+    margin-top: 0px;
     background-color: white;
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    width: 250px !important;  /* Set fixed width */
-    margin: 0;
 }
 
 #gravel-style .btn-group {
     display: flex;
+    flex-direction: column; /* Change to column layout */
     gap: 5px;
     margin-top: 10px;
 }
 
-#gravel-style button {
-    flex: 1;
-    margin: 0;
-    font-size: 12px;
-    padding: 6px 8px;
+#gravel-style .btn {
+    flex: none; /* Remove the flex-grow property */
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 8px; /* Apply consistent border-radius */
 }
 
-#undo-btn, #reset-btn, #save-btn {
-    width: auto !important;  /* Override the full width */
+#undo-btn,
+#reset-btn {
+    flex-basis: 50%; /* Make Undo and Reset buttons take up half the width */
+}
+
+#save-btn {
+    flex-basis: 100%; /* Make Save button take up the full width */
 }
 
 .drawing-options {
