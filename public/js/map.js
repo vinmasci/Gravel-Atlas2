@@ -34,7 +34,6 @@ function setupSegmentInteraction() {
     // Hover interaction for showing segment title
     map.on('mouseenter', 'drawn-segments-layer', (e) => {
         map.getCanvas().style.cursor = 'pointer';
-
         const title = e.features[0].properties.title;
         if (title) {
             segmentPopup.setLngLat(e.lngLat).setHTML(`<strong>${title}</strong>`).addTo(map);
@@ -47,50 +46,20 @@ function setupSegmentInteraction() {
         segmentPopup.remove();
     });
 
- // Click event to open the modal window with segment details
-map.on('click', 'drawn-segments-layer', (e) => {
-    const title = e.features[0].properties.title;
-    const routeId = e.features[0].properties.routeId;
+    // NEW click handler that uses ui.js openSegmentModal
+    map.on('click', 'drawn-segments-layer', async (e) => {
+        const title = e.features[0].properties.title;
+        const routeId = e.features[0].properties.routeId;
 
-    console.log('Opening modal for routeId:', routeId);
+        console.log('Opening modal for routeId:', routeId);
 
-    // Get the modal and its elements
-    const modal = document.getElementById('segment-modal');
-    const segmentDetails = document.getElementById('segment-details'); // Element to show title
-    const routeIdElement = document.getElementById('route-id'); // Element to show routeId
-    const deleteButton = document.getElementById('delete-segment'); // Modal's delete button
+        // Use the openSegmentModal function from ui.js
+        await openSegmentModal(title, routeId);
+    });
 
-    // Set the title and routeId directly in the modal
-    segmentDetails.innerText = `Segment: ${title}`;
-    routeIdElement.innerText = `Route ID: ${routeId}`;
-
-    // Store routeId as a data attribute on the delete button in the modal
-    deleteButton.setAttribute('data-route-id', routeId);
-
-    // Show the modal
-    modal.style.display = 'block';
-});
-
-// Mark that the segment interaction has been initialized
-segmentInteractionInitialized = true;
-
+    // Mark that the segment interaction has been initialized
+    segmentInteractionInitialized = true;
 }
-
-
-
-// Function to close the modal window
-function closeModal() {
-    const modal = document.getElementById('segment-modal');
-    modal.style.display = 'none';
-}
-
-// Optional: Close modal on outside click
-window.onclick = function (event) {
-    const modal = document.getElementById('segment-modal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
-};
 
 
 // ===========================
@@ -114,9 +83,6 @@ function initMap() {
         initEventListeners();      // Initialize other event listeners
         updateTabHighlight('segments-tab', false);  // Highlight the segments tab by default
         setupSegmentInteraction(); // Ensures interaction setup is complete
-
-                // Add hover and click events for segment labels
-                setupSegmentInteraction();
     });
 
     map.on('error', (e) => {
@@ -244,52 +210,6 @@ function addSegmentLayers() {
         });
     }
 }
-
-// Event listeners for hover and click interactions
-map.on('mouseenter', 'drawn-segments-layer', (e) => {
-    map.getCanvas().style.cursor = 'pointer';
-    const title = e.features[0].properties.title;
-
-    if (title) {
-        segmentPopup.setLngLat(e.lngLat).setHTML(`<strong>${title}</strong>`).addTo(map);
-    }
-});
-
-map.on('mouseleave', 'drawn-segments-layer', () => {
-    map.getCanvas().style.cursor = '';
-    segmentPopup.remove();
-});
-
-map.on('click', 'drawn-segments-layer', (e) => {
-    const title = e.features[0].properties.title;
-    const routeId = e.features[0].properties.routeId;
-
-    console.log('Opening modal for routeId:', routeId);
-
-    // Create the popup with the content
-    const popup = new mapboxgl.Popup()
-        .setLngLat(e.lngLat)
-        .setHTML(popupContent)
-        .addTo(map);
-
-    // Attach the event listener to the delete button after the popup is rendered
-    popup.on('open', () => {
-        const deleteButton = popup.getElement().querySelector('#deleteSegmentBtn');
-        if (deleteButton) {
-            deleteButton.addEventListener('click', () => {
-                console.log('Delete button clicked for routeId:', routeId);
-                deleteSegment(routeId);  // Call the delete function with the correct routeId
-                popup.remove();            // Close popup after deletion
-            });
-        } else {
-            console.error('Delete button not found in popup');
-        }
-    });
-});
-
-
-
-
 
 // ============================
 // SECTION: Load Segments
@@ -439,34 +359,5 @@ function togglePOILayer() {
     updateTabHighlight('pois-tab', layerVisibility.pois);
 }
 
-
-
-// ============================
-// SECTION: Open Close Modal
-// ============================
-
-function openSegmentModal(title, segmentId) {
-    const modal = document.getElementById('segment-modal');
-    const segmentDetails = document.getElementById('segment-details');
-
-    // Update modal content
-    segmentDetails.innerText = `Segment: ${title}`;
-    
-    // Show modal
-    modal.style.display = 'block';
-}
-
-function closeModal() {
-    const modal = document.getElementById('segment-modal');
-    modal.style.display = 'none';
-}
-
-// Optional: Close modal on outside click
-window.onclick = function (event) {
-    const modal = document.getElementById('segment-modal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
-};
 
 
