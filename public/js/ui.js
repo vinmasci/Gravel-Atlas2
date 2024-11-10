@@ -1,9 +1,8 @@
 // ============================
 // SECTION: Open Segment Modal
 // ============================
-function openSegmentModal(title, routeId) {
+async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
-
     const modal = document.getElementById('segment-modal');
     const segmentTitle = document.getElementById('segment-details');
     const routeIdElement = document.getElementById('route-id');
@@ -18,6 +17,9 @@ function openSegmentModal(title, routeId) {
     segmentTitle.innerText = title;
     routeIdElement.innerText = `Route ID: ${routeId}`;
 
+    // Check if the user is logged in
+    const user = await getCurrentUser();
+
     // Show the modal
     modal.classList.add('show');
     modal.style.display = 'block';
@@ -29,6 +31,88 @@ function openSegmentModal(title, routeId) {
     deleteButton.onclick = function() {
         deleteSegment(); // Calls deleteSegment, which retrieves routeId from modal text
     };
+
+    // Render comments for the segment
+    await renderComments(routeId, user);
+}
+
+// =========================
+// SECTION: Comments
+// =========================
+async function renderComments(routeId, user) {
+    const commentsList = document.getElementById('comments-list');
+    commentsList.innerHTML = ''; // Clear previous comments
+
+    try {
+        // Fetch comments from the database for the given routeId
+        const response = await fetch(`/api/comments?routeId=${routeId}`, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+
+        const comments = await response.json();
+
+        comments.forEach((comment) => {
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'comment';
+            commentDiv.innerText = `${comment.username}: ${comment.text}`;
+            commentsList.appendChild(commentDiv);
+        });
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+        // Display an error message or handle the error in some other way
+    }
+
+    // If the user is logged in, show the comment input
+    if (user) {
+        const addCommentSection = document.getElementById('add-comment');
+        addCommentSection.style.display = 'block';
+    } else {
+        const addCommentSection = document.getElementById('add-comment');
+        addCommentSection.style.display = 'none';
+    }
+}
+
+async function addComment() {
+    const commentInput = document.getElementById('comment-input');
+    const commentText = commentInput.value.trim();
+    const user = await getCurrentUser();
+
+    if (commentText && user) {
+        try {
+            // Send the comment to the server to be saved in the database
+            const response = await fetch('/api/comments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    routeId: currentRouteId,
+                    username: user.nickname,
+                    text: commentText
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+
+            const savedComment = await response.json();
+            console.log('Comment saved:', savedComment);
+
+            // Clear the input and re-render the comments list
+            commentInput.value = '';
+            await renderComments(currentRouteId, user);
+        } catch (error) {
+            console.error('Error saving comment:', error);
+            // Display an error message or handle the error in some other way
+        }
+    }
 }
 
 // ============================
@@ -276,56 +360,4 @@ function showTempOverlay() {
 function hideControlPanel() {
     document.getElementById('draw-route-control-panel').style.display = 'none';
     document.getElementById('photo-upload-control-panel').style.display = 'none';
-}
-
-
-// =========================
-// SECTION: Comments
-// =========================
-
-let comments = []; // Temporary storage for comments
-
-// Function to add a comment
-function addComment() {
-    const commentInput = document.getElementById('comment-input');
-    const commentText = commentInput.value.trim();
-
-    if (commentText) {
-        // Push new comment to the array and clear the input
-        comments.push(commentText);
-        commentInput.value = '';
-
-        // Re-render the comments list
-        renderComments();
-    }
-}
-
-// Function to render comments
-function renderComments() {
-    const commentsList = document.getElementById('comments-list');
-    commentsList.innerHTML = ''; // Clear previous comments
-
-    comments.forEach((comment, index) => {
-        const commentDiv = document.createElement('div');
-        commentDiv.className = 'comment';
-        commentDiv.innerText = comment;
-        commentsList.appendChild(commentDiv);
-    });
-}
-
-// Render comments when the modal opens
-function openSegmentModal(title, routeId) {
-    // Open the modal and set up other details
-    const modal = document.getElementById('segment-modal');
-    const segmentTitle = document.getElementById('segment-details');
-    const routeIdElement = document.getElementById('route-id');
-
-    segmentTitle.innerText = title;
-    routeIdElement.innerText = `Route ID: ${routeId}`;
-    
-    modal.classList.add('show');
-    modal.style.display = 'block';
-
-    // Render comments for the segment
-    renderComments();
 }
