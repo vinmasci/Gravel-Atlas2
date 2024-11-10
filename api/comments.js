@@ -1,40 +1,52 @@
 // api/comments.js
-const Comment = require('../models/Comments');
+import { MongoClient } from 'mongodb';
 
-exports.getComments = async (req, res) => {
-    const { routeId } = req.query;
-    
-    if (!routeId) {
-        return res.status(400).json({ error: 'Route ID is required' });
-    }
-
-    try {
-        const comments = await Comment.find({ routeId }).sort({ createdAt: -1 });
-        res.json(comments);
-    } catch (error) {
-        console.error('Error fetching comments:', error);
-        res.status(500).json({ error: 'Error fetching comments' });
-    }
+const uri = process.env.MONGODB_URI;
+const options = {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
 };
 
-exports.createComment = async (req, res) => {
-    const { routeId, username, text } = req.body;
-
-    if (!routeId || !username || !text) {
-        return res.status(400).json({ error: 'Route ID, username, and text are required' });
-    }
-
+export default async function handler(req, res) {
     try {
-        const comment = new Comment({
-            routeId,
-            username,
-            text
-        });
-        
-        const savedComment = await comment.save();
-        res.status(201).json(savedComment);
+        // Connect to MongoDB
+        const client = await MongoClient.connect(uri, options);
+        const db = client.db('photoApp'); // Using your existing database
+        const collection = db.collection('comments');
+
+        if (req.method === 'GET') {
+            const { routeId } = req.query;
+            const comments = await collection.find({ routeId }).toArray();
+            await client.close();
+            return res.status(200).json(comments);
+        }
+
+        if (req.method === 'POST') {
+            const { routeId, username, text } = req.body;
+            
+            if (!routeId || !username || !text) {
+                await client.close();
+                return res.status(400).json({ error: 'Missing required fields' });
+            }
+
+            const comment = {
+                routeId,
+                username,
+                text,
+                createdAt: new Date()
+            };
+
+            await collection.insertOne(comment);
+            await client.close();
+            return res.status(201).json(comment);
+        }
+
+        await client.close();
+        res.setHeader('Allow', ['GET', 'POST']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
+
     } catch (error) {
-        console.error('Error saving comment:', error);
-        res.status(500).json({ error: 'Error saving comment' });
+        console.error('Database error:', error);
+        return res.status(500).json({ error: 'Database error', details: error.message });
     }
-};
+}
