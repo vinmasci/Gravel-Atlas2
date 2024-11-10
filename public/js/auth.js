@@ -43,13 +43,8 @@ async function initializeAuth() {
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
-            cacheLocation: 'localstorage',
-            useRefreshTokens: true,
-            // Remove response_type and scope as Auth0 will handle these
-            // Add these options:
             authorizationParams: {
                 response_type: 'code',
-                audience: `https://dev-8jmwfh4hugvdjwh8.au.auth0.com/api/v2/`,
                 scope: 'openid profile email'
             }
         });
