@@ -43,32 +43,31 @@ async function initializeAuth() {
             domain: 'dev-8jmwfh4hugvdjwh8.au.auth0.com',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
-            authorizationParams: {
-                response_type: 'code',
-                scope: 'openid profile email'
-            }
+            cacheLocation: 'localstorage',
+            audience: 'https://dev-8jmwfh4hugvdjwh8.au.auth0.com/api/v2/',
+            scope: 'openid profile email'
         });
 
         console.log('Auth0 client created successfully');
 
-        // Check for the authentication code in the URL
-        if (window.location.search.includes("code=")) {
+        if (window.location.search.includes("state=") && 
+            (window.location.search.includes("code=") || window.location.search.includes("error="))) {
             try {
                 console.log('Handling redirect callback...');
                 await auth0.handleRedirectCallback();
                 console.log('Redirect handled successfully');
-                window.history.replaceState({}, document.title, window.location.pathname);
+                window.history.replaceState({}, document.title, '/');
             } catch (callbackError) {
                 console.error('Error handling redirect:', callbackError);
                 await clearAuthState();
             }
         } else {
-            console.log('No authentication code found in the URL. Continuing without redirect.');
+            console.log('No authentication code found in URL');
         }
 
-        // Check the authentication state after initialization
         await checkAuthState();
         await updateUI();
+
     } catch (err) {
         console.error("Error initializing Auth0:", err);
         await clearAuthState();
