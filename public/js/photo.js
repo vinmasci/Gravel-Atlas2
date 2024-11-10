@@ -1,142 +1,61 @@
-// photo.js
-let photoMarkers = [];
+// photo.js - Update these functions
 
-// Compression function definition
-function compressImage(file) {
-    console.log(`Starting compression for ${file.name}`);
-    return new Promise((resolve, reject) => {
-        new Compressor(file, {
-            quality: 0.6,
-            maxWidth: 1600,
-            maxHeight: 1200,
-            success(result) {
-                console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${result.size/1024}KB`);
-                resolve(result);
-            },
-            error(err) {
-                console.error(`Compression error for ${file.name}:`, err);
-                reject(err);
-            }
-        });
+// Add click handler functions
+function handleClusterClick(e) {
+    const features = map.queryRenderedFeatures(e.point, {
+        layers: ['clusters']
     });
-}
-
-// S3 Upload functions
-async function getPresignedUrl(fileType, fileName) {
-    const response = await fetch(`/api/get-upload-url?fileType=${fileType}&fileName=${encodeURIComponent(fileName)}`);
-    if (!response.ok) {
-        throw new Error('Failed to get upload URL');
-    }
-    return response.json();
-}
-
-async function uploadToS3(file) {
-    try {
-        const { uploadURL, fileUrl } = await getPresignedUrl(file.type, file.name);
-        
-        const uploadResponse = await fetch(uploadURL, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type
-            }
-        });
-
-        if (!uploadResponse.ok) {
-            throw new Error('Upload to S3 failed');
-        }
-
-        return fileUrl;
-    } catch (error) {
-        console.error('S3 upload error:', error);
-        throw error;
-    }
-}
-
-// Main upload handler
-async function handlePhotoUpload() {
-    const input = document.getElementById('photoFilesInput');
-    const files = Array.from(input.files);
-    const uploadButton = document.getElementById('uploadPhotosBtn');
+    const clusterId = features[0].properties.cluster_id;
     
-    if (files.length === 0) {
-        alert("Please select photos to upload.");
-        return;
-    }
+    map.getSource('photoMarkers').getClusterExpansionZoom(
+        clusterId,
+        (err, zoom) => {
+            if (err) return;
 
-    uploadButton.disabled = true;
-    uploadButton.innerText = "Uploading...";
-
-    let successCount = 0;
-    let failCount = 0;
-
-    try {
-        for (let i = 0; i < files.length; i += 2) { // Process 2 at a time
-            const batch = files.slice(i, i + 2);
-            
-            for (const file of batch) {
-                try {
-                    uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
-                    
-                    // Compress
-                    const compressedFile = await compressImage(file);
-                    
-                    // Upload to S3
-                    const fileUrl = await uploadToS3(compressedFile);
-                    
-                    // Save metadata
-                    const metadataResponse = await fetch('/api/save-photo-metadata', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            url: fileUrl,
-                            originalName: file.name
-                        })
-                    });
-
-                    if (!metadataResponse.ok) {
-                        throw new Error('Failed to save photo metadata');
-                    }
-
-                    successCount++;
-                } catch (error) {
-                    console.error(`Failed to process ${file.name}:`, error);
-                    failCount++;
-                }
-            }
-
-            // Small delay between batches
-            if (i + 2 < files.length) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+            map.easeTo({
+                center: features[0].geometry.coordinates,
+                zoom: zoom
+            });
         }
-    } catch (error) {
-        console.error('Upload process error:', error);
-    } finally {
-        if (failCount > 0) {
-            uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
-        } else {
-            uploadButton.innerText = "Upload Complete!";
-        }
-
-        // Refresh markers if any uploads succeeded
-        if (successCount > 0) {
-            await loadPhotoMarkers();
-        }
-
-        // Reset button after delay
-        setTimeout(() => {
-            uploadButton.innerText = "Upload";
-            uploadButton.disabled = false;
-        }, 3000);
-        
-        input.value = ''; // Clear input
-    }
+    );
 }
 
-// Photo markers handling
+function handlePhotoClick(e) {
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const { originalName, url, _id: photoId } = e.features[0].properties;
+
+    const popupContent = `
+        <div style="text-align: center;">
+            <img src="${url}" style="max-width:200px; margin-bottom: 10px;">
+            <p style="font-size: small; color: gray;">Photo ID: ${photoId}</p>
+            <span id="deletePhotoText" data-photo-id="${photoId}" 
+                  style="color: red; cursor: pointer; text-decoration: underline;">
+                Delete Photo
+            </span>
+        </div>
+    `;
+
+    const popup = new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(popupContent)
+        .addTo(map);
+
+    // Add delete handler after popup is added
+    setTimeout(() => {
+        const deleteText = document.getElementById('deletePhotoText');
+        if (deleteText) {
+            deleteText.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to delete this photo?')) {
+                    await deletePhoto(photoId);
+                    popup.remove();
+                    loadPhotoMarkers(); // Refresh markers
+                }
+            });
+        }
+    }, 0);
+}
+
+// Update loadPhotoMarkers function to include click handlers
 async function loadPhotoMarkers() {
     try {
         const response = await fetch('/api/get-photos');
@@ -144,31 +63,10 @@ async function loadPhotoMarkers() {
 
         console.log("Photos fetched:", photos);
 
-        if (map.getLayer('clusters')) map.removeLayer('clusters');
-        if (map.getLayer('unclustered-photo')) map.removeLayer('unclustered-photo');
-        if (map.getSource('photoMarkers')) map.removeSource('photoMarkers');
+        // Remove existing layers and handlers
+        removePhotoMarkers();
 
-        // Load marker images if needed
-        if (!map.hasImage('camera-icon-cluster')) {
-            await new Promise((resolve, reject) => {
-                map.loadImage('/cameraiconexpand.png', (error, image) => {
-                    if (error) reject(error);
-                    map.addImage('camera-icon-cluster', image);
-                    resolve();
-                });
-            });
-        }
-
-        if (!map.hasImage('camera-icon')) {
-            await new Promise((resolve, reject) => {
-                map.loadImage('/cameraicon1.png', (error, image) => {
-                    if (error) reject(error);
-                    map.addImage('camera-icon', image);
-                    resolve();
-                });
-            });
-        }
-
+        // Convert photos into GeoJSON
         const photoGeoJSON = {
             type: 'FeatureCollection',
             features: photos
@@ -187,6 +85,13 @@ async function loadPhotoMarkers() {
                 }))
         };
 
+        // Load marker images
+        await Promise.all([
+            loadMapImage('camera-icon-cluster'),
+            loadMapImage('camera-icon')
+        ]);
+
+        // Add source
         map.addSource('photoMarkers', {
             type: 'geojson',
             data: photoGeoJSON,
@@ -195,6 +100,7 @@ async function loadPhotoMarkers() {
             clusterRadius: 50
         });
 
+        // Add cluster layer
         map.addLayer({
             id: 'clusters',
             type: 'symbol',
@@ -207,6 +113,7 @@ async function loadPhotoMarkers() {
             }
         });
 
+        // Add unclustered photo layer
         map.addLayer({
             id: 'unclustered-photo',
             type: 'symbol',
@@ -219,20 +126,68 @@ async function loadPhotoMarkers() {
             }
         });
 
+        // Add click handlers
+        map.on('click', 'clusters', handleClusterClick);
+        map.on('click', 'unclustered-photo', handlePhotoClick);
+
+        // Change cursor on hover
+        map.on('mouseenter', 'clusters', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'clusters', () => {
+            map.getCanvas().style.cursor = '';
+        });
+        map.on('mouseenter', 'unclustered-photo', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'unclustered-photo', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
     } catch (error) {
         console.error('Error loading photo markers:', error);
     }
 }
 
-function removePhotoMarkers() {
-    if (map.getLayer('clusters')) map.removeLayer('clusters');
-    if (map.getLayer('unclustered-photo')) map.removeLayer('unclustered-photo');
-    if (map.getSource('photoMarkers')) map.removeSource('photoMarkers');
+// Helper function to load map images
+function loadMapImage(name) {
+    const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
+    
+    return new Promise((resolve, reject) => {
+        if (map.hasImage(name)) {
+            resolve();
+            return;
+        }
+        
+        map.loadImage(imagePath, (error, image) => {
+            if (error) {
+                console.error(`Error loading ${name}:`, error);
+                reject(error);
+                return;
+            }
+            if (!map.hasImage(name)) {
+                map.addImage(name, image);
+            }
+            resolve();
+        });
+    });
 }
 
-// Event listener
-document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
-
-// Export functions that need to be accessed from other files
-window.loadPhotoMarkers = loadPhotoMarkers;
-window.removePhotoMarkers = removePhotoMarkers;
+// Update removePhotoMarkers to remove event listeners
+function removePhotoMarkers() {
+    if (map.getLayer('clusters')) {
+        map.off('click', 'clusters', handleClusterClick);
+        map.off('mouseenter', 'clusters');
+        map.off('mouseleave', 'clusters');
+        map.removeLayer('clusters');
+    }
+    if (map.getLayer('unclustered-photo')) {
+        map.off('click', 'unclustered-photo', handlePhotoClick);
+        map.off('mouseenter', 'unclustered-photo');
+        map.off('mouseleave', 'unclustered-photo');
+        map.removeLayer('unclustered-photo');
+    }
+    if (map.getSource('photoMarkers')) {
+        map.removeSource('photoMarkers');
+    }
+}
