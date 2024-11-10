@@ -78,6 +78,7 @@ function createCommentElement(comment, currentUser) {
         deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
         deleteButton.className = 'delete-comment';
         deleteButton.onclick = async () => {
+            console.log('Attempting to delete comment with ID:', comment._id); // Debug log
             if (confirm('Are you sure you want to delete this comment?')) {
                 await deleteComment(comment._id);
             }
