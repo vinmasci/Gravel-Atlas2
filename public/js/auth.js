@@ -164,6 +164,27 @@ async function checkAuthState() {
 }
 
 // ============================
+// SECTION: User Management
+// ============================
+async function getCurrentUser() {
+    if (!auth0) {
+        console.error('Auth0 client not initialized');
+        return null;
+    }
+    try {
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) {
+            return null;
+        }
+        const user = await auth0.getUser();
+        return user;
+    } catch (err) {
+        console.error('Error getting current user:', err);
+        return null;
+    }
+}
+
+// ============================
 // SECTION: Authentication Actions
 // ============================
 async function login() {

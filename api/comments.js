@@ -1,12 +1,15 @@
 // api/comments.js
-const { Comments } = require('../models'); // Assuming you have a Comments model
+const Comment = require('../models/Comments');
 
-// GET /api/comments?routeId=123
 exports.getComments = async (req, res) => {
-    const routeId = req.query.routeId;
+    const { routeId } = req.query;
+    
+    if (!routeId) {
+        return res.status(400).json({ error: 'Route ID is required' });
+    }
+
     try {
-        // Fetch comments from the MongoDB database for the given routeId
-        const comments = await Comments.find({ routeId: routeId }).toArray();
+        const comments = await Comment.find({ routeId }).sort({ createdAt: -1 });
         res.json(comments);
     } catch (error) {
         console.error('Error fetching comments:', error);
@@ -14,13 +17,22 @@ exports.getComments = async (req, res) => {
     }
 };
 
-// POST /api/comments
 exports.createComment = async (req, res) => {
     const { routeId, username, text } = req.body;
+
+    if (!routeId || !username || !text) {
+        return res.status(400).json({ error: 'Route ID, username, and text are required' });
+    }
+
     try {
-        // Save the new comment to the MongoDB database
-        const newComment = await Comments.insertOne({ routeId, username, text });
-        res.status(201).json(newComment.ops[0]);
+        const comment = new Comment({
+            routeId,
+            username,
+            text
+        });
+        
+        const savedComment = await comment.save();
+        res.status(201).json(savedComment);
     } catch (error) {
         console.error('Error saving comment:', error);
         res.status(500).json({ error: 'Error saving comment' });

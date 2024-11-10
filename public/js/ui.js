@@ -3,6 +3,7 @@
 // ============================
 async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
+    
     const modal = document.getElementById('segment-modal');
     const segmentTitle = document.getElementById('segment-details');
     const routeIdElement = document.getElementById('route-id');
@@ -17,14 +18,14 @@ async function openSegmentModal(title, routeId) {
     segmentTitle.innerText = title;
     routeIdElement.innerText = `Route ID: ${routeId}`;
 
-    // Check if the user is logged in
-    const user = await getCurrentUser();
-    if (!user) {
-        alert("You must be logged in to view and add comments.");
-        return;
-    }
+    // Store the current routeId for use in comments
+    window.currentRouteId = routeId;
 
-    // Show the modal
+    // Check if the user is logged in using Auth0
+    const isAuthenticated = await isUserAuthenticated();
+    const user = isAuthenticated ? await getCurrentUser() : null;
+
+    // Show the modal regardless of authentication
     modal.classList.add('show');
     modal.style.display = 'block';
 
@@ -33,7 +34,7 @@ async function openSegmentModal(title, routeId) {
 
     // Assign delete function directly to delete button
     deleteButton.onclick = function() {
-        deleteSegment(); // Calls deleteSegment, which retrieves routeId from modal text
+        deleteSegment(routeId);
     };
 
     // Render comments for the segment
@@ -45,15 +46,18 @@ async function openSegmentModal(title, routeId) {
 // =========================
 async function renderComments(routeId, user) {
     const commentsList = document.getElementById('comments-list');
+    const addCommentSection = document.getElementById('add-comment');
+    
+    if (!commentsList || !addCommentSection) {
+        console.error("Comments elements not found");
+        return;
+    }
+
     commentsList.innerHTML = ''; // Clear previous comments
 
     try {
         // Fetch comments from the database for the given routeId
-        const response = await fetch(`/api/comments?routeId=${routeId}`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        const response = await fetch(`/api/comments?routeId=${routeId}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}`);
@@ -61,61 +65,78 @@ async function renderComments(routeId, user) {
 
         const comments = await response.json();
 
-        comments.forEach((comment) => {
-            const commentDiv = document.createElement('div');
-            commentDiv.className = 'comment';
-            commentDiv.innerText = `${comment.username}: ${comment.text}`;
-            commentsList.appendChild(commentDiv);
-        });
+        if (comments.length === 0) {
+            const noCommentsDiv = document.createElement('div');
+            noCommentsDiv.className = 'comment';
+            noCommentsDiv.innerText = 'No comments yet.';
+            commentsList.appendChild(noCommentsDiv);
+        } else {
+            comments.forEach((comment) => {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'comment';
+                commentDiv.innerHTML = `
+                    <strong>${comment.username}</strong>: ${comment.text}
+                    <div class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</div>
+                `;
+                commentsList.appendChild(commentDiv);
+            });
+        }
+
+        // Show/hide comment input based on authentication
+        if (user) {
+            addCommentSection.style.display = 'block';
+        } else {
+            addCommentSection.style.display = 'none';
+            const loginPrompt = document.createElement('div');
+            loginPrompt.className = 'login-prompt';
+            loginPrompt.innerHTML = '<p>Please <a href="#" onclick="login()">log in</a> to add comments.</p>';
+            commentsList.appendChild(loginPrompt);
+        }
     } catch (error) {
         console.error('Error fetching comments:', error);
-        // Display an error message or handle the error in some other way
-    }
-
-    // If the user is logged in, show the comment input
-    if (user) {
-        const addCommentSection = document.getElementById('add-comment');
-        addCommentSection.style.display = 'block';
-    } else {
-        const addCommentSection = document.getElementById('add-comment');
-        addCommentSection.style.display = 'none';
+        commentsList.innerHTML = '<div class="error">Error loading comments. Please try again later.</div>';
     }
 }
 
 async function addComment() {
     const commentInput = document.getElementById('comment-input');
     const commentText = commentInput.value.trim();
+    const routeId = window.currentRouteId;
+
+    if (!commentText) {
+        alert('Please enter a comment.');
+        return;
+    }
+
     const user = await getCurrentUser();
+    if (!user) {
+        alert('Please log in to add comments.');
+        return;
+    }
 
-    if (commentText && user) {
-        try {
-            // Send the comment to the server to be saved in the database
-            const response = await fetch('/api/comments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    routeId: currentRouteId,
-                    username: user.nickname,
-                    text: commentText
-                })
-            });
+    try {
+        const response = await fetch('/api/comments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                routeId: routeId,
+                username: user.name || user.email,
+                text: commentText
+            })
+        });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
-
-            const savedComment = await response.json();
-            console.log('Comment saved:', savedComment);
-
-            // Clear the input and re-render the comments list
-            commentInput.value = '';
-            await renderComments(currentRouteId, user);
-        } catch (error) {
-            console.error('Error saving comment:', error);
-            // Display an error message or handle the error in some other way
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
         }
+
+        // Clear input and refresh comments
+        commentInput.value = '';
+        await renderComments(routeId, user);
+    } catch (error) {
+        console.error('Error saving comment:', error);
+        alert('Error saving comment. Please try again.');
     }
 }
 
