@@ -2,43 +2,6 @@
 // SECTION: Initial Setup
 // ============================
 let auth0 = null;
-let currentUser = null;
-
-async function getCurrentUser() {
-    if (currentUser) {
-        return currentUser;
-    }
-
-    try {
-        // Fetch the current user's information from the authentication provider
-        const response = await fetch('/api/user');
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        currentUser = await response.json();
-        return currentUser;
-    } catch (error) {
-        console.error('Error getting current user:', error);
-        return null;
-    }
-}
-
-async function isUserAuthenticated() {
-    if (!currentUser) {
-        try {
-            currentUser = await getCurrentUser();
-        } catch (error) {
-            console.error('Error checking authentication:', error);
-            return false;
-        }
-    }
-    return !!currentUser;
-}
-
-module.exports = {
-    getCurrentUser,
-    isUserAuthenticated
-};
 
 // ============================
 // SECTION: Auth State Management
