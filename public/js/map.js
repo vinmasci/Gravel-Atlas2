@@ -329,21 +329,6 @@ function toggleSegmentsLayer() {
 }
 
 // ============================
-// SECTION: Toggle Photo Layer
-// ============================
-function togglePhotoLayer() {
-    layerVisibility.photos = !layerVisibility.photos;
-
-    if (layerVisibility.photos) {
-        loadPhotoMarkers(); // Load photo markers when toggled on
-    } else {
-        removePhotoMarkers(); // Remove photo markers when toggled off
-    }
-
-    updateTabHighlight('photos-tab', layerVisibility.photos);
-}
-
-// ============================
 // SECTION: Toggle POI Layer
 // ============================
 function togglePOILayer() {

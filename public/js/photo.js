@@ -393,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
 });
 
-// Make functions available globally if needed
+// At the bottom of photo.js, make functions globally available
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.removePhotoMarkers = removePhotoMarkers;
+window.togglePhotoLayer = togglePhotoLayer;
