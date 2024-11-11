@@ -341,45 +341,6 @@ function toggleAddDropdown() {
 }
 
 // =========================
-// SECTION: Upload Photos
-// =========================
-async function handlePhotoUpload() {
-    const photoFilesInput = document.getElementById('photoFilesInput');
-    const files = photoFilesInput.files;
-
-    if (files.length === 0) {
-        alert('Please select photos to upload.');
-        return;
-    }
-
-    const formData = new FormData();
-    for (const file of files) {
-        formData.append('photo', file);
-    }
-
-    try {
-        const response = await fetch('/api/upload-photo', {
-            method: 'POST',
-            body: formData,
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            console.log('Photos uploaded successfully:', result);
-            alert('Photos uploaded successfully.');
-            loadPhotoMarkers(); // Reload photo markers to include newly uploaded photos
-        } else {
-            console.error('Error uploading photos:', result.error);
-            alert('Error uploading photos: ' + result.error);
-        }
-    } catch (error) {
-        console.error('Error during upload:', error);
-        alert('Error during upload: ' + error.message);
-    }
-}
-
-// =========================
 // SECTION: Save Route Modal 
 // =========================
 // Define the function to open the route name modal

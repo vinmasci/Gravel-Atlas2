@@ -289,7 +289,6 @@ function initEventListeners() {
     document.getElementById('reset-btn').addEventListener('click', resetRoute);
     document.getElementById('undo-btn').addEventListener('click', undoLastSegment);
     document.getElementById('save-btn').addEventListener('click', saveDrawnRoute);
-    document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
 
     // Gravel type radio buttons for updating route color
     document.querySelectorAll('input[name="gravelType"]').forEach((radio) => {
