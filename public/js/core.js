@@ -35,6 +35,18 @@ const utils = {
     }
 };
 
+// **Initialize Mapbox and the Map Early**
+mapboxgl.accessToken = config.mapboxToken;
+map = new mapboxgl.Map({
+    container: 'map',
+    style: config.mapStyle,
+    center: config.defaultCenter,
+    zoom: config.defaultZoom
+});
+
+// Export map globally so other scripts can access it
+window.map = map;
+
 // Layer management
 const layers = {
     toggleLayer: async (layerType) => {
@@ -114,26 +126,16 @@ const handlers = {
     }
 };
 
+// **Attach event listeners after the map has loaded**
+map.on('load', () => {
+    console.log('Map loaded successfully');
+    initCore();
+});
+
 // Initialize core functionality
 async function initCore() {
     console.log('Initializing core...');
     
-    // Initialize mapbox
-    mapboxgl.accessToken = config.mapboxToken;
-    map = new mapboxgl.Map({
-        container: 'map',
-        style: config.mapStyle,
-        center: config.defaultCenter,
-        zoom: config.defaultZoom
-    });
-
-    // Wait for map to load
-    await new Promise(resolve => map.on('load', resolve));
-    console.log('Map loaded successfully');
-
-    // Export map globally so other scripts can access it
-    window.map = map;
-
     // Attach event listeners
     document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
     document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
