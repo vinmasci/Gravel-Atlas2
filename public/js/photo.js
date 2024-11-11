@@ -1,4 +1,4 @@
-// Add these functions to the top of your photo.js
+// photo.js
 
 // Compression function
 function compressImage(file) {
@@ -20,44 +20,35 @@ function compressImage(file) {
     });
 }
 
-// Get pre-signed URL
-async function getPresignedUrl(fileType, fileName) {
-    const response = await fetch(`/api/get-upload-url?fileType=${fileType}&fileName=${encodeURIComponent(fileName)}`);
-    if (!response.ok) {
-        throw new Error('Failed to get upload URL');
-    }
-    return response.json();
-}
-
 // Upload to S3
 async function uploadToS3(file) {
     try {
-        // Get pre-signed URL
         console.log(`Getting pre-signed URL for ${file.name} (${file.type})`);
+        
         const response = await fetch(
             `/api/get-upload-url?fileType=${encodeURIComponent(file.type)}&fileName=${encodeURIComponent(file.name)}`
         );
 
         if (!response.ok) {
             const error = await response.text();
+            console.error('Pre-signed URL error:', error);
             throw new Error(`Failed to get upload URL: ${error}`);
         }
 
         const { uploadURL, fileUrl } = await response.json();
-        console.log('Got pre-signed URL:', uploadURL);
+        console.log('Got pre-signed URL, attempting upload...');
 
-        // Upload to S3
         const uploadResponse = await fetch(uploadURL, {
             method: 'PUT',
             body: file,
             headers: {
-                'Content-Type': file.type,
-                'x-amz-acl': 'public-read'
+                'Content-Type': file.type
             }
         });
 
         if (!uploadResponse.ok) {
             const error = await uploadResponse.text();
+            console.error('Upload error:', error);
             throw new Error(`Upload failed: ${error}`);
         }
 
@@ -152,14 +143,7 @@ async function handlePhotoUpload() {
     }
 }
 
-// Add the event listener
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
-});
-
-// ... rest of your existing photo.js code for markers etc ...
-
-// Add click handler functions
+// Marker handling functions
 function handleClusterClick(e) {
     const features = map.queryRenderedFeatures(e.point, {
         layers: ['clusters']
@@ -214,7 +198,7 @@ function handlePhotoClick(e) {
     }, 0);
 }
 
-// Update loadPhotoMarkers function to include click handlers
+// Photo markers management
 async function loadPhotoMarkers() {
     try {
         const response = await fetch('/api/get-photos');
@@ -308,7 +292,6 @@ async function loadPhotoMarkers() {
     }
 }
 
-// Helper function to load map images
 function loadMapImage(name) {
     const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
     
@@ -332,7 +315,6 @@ function loadMapImage(name) {
     });
 }
 
-// Update removePhotoMarkers to remove event listeners
 function removePhotoMarkers() {
     if (map.getLayer('clusters')) {
         map.off('click', 'clusters', handleClusterClick);
@@ -350,3 +332,12 @@ function removePhotoMarkers() {
         map.removeSource('photoMarkers');
     }
 }
+
+// Add the event listener when the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
+});
+
+// Make functions available globally if needed
+window.loadPhotoMarkers = loadPhotoMarkers;
+window.removePhotoMarkers = removePhotoMarkers;
