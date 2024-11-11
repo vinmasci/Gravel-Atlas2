@@ -541,13 +541,15 @@
 <script src="/js/geojson.js"></script>
 <script src="/js/togpx.js"></script>
 
+<!-- Base functionality -->
+<script src="/js/map.js"></script>      <!-- Map should load early -->
+<script src="/js/markers.js"></script>  <!-- Markers depend on map -->
+
 <!-- Feature modules -->
 <script src="/js/ui.js"></script>
-<script src="/js/photo.js"></script>
-<script src="/js/markers.js"></script>
-<script src="/js/routes.js"></script>
-<script src="/js/modal.js"></script>
-<script src="/js/map.js"></script>
+<script src="/js/photo.js"></script>    <!-- Photos depend on map and markers -->
+<script src="/js/routes.js"></script>   <!-- Routes depend on map -->
+<script src="/js/modal.js"></script>    <!-- Modal can load last -->
 
 <!-- Initialize -->
 <script>

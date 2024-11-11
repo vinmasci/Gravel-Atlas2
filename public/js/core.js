@@ -36,6 +36,8 @@ const utils = {
 };
 
 // Layer management
+// In core.js, update the layers object:
+
 const layers = {
     toggleLayer: async (layerType) => {
         try {
@@ -45,24 +47,42 @@ const layers = {
             if (layerVisibility[layerType]) {
                 switch(layerType) {
                     case 'photos':
+                        if (typeof window.loadPhotoMarkers !== 'function') {
+                            throw new Error('Photo markers functionality not loaded');
+                        }
                         await window.loadPhotoMarkers();
                         break;
                     case 'segments':
+                        if (typeof window.loadSegments !== 'function') {
+                            throw new Error('Segments functionality not loaded');
+                        }
                         await window.loadSegments();
                         break;
                     case 'pois':
+                        if (typeof window.loadPOIMarkers !== 'function') {
+                            throw new Error('POI markers functionality not loaded');
+                        }
                         await window.loadPOIMarkers();
                         break;
                 }
             } else {
                 switch(layerType) {
                     case 'photos':
+                        if (typeof window.removePhotoMarkers !== 'function') {
+                            throw new Error('Photo markers functionality not loaded');
+                        }
                         window.removePhotoMarkers();
                         break;
                     case 'segments':
+                        if (typeof window.removeSegments !== 'function') {
+                            throw new Error('Segments functionality not loaded');
+                        }
                         window.removeSegments();
                         break;
                     case 'pois':
+                        if (typeof window.removePOIMarkers !== 'function') {
+                            throw new Error('POI markers functionality not loaded');
+                        }
                         window.removePOIMarkers();
                         break;
                 }
@@ -71,6 +91,9 @@ const layers = {
             utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
         } catch (error) {
             utils.showError(`Error toggling ${layerType} layer: ${error.message}`);
+            // Reset visibility state on error
+            layerVisibility[layerType] = !layerVisibility[layerType];
+            utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
         }
     }
 };

@@ -343,5 +343,7 @@ function togglePOILayer() {
     updateTabHighlight('pois-tab', layerVisibility.pois);
 }
 
-
+// At the bottom of map.js
+window.loadSegments = loadSegments;
+window.removeSegments = removeSegments;
 
