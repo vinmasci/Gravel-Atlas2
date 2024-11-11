@@ -1,5 +1,3 @@
-
-
 // Tile URLs for different map layers
 const tileLayers = {
     googleMap: 'https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}',

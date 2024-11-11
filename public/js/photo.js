@@ -1,6 +1,3 @@
-// photo.js
-let layerVisibility = { photos: false };
-
 // Compression function
 function compressImage(file) {
     console.log(`Starting compression for ${file.name}`);
@@ -134,21 +131,20 @@ console.log('Metadata save response:', metadataResult);
         }
     
         // Refresh markers if any uploads succeeded
-        if (successCount > 0) {
-            console.log('Refreshing markers after successful uploads...');
-            // Add a delay to ensure MongoDB has updated
-            setTimeout(async () => {
-                try {
-                    await loadPhotoMarkers();
-                    console.log('Markers refreshed successfully');
-                    // Force the photo layer to be visible
-                    layerVisibility.photos = true;
-                    updateTabHighlight('photos-tab', true);
-                } catch (error) {
-                    console.error('Error refreshing markers:', error);
-                }
-            }, 2000);  // 2 second delay
+if (successCount > 0) {
+    console.log('Refreshing markers after successful uploads...');
+    setTimeout(async () => {
+        try {
+            await loadPhotoMarkers();
+            console.log('Markers refreshed successfully');
+            // Force the photo layer to be visible
+            window.layerVisibility.photos = true;
+            updateTabHighlight('photos-tab', true);
+        } catch (error) {
+            console.error('Error refreshing markers:', error);
         }
+    }, 2000);  // 2 second delay
+}
     
         // Reset button after delay
         setTimeout(() => {
@@ -217,17 +213,17 @@ function handlePhotoClick(e) {
 
 // Add this function to photo.js (right before or after loadPhotoMarkers)
 function togglePhotoLayer() {
-    layerVisibility.photos = !layerVisibility.photos;
-    console.log('Photo layer visibility toggled to:', layerVisibility.photos);
+    window.layerVisibility.photos = !window.layerVisibility.photos;
+    console.log('Photo layer visibility toggled to:', window.layerVisibility.photos);
 
-    if (layerVisibility.photos) {
+    if (window.layerVisibility.photos) {
         console.log('Loading photo markers...');
         loadPhotoMarkers().then(() => {
             console.log('Photo markers loaded successfully');
             updateTabHighlight('photos-tab', true);
         }).catch(error => {
             console.error('Error loading photo markers:', error);
-            layerVisibility.photos = false; // Reset visibility on error
+            window.layerVisibility.photos = false; // Reset visibility on error
             updateTabHighlight('photos-tab', false);
         });
     } else {

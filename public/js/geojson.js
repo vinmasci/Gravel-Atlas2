@@ -1,4 +1,4 @@
-export function parseTrackPoints(gpxDoc, trackColor, trackGravelType, trackLineStyle) {
+window.parseTrackPoints = function(gpxDoc, trackColor, trackGravelType, trackLineStyle) {
     const trackPoints = [];
 
     // Log the incoming parameters to check their values

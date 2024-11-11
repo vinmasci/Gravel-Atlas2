@@ -557,20 +557,37 @@
 
 <!-- Initialize -->
 <!-- Initialize -->
+<!-- Initialize -->
 <script>
-    window.addEventListener('load', async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         try {
-            // Wait for map to load
-            await new Promise(resolve => map.on('load', resolve));
+            // Wait for map to load if it's not already loaded
+            if (!map.loaded()) {
+                await new Promise(resolve => map.on('load', resolve));
+            }
             console.log('Map loaded successfully');
-            
-            // Initialize core after map is loaded
+    
+            // Initialize core
             await initCore();
+            console.log('Application initialized successfully');
             
-            // Verify function availability
-            console.log('Checking function availability:', {
+            // Comprehensive function check
+            console.log('Final function check:', {
+                // Map functions
+                loadSegments: typeof window.loadSegments === 'function',
+                removeSegments: typeof window.removeSegments === 'function',
+                initGeoJSONSource: typeof window.initGeoJSONSource === 'function',
+                
+                // Photo functions
                 loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
-                loadSegments: typeof window.loadSegments === 'function'
+                removePhotoMarkers: typeof window.removePhotoMarkers === 'function',
+                
+                // POI functions
+                loadPOIMarkers: typeof window.loadPOIMarkers === 'function',
+                removePOIMarkers: typeof window.removePOIMarkers === 'function',
+                
+                // GeoJSON functions
+                parseTrackPoints: typeof window.parseTrackPoints === 'function'
             });
         } catch (error) {
             console.error('Error initializing application:', error);
