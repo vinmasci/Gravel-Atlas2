@@ -32,20 +32,36 @@ async function getPresignedUrl(fileType, fileName) {
 // Upload to S3
 async function uploadToS3(file) {
     try {
-        const { uploadURL, fileUrl } = await getPresignedUrl(file.type, file.name);
-        
+        // Get pre-signed URL
+        console.log(`Getting pre-signed URL for ${file.name} (${file.type})`);
+        const response = await fetch(
+            `/api/get-upload-url?fileType=${encodeURIComponent(file.type)}&fileName=${encodeURIComponent(file.name)}`
+        );
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to get upload URL: ${error}`);
+        }
+
+        const { uploadURL, fileUrl } = await response.json();
+        console.log('Got pre-signed URL:', uploadURL);
+
+        // Upload to S3
         const uploadResponse = await fetch(uploadURL, {
             method: 'PUT',
             body: file,
             headers: {
-                'Content-Type': file.type
+                'Content-Type': file.type,
+                'x-amz-acl': 'public-read'
             }
         });
 
         if (!uploadResponse.ok) {
-            throw new Error('Upload to S3 failed');
+            const error = await uploadResponse.text();
+            throw new Error(`Upload failed: ${error}`);
         }
 
+        console.log('Upload successful:', fileUrl);
         return fileUrl;
     } catch (error) {
         console.error('S3 upload error:', error);
