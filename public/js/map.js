@@ -280,10 +280,7 @@ function removeSegments() {
 // ============================
 function initEventListeners() {
     // Tabs and control buttons
-    document.getElementById('segments-tab').addEventListener('click', toggleSegmentsLayer);
     document.getElementById('draw-route-tab').addEventListener('click', toggleDrawingMode);
-    document.getElementById('photos-tab').addEventListener('click', togglePhotoLayer);
-    document.getElementById('pois-tab').addEventListener('click', togglePOILayer);
     document.getElementById('reset-btn').addEventListener('click', resetRoute);
     document.getElementById('undo-btn').addEventListener('click', undoLastSegment);
     document.getElementById('save-btn').addEventListener('click', saveDrawnRoute);
@@ -341,8 +338,7 @@ function togglePOILayer() {
     updateTabHighlight('pois-tab', layerVisibility.pois);
 }
 
-// In map.js
-// Add at bottom
-window.map = map;  // Make map object available
+// At the bottom of map.js
+window.map = map;
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
