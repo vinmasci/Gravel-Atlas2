@@ -60,8 +60,6 @@ function setupSegmentInteraction() {
 }
 
 
-
-
 // ===========================
 // Function to reset to original Mapbox style
 // ===========================
@@ -248,7 +246,6 @@ function removeSegments() {
 }
 
 
-
 // ============================
 // SECTION: Initialize Event Listeners
 // ============================
@@ -277,39 +274,6 @@ function initEventListeners() {
             setTileLayer(tileLayers[selectedLayer]);  // Apply selected tile layer
         }
     });
-}
-
-
-// ============================
-// SECTION: Toggle Segments Layer
-// ============================
-function toggleSegmentsLayer() {
-    layerVisibility.segments = !layerVisibility.segments;
-
-    if (layerVisibility.segments) {
-        map.setLayoutProperty('drawn-segments-layer', 'visibility', 'visible');
-        loadSegments();
-    } else {
-        map.setLayoutProperty('drawn-segments-layer', 'visibility', 'none');
-        removeSegments();
-    }
-
-    updateTabHighlight('segments-tab', layerVisibility.segments);
-}
-
-// ============================
-// SECTION: Toggle POI Layer
-// ============================
-function togglePOILayer() {
-    layerVisibility.pois = !layerVisibility.pois;
-
-    if (layerVisibility.pois) {
-        loadPOIMarkers(); // Load POI markers when toggled on
-    } else {
-        removePOIMarkers(); // Remove POI markers when toggled off
-    }
-
-    updateTabHighlight('pois-tab', layerVisibility.pois);
 }
 
 // At the bottom of map.js
