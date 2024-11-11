@@ -1,81 +1,63 @@
-// /public/js/modal.js
+// modal.js - Generic Modal Handling
 
-// Function to close a modal
+// Function to close a modal with animation
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 150); // Small delay for animation
     }
 }
 
-// Function to open a modal
+// Function to open a modal with animation
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'block';
+        // Small delay to trigger animation
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
     }
 }
 
-// Initialize modals (attach close button events)
+// Initialize modals
 function initModals() {
-    const closeButtons = document.querySelectorAll('.close');
+    // Close buttons
+    const closeButtons = document.querySelectorAll('.modal .close');
     closeButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const modalId = button.parentElement.parentElement.id;
-            closeModal(modalId);
+        button.addEventListener('click', () => {
+            const modal = button.closest('.modal');
+            if (modal) {
+                closeModal(modal.id);
+            }
         });
     });
-}
 
-// Function to handle photo upload
-function uploadPhoto() {
-    const photoFiles = document.getElementById('photoFiles').files;
-
-    if (photoFiles.length === 0) {
-        alert('Please select a photo to upload.');
-        return;
-    }
-
-    const formData = new FormData();
-    for (let i = 0; i < photoFiles.length; i++) {
-        formData.append('photoFiles', photoFiles[i]);
-    }
-
-    // Send the photo to the server for upload
-    fetch('/api/upload-photos', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message) {
-            alert(data.message);
-            closeModal('photo-modal'); // Close the modal after upload
-        } else {
-            alert('Error uploading photos.');
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            closeModal(e.target.id);
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to upload photos.');
+    });
+
+    // ESC key to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const visibleModal = document.querySelector('.modal.show');
+            if (visibleModal) {
+                closeModal(visibleModal.id);
+            }
+        }
     });
 }
 
-// Function to toggle the "Add" tab dropdown
-let addDropdownVisible = false;
+// Make functions available globally
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.initModals = initModals;
 
-function toggleAddDropdown() {
-    const dropdown = document.getElementById('add-dropdown');
-
-    if (dropdown) {
-        if (addDropdownVisible) {
-            dropdown.classList.remove('show'); // Hide the dropdown
-            addDropdownVisible = false;
-        } else {
-            dropdown.classList.add('show'); // Show the dropdown
-            addDropdownVisible = true;
-        }
-    }
-
-    updateTabHighlight('add-tab', addDropdownVisible); // Update tab highlight for the add tab
-}
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initModals);
