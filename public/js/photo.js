@@ -1,4 +1,147 @@
-// photo.js - Update these functions
+// Add these functions to the top of your photo.js
+
+// Compression function
+function compressImage(file) {
+    console.log(`Starting compression for ${file.name}`);
+    return new Promise((resolve, reject) => {
+        new Compressor(file, {
+            quality: 0.6,
+            maxWidth: 1600,
+            maxHeight: 1200,
+            success(result) {
+                console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${result.size/1024}KB`);
+                resolve(result);
+            },
+            error(err) {
+                console.error(`Compression error for ${file.name}:`, err);
+                reject(err);
+            }
+        });
+    });
+}
+
+// Get pre-signed URL
+async function getPresignedUrl(fileType, fileName) {
+    const response = await fetch(`/api/get-upload-url?fileType=${fileType}&fileName=${encodeURIComponent(fileName)}`);
+    if (!response.ok) {
+        throw new Error('Failed to get upload URL');
+    }
+    return response.json();
+}
+
+// Upload to S3
+async function uploadToS3(file) {
+    try {
+        const { uploadURL, fileUrl } = await getPresignedUrl(file.type, file.name);
+        
+        const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'Content-Type': file.type
+            }
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('Upload to S3 failed');
+        }
+
+        return fileUrl;
+    } catch (error) {
+        console.error('S3 upload error:', error);
+        throw error;
+    }
+}
+
+// Main upload handler
+async function handlePhotoUpload() {
+    const input = document.getElementById('photoFilesInput');
+    const files = Array.from(input.files);
+    const uploadButton = document.getElementById('uploadPhotosBtn');
+    
+    if (files.length === 0) {
+        alert("Please select photos to upload.");
+        return;
+    }
+
+    uploadButton.disabled = true;
+    uploadButton.innerText = "Uploading...";
+
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+        for (let i = 0; i < files.length; i += 2) { // Process 2 at a time
+            const batch = files.slice(i, i + 2);
+            
+            for (const file of batch) {
+                try {
+                    uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
+                    
+                    // Compress
+                    const compressedFile = await compressImage(file);
+                    
+                    // Upload to S3
+                    const fileUrl = await uploadToS3(compressedFile);
+                    
+                    // Save metadata
+                    const metadataResponse = await fetch('/api/save-photo-metadata', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: fileUrl,
+                            originalName: file.name
+                        })
+                    });
+
+                    if (!metadataResponse.ok) {
+                        throw new Error('Failed to save photo metadata');
+                    }
+
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to process ${file.name}:`, error);
+                    failCount++;
+                }
+            }
+
+            // Small delay between batches
+            if (i + 2 < files.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    } catch (error) {
+        console.error('Upload process error:', error);
+    } finally {
+        if (failCount > 0) {
+            uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
+        } else {
+            uploadButton.innerText = "Upload Complete!";
+        }
+
+        // Refresh markers if any uploads succeeded
+        if (successCount > 0) {
+            await loadPhotoMarkers();
+        }
+
+        // Reset button after delay
+        setTimeout(() => {
+            uploadButton.innerText = "Upload";
+            uploadButton.disabled = false;
+        }, 3000);
+        
+        input.value = ''; // Clear input
+    }
+}
+
+// Add the event listener
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
+});
+
+// ... rest of your existing photo.js code for markers etc ...
 
 // Add click handler functions
 function handleClusterClick(e) {
