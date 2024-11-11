@@ -138,10 +138,16 @@ async function initCore() {
     document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
     document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
 
-    // Make core functionality globally available
-    window.map = map;
-    window.layerVisibility = layerVisibility;
-    window.updateTabHighlight = utils.updateTabHighlight;
+    // Verify module exports
+    console.log('Verifying module exports...');
+    console.log('Map functions:', {
+        loadSegments: typeof window.loadSegments === 'function',
+        removeSegments: typeof window.removeSegments === 'function'
+    });
+    console.log('Photo functions:', {
+        loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+        removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+    });
 
     console.log('Core initialized successfully');
     return { map, layerVisibility };

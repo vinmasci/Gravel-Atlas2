@@ -29,3 +29,7 @@ function removePOIMarkers() {
     poiMarkers.forEach(marker => marker.remove());
     poiMarkers = [];
 }
+
+// In markers.js
+window.loadPOIMarkers = loadPOIMarkers;
+window.removePOIMarkers = removePOIMarkers;

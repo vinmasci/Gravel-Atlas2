@@ -1,6 +1,4 @@
 let map;
-let layerVisibility = { segments: false, gravel: false, photos: false, pois: false };
-
 
 // Tile URLs for different map layers
 const tileLayers = {
@@ -343,7 +341,8 @@ function togglePOILayer() {
     updateTabHighlight('pois-tab', layerVisibility.pois);
 }
 
-// At the bottom of map.js
+// In map.js
+// Add at bottom
+window.map = map;  // Make map object available
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
-
