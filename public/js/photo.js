@@ -104,6 +104,10 @@ async function handlePhotoUpload() {
                         })
                     });
 
+                    // Add this logging
+const metadataResult = await metadataResponse.json();
+console.log('Metadata save response:', metadataResult);
+
                     if (!metadataResponse.ok) {
                         throw new Error('Failed to save photo metadata');
                     }
@@ -128,12 +132,24 @@ async function handlePhotoUpload() {
         } else {
             uploadButton.innerText = "Upload Complete!";
         }
-
+    
         // Refresh markers if any uploads succeeded
         if (successCount > 0) {
-            await loadPhotoMarkers();
+            console.log('Refreshing markers after successful uploads...');
+            // Add a delay to ensure MongoDB has updated
+            setTimeout(async () => {
+                try {
+                    await loadPhotoMarkers();
+                    console.log('Markers refreshed successfully');
+                    // Force the photo layer to be visible
+                    layerVisibility.photos = true;
+                    updateTabHighlight('photos-tab', true);
+                } catch (error) {
+                    console.error('Error refreshing markers:', error);
+                }
+            }, 2000);  // 2 second delay
         }
-
+    
         // Reset button after delay
         setTimeout(() => {
             uploadButton.innerText = "Upload";
@@ -225,6 +241,13 @@ async function loadPhotoMarkers() {
         const photos = await response.json();
 
         console.log("Photos fetched:", photos);
+        console.log("Sample photo data:", photos[0]); // Show first photo's data
+
+                // Add this check
+                if (photos.length === 0) {
+                    console.warn('No photos returned from API');
+                    return;
+                }
 
         // Remove existing layers and handlers
         removePhotoMarkers();
