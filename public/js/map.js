@@ -1,4 +1,4 @@
-let map;
+
 
 // Tile URLs for different map layers
 const tileLayers = {
@@ -60,33 +60,7 @@ function setupSegmentInteraction() {
 }
 
 
-// ===========================
-// SECTION: Map Initialization
-// ===========================
-function initMap() {
-    console.log("Initializing map...");
 
-    mapboxgl.accessToken = 'pk.eyJ1IjoidmlubWFzY2kiLCJhIjoiY20xY3B1ZmdzMHp5eDJwcHBtMmptOG8zOSJ9.Ayn_YEjOCCqujIYhY9PiiA';  // Replace with your Mapbox token
-    map = new mapboxgl.Map({
-        container: 'map',
-        style: originalMapboxStyle,   // Use original style by default
-        center: [144.9631, -37.8136],
-        zoom: 10
-    });
-
-    map.on('load', function () {
-        console.log("Map loaded successfully.");
-        initGeoJSONSource();       // Load GeoJSON source for segments
-        addSegmentLayers();
-        initEventListeners();      // Initialize other event listeners
-        updateTabHighlight('segments-tab', false);  // Highlight the segments tab by default
-        setupSegmentInteraction(); // Ensures interaction setup is complete
-    });
-
-    map.on('error', (e) => {
-        console.error("Map error:", e);
-    });
-}
 
 // ===========================
 // Function to reset to original Mapbox style
@@ -339,6 +313,5 @@ function togglePOILayer() {
 }
 
 // At the bottom of map.js
-window.map = map;
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;

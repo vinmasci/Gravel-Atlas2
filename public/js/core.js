@@ -36,8 +36,6 @@ const utils = {
 };
 
 // Layer management
-// In core.js, update the layers object:
-
 const layers = {
     toggleLayer: async (layerType) => {
         try {
@@ -132,6 +130,9 @@ async function initCore() {
     // Wait for map to load
     await new Promise(resolve => map.on('load', resolve));
     console.log('Map loaded successfully');
+
+    // Export map globally so other scripts can access it
+    window.map = map;
 
     // Attach event listeners
     document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
