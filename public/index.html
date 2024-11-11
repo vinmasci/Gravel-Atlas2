@@ -5,12 +5,18 @@
     <meta charSet="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mapbox Project</title>
+    
+    <!-- CSS Dependencies -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.css" rel="stylesheet" />
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+    
+    <!-- Third-party JS Dependencies -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/compressorjs/1.1.1/compressor.min.js"></script>
     <script src="https://kit.fontawesome.com/b02e210188.js" crossorigin="anonymous"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/1.22.5/auth0-spa-js.production.js" crossorigin="anonymous"></script>
-    <script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -472,17 +478,15 @@
     </div>
 </div></div>
 
-<!-- tabs -->
 <div class="tabs">
-<!-- Update your contribute tab -->
-<div class="tab draw-route-tab" id="draw-route-tab" onclick="toggleContributeDropdown()">
-    <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
-    <span class="login-required" style="font-size: 10px; display: none;">(Login required)</span>
-</div>
+    <div class="tab draw-route-tab" id="draw-route-tab">
+        <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
+        <span class="login-required" style="font-size: 10px; display: none;">(Login required)</span>
+    </div>
     <div class="tab" id="segments-tab">
         <i class="fa-thin fa-route" style="color: #ffffff;"></i> Segments
     </div>
-    <div class="tab" id="photos-tab" onclick="console.log('Photos tab clicked'); togglePhotoLayer()">
+    <div class="tab" id="photos-tab">
         <i class="fa-thin fa-camera-retro" style="color: #ffffff;"></i> Photos
     </div>
     <div class="tab" id="pois-tab">
@@ -527,27 +531,34 @@
     </div>
 </div>
 
-<!-- Include external JS files -->
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<!-- Core -->
+<script src="/js/core.js"></script>
 
-<!-- Include togpx from CDN -->
-<script src="/js/ui.js"></script>
+<!-- Auth needs to be early -->
+<script src="/js/auth.js"></script>
+
+<!-- Utility modules -->
+<script src="/js/geojson.js"></script>
 <script src="/js/togpx.js"></script>
-<script src="/js/map.js"></script>
-<script src="/js/markers.js"></script>
+
+<!-- Feature modules -->
+<script src="/js/ui.js"></script>
 <script src="/js/photo.js"></script>
+<script src="/js/markers.js"></script>
 <script src="/js/routes.js"></script>
 <script src="/js/modal.js"></script>
+<script src="/js/map.js"></script>
 
-
-
+<!-- Initialize -->
 <script>
-    // Ensure the map is initialized after the DOM is fully loaded...
-    document.addEventListener('DOMContentLoaded', function () {
-        initMap();  // This will call your initMap() function in map.js
-    });
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await initCore();
+        console.log('Application initialized successfully');
+    } catch (error) {
+        console.error('Error initializing application:', error);
+    }
+});
 </script>
 
 <script>
