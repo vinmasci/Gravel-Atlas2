@@ -218,17 +218,28 @@ function handlePhotoClick(e) {
 // Add this function to photo.js (right before or after loadPhotoMarkers)
 function togglePhotoLayer() {
     layerVisibility.photos = !layerVisibility.photos;
-    console.log('Photo layer visibility:', layerVisibility.photos);
+    console.log('Photo layer visibility toggled to:', layerVisibility.photos);
 
     if (layerVisibility.photos) {
         console.log('Loading photo markers...');
-        loadPhotoMarkers(); // Load photo markers when toggled on
+        loadPhotoMarkers().then(() => {
+            console.log('Photo markers loaded successfully');
+            updateTabHighlight('photos-tab', true);
+        }).catch(error => {
+            console.error('Error loading photo markers:', error);
+            layerVisibility.photos = false; // Reset visibility on error
+            updateTabHighlight('photos-tab', false);
+        });
     } else {
         console.log('Removing photo markers...');
-        removePhotoMarkers(); // Remove photo markers when toggled off
+        try {
+            removePhotoMarkers();
+            updateTabHighlight('photos-tab', false);
+            console.log('Photo markers removed successfully');
+        } catch (error) {
+            console.error('Error removing photo markers:', error);
+        }
     }
-
-    updateTabHighlight('photos-tab', layerVisibility.photos);
 }
 
 // Make sure to export it globally
@@ -240,35 +251,36 @@ async function loadPhotoMarkers() {
         const response = await fetch('/api/get-photos');
         const photos = await response.json();
 
-        console.log("Photos fetched:", photos);
-        console.log("Sample photo data:", photos[0]); // Show first photo's data
+        console.log(`Total photos: ${photos.length}`);
+        
+        // Filter photos with valid coordinates first
+        const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
+        console.log(`Photos with valid coordinates: ${validPhotos.length}`);
+        console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
 
-                // Add this check
-                if (photos.length === 0) {
-                    console.warn('No photos returned from API');
-                    return;
-                }
+        if (validPhotos.length === 0) {
+            console.warn('No photos with valid coordinates found');
+            return;
+        }
 
         // Remove existing layers and handlers
         removePhotoMarkers();
 
-        // Convert photos into GeoJSON
+        // Convert valid photos into GeoJSON
         const photoGeoJSON = {
             type: 'FeatureCollection',
-            features: photos
-                .filter(photo => photo.latitude && photo.longitude)
-                .map(photo => ({
-                    type: 'Feature',
-                    geometry: {
-                        type: 'Point',
-                        coordinates: [photo.longitude, photo.latitude]
-                    },
-                    properties: {
-                        originalName: photo.originalName,
-                        url: photo.url,
-                        _id: photo._id
-                    }
-                }))
+            features: validPhotos.map(photo => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [photo.longitude, photo.latitude]
+                },
+                properties: {
+                    originalName: photo.originalName,
+                    url: photo.url,
+                    _id: photo._id
+                }
+            }))
         };
 
         // Load marker images
