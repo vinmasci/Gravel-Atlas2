@@ -1,4 +1,5 @@
 // photo.js
+let layerVisibility = { photos: false };
 
 // Compression function
 function compressImage(file) {
@@ -197,6 +198,25 @@ function handlePhotoClick(e) {
         }
     }, 0);
 }
+
+// Add this function to photo.js (right before or after loadPhotoMarkers)
+function togglePhotoLayer() {
+    layerVisibility.photos = !layerVisibility.photos;
+    console.log('Photo layer visibility:', layerVisibility.photos);
+
+    if (layerVisibility.photos) {
+        console.log('Loading photo markers...');
+        loadPhotoMarkers(); // Load photo markers when toggled on
+    } else {
+        console.log('Removing photo markers...');
+        removePhotoMarkers(); // Remove photo markers when toggled off
+    }
+
+    updateTabHighlight('photos-tab', layerVisibility.photos);
+}
+
+// Make sure to export it globally
+window.togglePhotoLayer = togglePhotoLayer;
 
 // Photo markers management
 async function loadPhotoMarkers() {
