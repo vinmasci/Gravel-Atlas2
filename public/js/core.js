@@ -31,11 +31,10 @@ const utils = {
     
     showError: (message) => {
         console.error(message);
-        // Could add UI error handling here
     }
 };
 
-// **Initialize Mapbox and the Map Early**
+// Initialize Mapbox
 mapboxgl.accessToken = config.mapboxToken;
 map = new mapboxgl.Map({
     container: 'map',
@@ -51,24 +50,39 @@ window.map = map;
 const layers = {
     toggleLayer: async (layerType) => {
         try {
+            // Wait for map to be loaded
+            if (!map.loaded()) {
+                await new Promise(resolve => map.on('load', resolve));
+            }
+
             layerVisibility[layerType] = !layerVisibility[layerType];
             console.log(`${layerType} layer visibility:`, layerVisibility[layerType]);
 
+            // Verify functions exist before trying to use them
             if (layerVisibility[layerType]) {
                 switch(layerType) {
                     case 'photos':
+                        if (!window.loadPhotoMarkers) {
+                            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to wait for functions
+                        }
                         if (typeof window.loadPhotoMarkers !== 'function') {
                             throw new Error('Photo markers functionality not loaded');
                         }
                         await window.loadPhotoMarkers();
                         break;
                     case 'segments':
+                        if (!window.loadSegments) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
                         if (typeof window.loadSegments !== 'function') {
                             throw new Error('Segments functionality not loaded');
                         }
                         await window.loadSegments();
                         break;
                     case 'pois':
+                        if (!window.loadPOIMarkers) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
                         if (typeof window.loadPOIMarkers !== 'function') {
                             throw new Error('POI markers functionality not loaded');
                         }
@@ -78,22 +92,19 @@ const layers = {
             } else {
                 switch(layerType) {
                     case 'photos':
-                        if (typeof window.removePhotoMarkers !== 'function') {
-                            throw new Error('Photo markers functionality not loaded');
+                        if (typeof window.removePhotoMarkers === 'function') {
+                            window.removePhotoMarkers();
                         }
-                        window.removePhotoMarkers();
                         break;
                     case 'segments':
-                        if (typeof window.removeSegments !== 'function') {
-                            throw new Error('Segments functionality not loaded');
+                        if (typeof window.removeSegments === 'function') {
+                            window.removeSegments();
                         }
-                        window.removeSegments();
                         break;
                     case 'pois':
-                        if (typeof window.removePOIMarkers !== 'function') {
-                            throw new Error('POI markers functionality not loaded');
+                        if (typeof window.removePOIMarkers === 'function') {
+                            window.removePOIMarkers();
                         }
-                        window.removePOIMarkers();
                         break;
                 }
             }
@@ -101,7 +112,6 @@ const layers = {
             utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
         } catch (error) {
             utils.showError(`Error toggling ${layerType} layer: ${error.message}`);
-            // Reset visibility state on error
             layerVisibility[layerType] = !layerVisibility[layerType];
             utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
         }
@@ -126,31 +136,43 @@ const handlers = {
     }
 };
 
-// **Attach event listeners after the map has loaded**
-map.on('load', () => {
-    console.log('Map loaded successfully');
-    initCore();
-});
-
 // Initialize core functionality
 async function initCore() {
     console.log('Initializing core...');
     
+    // Wait for map to be fully loaded
+    await new Promise(resolve => {
+        if (map.loaded()) {
+            resolve();
+        } else {
+            map.on('load', resolve);
+        }
+    });
+
     // Attach event listeners
     document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
     document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
     document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
 
-    // Verify module exports
-    console.log('Verifying module exports...');
-    console.log('Map functions:', {
-        loadSegments: typeof window.loadSegments === 'function',
-        removeSegments: typeof window.removeSegments === 'function'
-    });
-    console.log('Photo functions:', {
-        loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
-        removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
-    });
+    // Verify module exports with retry
+    let attempts = 0;
+    while (attempts < 3) {
+        console.log('Verifying module exports... Attempt', attempts + 1);
+        const functionChecks = {
+            loadSegments: typeof window.loadSegments === 'function',
+            removeSegments: typeof window.removeSegments === 'function',
+            loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+            removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+        };
+        
+        if (Object.values(functionChecks).every(Boolean)) {
+            console.log('All required functions are available');
+            break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+    }
 
     console.log('Core initialized successfully');
     return { map, layerVisibility };

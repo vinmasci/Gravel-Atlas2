@@ -315,3 +315,4 @@ function togglePOILayer() {
 // At the bottom of map.js
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
+window.initGeoJSONSource = initGeoJSONSource;

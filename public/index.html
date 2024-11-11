@@ -556,16 +556,27 @@
 <script src="/js/ui.js"></script>
 
 <!-- Initialize -->
+<!-- Initialize -->
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        await initCore();
-        console.log('Application initialized successfully');
-    } catch (error) {
-        console.error('Error initializing application:', error);
-    }
-});
-</script>
+    window.addEventListener('load', async () => {
+        try {
+            // Wait for map to load
+            await new Promise(resolve => map.on('load', resolve));
+            console.log('Map loaded successfully');
+            
+            // Initialize core after map is loaded
+            await initCore();
+            
+            // Verify function availability
+            console.log('Checking function availability:', {
+                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+                loadSegments: typeof window.loadSegments === 'function'
+            });
+        } catch (error) {
+            console.error('Error initializing application:', error);
+        }
+    });
+    </script>
 <script>
 // ============================
 // SECTION: Close Modal
