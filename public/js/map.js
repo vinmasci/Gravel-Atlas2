@@ -184,13 +184,20 @@ function addSegmentLayers() {
 // ============================
 async function loadSegments() {
     try {
+        // First, ensure the source exists
+        if (!map.getSource('drawnSegments')) {
+            console.log("Initializing drawnSegments source");
+            initGeoJSONSource();
+            addSegmentLayers();
+        }
+
         const response = await fetch('/api/get-drawn-routes');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("Raw routes data from API:", data.routes);  // Log raw data from API
+        console.log("Raw routes data from API:", data.routes);
 
         if (!data || !data.routes) {
             throw new Error("No data or routes found in the API response");
@@ -201,27 +208,26 @@ async function loadSegments() {
             console.log(`Route ${index} geojson:`, route.geojson);
         });
 
-        // Map over routes to get their geojson features and filter valid ones
         const geojsonData = {
             'type': 'FeatureCollection',
             'features': data.routes.flatMap(route => {
                 if (route.geojson && route.geojson.features) {
-                    // Ensure each geojson has valid features
                     return route.geojson.features.filter(feature => 
                         feature && feature.geometry && feature.geometry.coordinates);
                 }
-                return [];  // Return an empty array if there are no valid features
+                return [];
             })
         };
 
-        console.log("GeoJSON Data being set:", geojsonData);  // Log the entire GeoJSON data after filtering
+        console.log("GeoJSON Data being set:", geojsonData);
 
+        // Now we know the source exists, set its data
         const source = map.getSource('drawnSegments');
         if (source) {
             console.log("Setting data for drawnSegments.");
-            source.setData(geojsonData);  // Update the source with the new GeoJSON data
+            source.setData(geojsonData);
         } else {
-            console.error('drawnSegments source not found.');
+            console.error('drawnSegments source still not found after initialization.');
         }
     } catch (error) {
         console.error('Error loading drawn routes:', error);
