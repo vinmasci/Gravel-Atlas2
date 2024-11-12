@@ -371,6 +371,7 @@ document.addEventListener('DOMContentLoaded', function () {
     dropdown.style.display = 'none'; // Ensure hidden on page load
 });
 
+// In your toggleContributeDropdown function, ensure the control panel shows by default
 async function toggleContributeDropdown() {
     const isAuthenticated = await isUserAuthenticated();
     const dropdown = document.getElementById('contribute-dropdown');
@@ -379,25 +380,21 @@ async function toggleContributeDropdown() {
 
     if (!isAuthenticated) {
         console.log("User not authenticated");
-        // Show login required message
         if (loginRequired) {
             loginRequired.style.display = 'inline';
         }
-        // Prompt user to login
         await login();
         return;
     }
 
-    // Hide login required message if authenticated
     if (loginRequired) {
         loginRequired.style.display = 'none';
     }
 
-    // Existing dropdown toggle logic
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
         dropdown.style.display = 'flex';
         contributeTab.classList.add('active');
-        showControlPanel();
+        showControlPanel(); // This will now show the parent control panel and the draw route panel
     } else {
         dropdown.style.display = 'none';
         contributeTab.classList.remove('active');
@@ -425,15 +422,43 @@ function resetActiveDropdownTabs() {
 
 // Show control panel for Draw Route and activate the tab
 function showControlPanel() {
-    document.getElementById('draw-route-control-panel').style.display = 'block';
-    document.getElementById('photo-upload-control-panel').style.display = 'none';
+    const controlPanel = document.getElementById('control-panel');
+    const drawRoutePanel = document.getElementById('draw-route-control-panel');
+    const photoUploadPanel = document.getElementById('photo-upload-control-panel');
+    
+    if (controlPanel) {
+        controlPanel.style.display = 'block';
+    }
+    
+    if (drawRoutePanel) {
+        drawRoutePanel.style.display = 'block';
+    }
+    
+    if (photoUploadPanel) {
+        photoUploadPanel.style.display = 'none';
+    }
+    
     setActiveDropdownTab('draw-route-dropdown');
 }
 
 // Show upload photo panel and activate the tab
 function showPhotoUploadPanel() {
-    document.getElementById('draw-route-control-panel').style.display = 'none';
-    document.getElementById('photo-upload-control-panel').style.display = 'block';
+    const controlPanel = document.getElementById('control-panel');
+    const drawRoutePanel = document.getElementById('draw-route-control-panel');
+    const photoUploadPanel = document.getElementById('photo-upload-control-panel');
+    
+    if (controlPanel) {
+        controlPanel.style.display = 'block';
+    }
+    
+    if (drawRoutePanel) {
+        drawRoutePanel.style.display = 'none';
+    }
+    
+    if (photoUploadPanel) {
+        photoUploadPanel.style.display = 'block';
+    }
+    
     setActiveDropdownTab('photo-upload-dropdown');
 }
 
@@ -445,8 +470,21 @@ function showTempOverlay() {
 
 // Hide all control panels when dropdown is closed
 function hideControlPanel() {
-    document.getElementById('draw-route-control-panel').style.display = 'none';
-    document.getElementById('photo-upload-control-panel').style.display = 'none';
+    const controlPanel = document.getElementById('control-panel');
+    const drawRoutePanel = document.getElementById('draw-route-control-panel');
+    const photoUploadPanel = document.getElementById('photo-upload-control-panel');
+    
+    if (controlPanel) {
+        controlPanel.style.display = 'none';
+    }
+    
+    if (drawRoutePanel) {
+        drawRoutePanel.style.display = 'none';
+    }
+    
+    if (photoUploadPanel) {
+        photoUploadPanel.style.display = 'none';
+    }
 }
 
 // ============================
