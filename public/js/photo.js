@@ -103,17 +103,12 @@ async function handlePhotoUpload() {
     const input = document.getElementById('photoFilesInput');
     const files = Array.from(input.files);
     const uploadButton = document.getElementById('uploadPhotosBtn');
-    // Update these selectors to use IDs
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('uploadProgress');
     
     if (files.length === 0) {
         alert("Please select photos to upload.");
         return;
     }
 
-    // Show progress bar and disable upload button
-    progressContainer.style.display = 'block';
     uploadButton.disabled = true;
     uploadButton.innerText = "Uploading...";
 
@@ -121,50 +116,55 @@ async function handlePhotoUpload() {
     let failCount = 0;
 
     try {
-        for (let i = 0; i < files.length; i += 2) {
+        for (let i = 0; i < files.length; i += 2) { 
+            
+            
+            // Process 2 at a time
             const batch = files.slice(i, i + 2);
             
-            for (const file of batch) {
-                try {
-                    // Calculate and update progress
-                    const progress = Math.round(((i + 1) / files.length) * 100);
-                    progressBar.style.width = `${progress}%`;
-                    progressBar.setAttribute('aria-valuenow', progress);
-                    progressBar.textContent = `Processing ${i + 1}/${files.length} (${progress}%)`;
-                    
-                    // Extract coordinates before compression
-                    const coordinates = await extractCoordinates(file);
-                    
-                    // Rest of your upload code...
-                    const compressedFile = await compressImage(file);
-                    const fileUrl = await uploadToS3(compressedFile);
-                    
-                    // Save metadata with coordinates
-                    const metadataResponse = await fetch('/api/save-photo-metadata', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            url: fileUrl,
-                            originalName: file.name,
-                            latitude: coordinates?.latitude || null,
-                            longitude: coordinates?.longitude || null
-                        })
-                    });
+// In handlePhotoUpload function, modify the metadata saving part:
+for (const file of batch) {
+    try {
+        uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
+        
+        // Extract coordinates before compression
+        const coordinates = await extractCoordinates(file);
+        
+        // Compress
+        const compressedFile = await compressImage(file);
+        
+        // Upload to S3
+        const fileUrl = await uploadToS3(compressedFile);
+        
+        // Save metadata with coordinates
+        const metadataResponse = await fetch('/api/save-photo-metadata', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: fileUrl,
+                originalName: file.name,
+                latitude: coordinates?.latitude || null,
+                longitude: coordinates?.longitude || null
+            })
+        });
 
-                    const metadataResult = await metadataResponse.json();
-                    console.log('Metadata save response:', metadataResult);
+        const metadataResult = await metadataResponse.json();
+        console.log('Metadata save response:', metadataResult);
 
-                    if (!metadataResponse.ok) {
-                        throw new Error('Failed to save photo metadata');
-                    }
+        if (!metadataResponse.ok) {
+            throw new Error('Failed to save photo metadata');
+        }
 
-                    successCount++;
-                } catch (error) {
-                    console.error(`Failed to process ${file.name}:`, error);
-                    failCount++;
-                }
-            }
+        successCount++;
+    } catch (error) {
+        console.error(`Failed to process ${file.name}:`, error);
+        failCount++;
+    }
+}
 
+            // Small delay between batches
             if (i + 2 < files.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
@@ -174,40 +174,33 @@ async function handlePhotoUpload() {
     } finally {
         if (failCount > 0) {
             uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
-            progressBar.classList.remove('bg-primary');
-            progressBar.classList.add('bg-danger');
         } else {
             uploadButton.innerText = "Upload Complete!";
-            progressBar.classList.remove('progress-bar-animated');
-            progressBar.classList.add('bg-success');
         }
-        progressBar.style.width = '100%';
-        progressBar.textContent = 'Complete!';
-
-        if (successCount > 0) {
-            setTimeout(async () => {
-                try {
-                    await loadPhotoMarkers();
-                    window.layerVisibility.photos = true;
-                    updateTabHighlight('photos-tab', true);
-                } catch (error) {
-                    console.error('Error refreshing markers:', error);
-                }
-            }, 2000);
+    
+        // Refresh markers if any uploads succeeded
+if (successCount > 0) {
+    console.log('Refreshing markers after successful uploads...');
+    setTimeout(async () => {
+        try {
+            await loadPhotoMarkers();
+            console.log('Markers refreshed successfully');
+            // Force the photo layer to be visible
+            window.layerVisibility.photos = true;
+            updateTabHighlight('photos-tab', true);
+        } catch (error) {
+            console.error('Error refreshing markers:', error);
         }
-
-        // Reset everything after delay
+    }, 2000);  // 2 second delay
+}
+    
+        // Reset button after delay
         setTimeout(() => {
             uploadButton.innerText = "Upload";
             uploadButton.disabled = false;
-            progressContainer.style.display = 'none';
-            progressBar.style.width = '0%';
-            progressBar.setAttribute('aria-valuenow', 0);
-            progressBar.textContent = '0%';
-            progressBar.classList.remove('bg-danger', 'bg-success');
-            progressBar.classList.add('bg-primary', 'progress-bar-animated');
-            input.value = '';
         }, 3000);
+        
+        input.value = ''; // Clear input
     }
 }
 
