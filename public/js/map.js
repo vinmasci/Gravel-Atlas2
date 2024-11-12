@@ -183,13 +183,22 @@ function addSegmentLayers() {
 // ============================
 // SECTION: Load Segments
 // ============================
+// ============================
+// SECTION: Load Segments
+// ============================
 async function loadSegments() {
     try {
+        // Wait for map to be fully loaded if it isn't already
+        if (!map.loaded()) {
+            await new Promise(resolve => map.on('load', resolve));
+        }
+
         // First, ensure the source exists
         if (!map.getSource('drawnSegments')) {
             console.log("Initializing drawnSegments source");
             initGeoJSONSource();
             addSegmentLayers();
+            setupSegmentInteraction(); // Set up interactions when layers are first added
         }
 
         const response = await fetch('/api/get-drawn-routes');
@@ -234,8 +243,6 @@ async function loadSegments() {
         console.error('Error loading drawn routes:', error);
     }
 }
-
-
 
 // ============================
 // SECTION: Remove Segments
@@ -285,3 +292,4 @@ function initEventListeners() {
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
 window.initGeoJSONSource = initGeoJSONSource;
+window.setupSegmentInteraction = setupSegmentInteraction; 
