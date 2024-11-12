@@ -353,3 +353,8 @@ function flattenFeatureCollection(featureCollection) {
     return featureCollection;  // Return as-is if not a FeatureCollection
 }
 
+window.drawRoute = drawRoute;
+window.toggleDrawingMode = toggleDrawingMode;
+window.resetRoute = resetRoute;
+window.undoLastSegment = undoLastSegment;
+window.saveDrawnRoute = saveDrawnRoute;
