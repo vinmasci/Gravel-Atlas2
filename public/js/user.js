@@ -10,6 +10,7 @@ async function getCurrentUser() {
             throw new Error(`HTTP error ${response.status}`);
         }
         const currentUser = await response.json();
+        console.log('Retrieved current user:', currentUser);
         return currentUser;
     } catch (error) {
         console.error('Error getting current user:', error);
@@ -21,17 +22,22 @@ async function getCurrentUser() {
 async function updateUserProfile(profileData) {
     try {
         console.log('Sending profile data:', profileData);
+        const token = await auth0.getTokenSilently();
+        console.log('Got auth token');
+
         const response = await fetch('/api/user', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${await auth0.getTokenSilently()}`
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(profileData)
         });
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const result = await response.json();
@@ -65,19 +71,28 @@ async function deleteUserProfile() {
 
 // Setup profile form with enhanced feedback
 function setupProfileForm() {
+    console.log('Setting up profile form');
     const profileForm = document.getElementById('profile-form');
+    console.log('Found profile form:', profileForm);
+
     if (profileForm) {
-        profileForm.addEventListener('submit', async (e) => {
+        // Remove any existing event listeners
+        const newForm = profileForm.cloneNode(true);
+        profileForm.parentNode.replaceChild(newForm, profileForm);
+        
+        newForm.addEventListener('submit', async function(e) {
+            console.log('Form submit triggered');
             e.preventDefault();
+            e.stopPropagation();
             
             // Show loading state
-            const submitButton = profileForm.querySelector('button[type="submit"]');
+            const submitButton = this.querySelector('button[type="submit"]');
             const originalButtonText = submitButton.textContent;
             submitButton.textContent = 'Saving...';
             submitButton.disabled = true;
             
             try {
-                const formData = new FormData(profileForm);
+                const formData = new FormData(this);
                 const profileData = {
                     bioName: formData.get('bioName'),
                     website: formData.get('website'),
@@ -88,14 +103,13 @@ function setupProfileForm() {
                     }
                 };
                 
+                console.log('Collected form data:', profileData);
+                
                 await updateUserProfile(profileData);
+                console.log('Profile updated successfully');
                 
                 // Show success message
-                if (typeof showNotification === 'function') {
-                    showNotification('Profile updated successfully!');
-                } else {
-                    alert('Profile updated successfully!');
-                }
+                alert('Profile updated successfully!');
                 
                 // Optionally close the profile section
                 if (typeof utils !== 'undefined' && utils.hideProfileSection) {
@@ -103,23 +117,25 @@ function setupProfileForm() {
                 }
             } catch (error) {
                 console.error('Error updating profile:', error);
-                if (typeof showNotification === 'function') {
-                    showNotification('Error updating profile. Please try again.', 'error');
-                } else {
-                    alert('Error updating profile. Please try again.');
-                }
+                alert('Error updating profile. Please try again.');
             } finally {
                 // Restore button state
                 submitButton.textContent = originalButtonText;
                 submitButton.disabled = false;
             }
+            
+            return false;
         });
+
+        // Add this to double-ensure no form submission
+        newForm.onsubmit = function() { return false; };
     }
 }
 
 // Initialize profile with enhanced error handling
 async function initializeProfile() {
     try {
+        console.log('Initializing profile');
         if (await auth0.isAuthenticated()) {
             const user = await getCurrentUser();
             console.log('Current user data:', user);
@@ -127,6 +143,7 @@ async function initializeProfile() {
             if (user && user.profile) {
                 const profileForm = document.getElementById('profile-form');
                 if (profileForm) {
+                    console.log('Populating form with user data');
                     // Populate form with existing data
                     profileForm.elements['bioName'].value = user.profile.bioName || '';
                     profileForm.elements['website'].value = user.profile.website || '';
@@ -142,8 +159,15 @@ async function initializeProfile() {
     }
 }
 
+// Initialize immediately if document is ready
+if (document.readyState === 'complete') {
+    initializeProfile();
+} else {
+    window.addEventListener('load', initializeProfile);
+}
+
 // Export the functions
-module.exports = {
+export {
     getCurrentUser,
     updateUserProfile,
     deleteUserProfile,
