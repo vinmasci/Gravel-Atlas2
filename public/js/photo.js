@@ -103,8 +103,9 @@ async function handlePhotoUpload() {
     const input = document.getElementById('photoFilesInput');
     const files = Array.from(input.files);
     const uploadButton = document.getElementById('uploadPhotosBtn');
-    const progressBar = document.querySelector('.progress');
-    const progressBarInner = document.getElementById('uploadProgress');
+    // Update these selectors to use IDs
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('uploadProgress');
     
     if (files.length === 0) {
         alert("Please select photos to upload.");
@@ -112,7 +113,7 @@ async function handlePhotoUpload() {
     }
 
     // Show progress bar and disable upload button
-    progressBar.style.display = 'block';
+    progressContainer.style.display = 'block';
     uploadButton.disabled = true;
     uploadButton.innerText = "Uploading...";
 
@@ -121,32 +122,27 @@ async function handlePhotoUpload() {
 
     try {
         for (let i = 0; i < files.length; i += 2) {
-            // Process 2 at a time
             const batch = files.slice(i, i + 2);
             
             for (const file of batch) {
                 try {
                     // Calculate and update progress
                     const progress = Math.round(((i + 1) / files.length) * 100);
-                    progressBarInner.style.width = `${progress}%`;
-                    progressBarInner.setAttribute('aria-valuenow', progress);
-                    progressBarInner.textContent = `Processing ${i + 1}/${files.length} (${progress}%)`;
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.setAttribute('aria-valuenow', progress);
+                    progressBar.textContent = `Processing ${i + 1}/${files.length} (${progress}%)`;
                     
                     // Extract coordinates before compression
                     const coordinates = await extractCoordinates(file);
                     
-                    // Compress
+                    // Rest of your upload code...
                     const compressedFile = await compressImage(file);
-                    
-                    // Upload to S3
                     const fileUrl = await uploadToS3(compressedFile);
                     
                     // Save metadata with coordinates
                     const metadataResponse = await fetch('/api/save-photo-metadata', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             url: fileUrl,
                             originalName: file.name,
@@ -169,7 +165,6 @@ async function handlePhotoUpload() {
                 }
             }
 
-            // Small delay between batches
             if (i + 2 < files.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
@@ -177,27 +172,22 @@ async function handlePhotoUpload() {
     } catch (error) {
         console.error('Upload process error:', error);
     } finally {
-        // Update progress bar and button based on results
         if (failCount > 0) {
             uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
-            progressBarInner.classList.remove('bg-primary');
-            progressBarInner.classList.add('bg-danger');
+            progressBar.classList.remove('bg-primary');
+            progressBar.classList.add('bg-danger');
         } else {
             uploadButton.innerText = "Upload Complete!";
-            progressBarInner.classList.remove('progress-bar-animated');
-            progressBarInner.classList.add('bg-success');
+            progressBar.classList.remove('progress-bar-animated');
+            progressBar.classList.add('bg-success');
         }
-        progressBarInner.style.width = '100%';
-        progressBarInner.textContent = 'Complete!';
+        progressBar.style.width = '100%';
+        progressBar.textContent = 'Complete!';
 
-        // Refresh markers if any uploads succeeded
         if (successCount > 0) {
-            console.log('Refreshing markers after successful uploads...');
             setTimeout(async () => {
                 try {
                     await loadPhotoMarkers();
-                    console.log('Markers refreshed successfully');
-                    // Force the photo layer to be visible
                     window.layerVisibility.photos = true;
                     updateTabHighlight('photos-tab', true);
                 } catch (error) {
@@ -210,13 +200,13 @@ async function handlePhotoUpload() {
         setTimeout(() => {
             uploadButton.innerText = "Upload";
             uploadButton.disabled = false;
-            progressBar.style.display = 'none';
-            progressBarInner.style.width = '0%';
-            progressBarInner.setAttribute('aria-valuenow', 0);
-            progressBarInner.textContent = '0%';
-            progressBarInner.classList.remove('bg-danger', 'bg-success');
-            progressBarInner.classList.add('bg-primary', 'progress-bar-animated');
-            input.value = ''; // Clear input
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressBar.setAttribute('aria-valuenow', 0);
+            progressBar.textContent = '0%';
+            progressBar.classList.remove('bg-danger', 'bg-success');
+            progressBar.classList.add('bg-primary', 'progress-bar-animated');
+            input.value = '';
         }, 3000);
     }
 }
