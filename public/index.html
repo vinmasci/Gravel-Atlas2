@@ -128,16 +128,20 @@ body {
 /* ============================
    SECTION: Profile Section
    ============================ */
-#profile-section {
+   #profile-section {
     position: absolute;
     top: 60px;
     right: 10px;
+    z-index: 1000;
+}
+
+.profile-container {
     background: white;
+    padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-    padding: 20px;
     min-width: 300px;
+    max-width: 400px;
 }
 
 .profile-form {
@@ -145,6 +149,15 @@ body {
     flex-direction: column;
     gap: 15px;
     min-width: 300px;
+}
+
+.profile-form .form-control {
+    margin-bottom: 10px;
+}
+
+.profile-form label {
+    font-weight: 500;
+    margin-bottom: 5px;
 }
 
 .form-group {
@@ -187,6 +200,16 @@ body {
 
 .save-profile-btn:hover {
     background: #0056b3;
+}
+
+/* Add animation */
+#profile-section {
+    transition: opacity 0.3s ease;
+}
+
+#profile-section.hidden {
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* ============================
@@ -645,36 +668,35 @@ body {
     </div>
 </div>
 
-<!-- Profile Form -->
 <div id="profile-section" class="hidden">
     <div class="profile-container">
       <form id="profile-form" class="profile-form">
-        <div class="form-group">
-          <input type="text" id="bioName" name="bioName" placeholder="Bio Name" class="profile-input">
+        <div class="mb-3">
+          <label for="bioName" class="form-label">Bio Name</label>
+          <input type="text" class="form-control" id="bioName" name="bioName">
         </div>
   
-        <div class="form-group">
-          <input type="text" id="instagram" name="socialLinks.instagram" placeholder="Instagram" class="profile-input">
+        <div class="mb-3">
+          <label for="instagram" class="form-label">Instagram</label>
+          <input type="text" class="form-control" id="instagram" name="socialLinks.instagram">
         </div>
   
-        <div class="form-group">
-          <input type="text" id="strava" name="socialLinks.strava" placeholder="Strava" class="profile-input">
+        <div class="mb-3">
+          <label for="strava" class="form-label">Strava</label>
+          <input type="text" class="form-control" id="strava" name="socialLinks.strava">
         </div>
   
-        <div class="form-group">
-          <input type="text" id="facebook" name="socialLinks.facebook" placeholder="Facebook" class="profile-input">
+        <div class="mb-3">
+          <label for="facebook" class="form-label">Facebook</label>
+          <input type="text" class="form-control" id="facebook" name="socialLinks.facebook">
         </div>
   
-        <div class="form-group">
-          <input type="url" id="website" name="website" placeholder="Website" class="profile-input">
+        <div class="mb-3">
+          <label for="website" class="form-label">Website</label>
+          <input type="url" class="form-control" id="website" name="website">
         </div>
   
-        <div class="form-group">
-          <label for="profileImage" class="profile-image-label">Profile Image</label>
-          <input type="file" id="profileImage" name="profileImage" accept="image/*" class="profile-image-input">
-        </div>
-  
-        <button type="submit" class="profile-submit-btn">Save Profile</button>
+        <button type="submit" class="btn btn-primary w-100">Save Profile</button>
       </form>
     </div>
   </div>
