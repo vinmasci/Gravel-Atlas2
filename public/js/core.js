@@ -50,6 +50,8 @@ window.map = map;
 const layers = {
     toggleLayer: async (layerType) => {
         try {
+            showLoadingSpinner(`Loading ${layerType}...`);
+            
             // Wait for map to be loaded
             if (!map.loaded()) {
                 await new Promise(resolve => map.on('load', resolve));
@@ -58,12 +60,11 @@ const layers = {
             layerVisibility[layerType] = !layerVisibility[layerType];
             console.log(`${layerType} layer visibility:`, layerVisibility[layerType]);
 
-            // Verify functions exist before trying to use them
             if (layerVisibility[layerType]) {
                 switch(layerType) {
                     case 'photos':
                         if (!window.loadPhotoMarkers) {
-                            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to wait for functions
+                            await new Promise(resolve => setTimeout(resolve, 500));
                         }
                         if (typeof window.loadPhotoMarkers !== 'function') {
                             throw new Error('Photo markers functionality not loaded');
@@ -114,6 +115,8 @@ const layers = {
             utils.showError(`Error toggling ${layerType} layer: ${error.message}`);
             layerVisibility[layerType] = !layerVisibility[layerType];
             utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
+        } finally {
+            hideLoadingSpinner();
         }
     }
 };

@@ -513,6 +513,45 @@ function hideControlPanel() {
 }
 
 // ============================
+// SECTION: Loading Spinner
+// ============================
+function showLoadingSpinner(message = 'Loading...') {
+    // Remove any existing spinner
+    hideLoadingSpinner();
+    
+    // Create spinner container
+    const spinnerContainer = document.createElement('div');
+    spinnerContainer.className = 'loading-spinner';
+    spinnerContainer.id = 'loadingSpinner';
+    
+    // Create spinner element
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    
+    // Create message element
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    
+    // Assemble spinner
+    spinnerContainer.appendChild(spinner);
+    spinnerContainer.appendChild(messageElement);
+    
+    // Add to document
+    document.body.appendChild(spinnerContainer);
+}
+
+function hideLoadingSpinner() {
+    const existingSpinner = document.getElementById('loadingSpinner');
+    if (existingSpinner) {
+        existingSpinner.remove();
+    }
+}
+
+// Make spinner functions globally available
+window.showLoadingSpinner = showLoadingSpinner;
+window.hideLoadingSpinner = hideLoadingSpinner;
+
+// ============================
 // SECTION: Initialize UI
 // ============================
 function initUI() {

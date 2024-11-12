@@ -103,12 +103,16 @@ async function handlePhotoUpload() {
     const input = document.getElementById('photoFilesInput');
     const files = Array.from(input.files);
     const uploadButton = document.getElementById('uploadPhotosBtn');
+    const progressBar = document.querySelector('.progress');
+    const progressBarInner = document.getElementById('uploadProgress');
     
     if (files.length === 0) {
         alert("Please select photos to upload.");
         return;
     }
 
+    // Show progress bar and disable upload button
+    progressBar.style.display = 'block';
     uploadButton.disabled = true;
     uploadButton.innerText = "Uploading...";
 
@@ -116,50 +120,54 @@ async function handlePhotoUpload() {
     let failCount = 0;
 
     try {
-        for (let i = 0; i < files.length; i += 2) { // Process 2 at a time
+        for (let i = 0; i < files.length; i += 2) {
+            // Process 2 at a time
             const batch = files.slice(i, i + 2);
             
-// In handlePhotoUpload function, modify the metadata saving part:
-for (const file of batch) {
-    try {
-        uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
-        
-        // Extract coordinates before compression
-        const coordinates = await extractCoordinates(file);
-        
-        // Compress
-        const compressedFile = await compressImage(file);
-        
-        // Upload to S3
-        const fileUrl = await uploadToS3(compressedFile);
-        
-        // Save metadata with coordinates
-        const metadataResponse = await fetch('/api/save-photo-metadata', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                url: fileUrl,
-                originalName: file.name,
-                latitude: coordinates?.latitude || null,
-                longitude: coordinates?.longitude || null
-            })
-        });
+            for (const file of batch) {
+                try {
+                    // Calculate and update progress
+                    const progress = Math.round(((i + 1) / files.length) * 100);
+                    progressBarInner.style.width = `${progress}%`;
+                    progressBarInner.setAttribute('aria-valuenow', progress);
+                    progressBarInner.textContent = `Processing ${i + 1}/${files.length} (${progress}%)`;
+                    
+                    // Extract coordinates before compression
+                    const coordinates = await extractCoordinates(file);
+                    
+                    // Compress
+                    const compressedFile = await compressImage(file);
+                    
+                    // Upload to S3
+                    const fileUrl = await uploadToS3(compressedFile);
+                    
+                    // Save metadata with coordinates
+                    const metadataResponse = await fetch('/api/save-photo-metadata', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: fileUrl,
+                            originalName: file.name,
+                            latitude: coordinates?.latitude || null,
+                            longitude: coordinates?.longitude || null
+                        })
+                    });
 
-        const metadataResult = await metadataResponse.json();
-        console.log('Metadata save response:', metadataResult);
+                    const metadataResult = await metadataResponse.json();
+                    console.log('Metadata save response:', metadataResult);
 
-        if (!metadataResponse.ok) {
-            throw new Error('Failed to save photo metadata');
-        }
+                    if (!metadataResponse.ok) {
+                        throw new Error('Failed to save photo metadata');
+                    }
 
-        successCount++;
-    } catch (error) {
-        console.error(`Failed to process ${file.name}:`, error);
-        failCount++;
-    }
-}
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to process ${file.name}:`, error);
+                    failCount++;
+                }
+            }
 
             // Small delay between batches
             if (i + 2 < files.length) {
@@ -169,35 +177,47 @@ for (const file of batch) {
     } catch (error) {
         console.error('Upload process error:', error);
     } finally {
+        // Update progress bar and button based on results
         if (failCount > 0) {
             uploadButton.innerText = `Completed: ${successCount} succeeded, ${failCount} failed`;
+            progressBarInner.classList.remove('bg-primary');
+            progressBarInner.classList.add('bg-danger');
         } else {
             uploadButton.innerText = "Upload Complete!";
+            progressBarInner.classList.remove('progress-bar-animated');
+            progressBarInner.classList.add('bg-success');
         }
-    
+        progressBarInner.style.width = '100%';
+        progressBarInner.textContent = 'Complete!';
+
         // Refresh markers if any uploads succeeded
-if (successCount > 0) {
-    console.log('Refreshing markers after successful uploads...');
-    setTimeout(async () => {
-        try {
-            await loadPhotoMarkers();
-            console.log('Markers refreshed successfully');
-            // Force the photo layer to be visible
-            window.layerVisibility.photos = true;
-            updateTabHighlight('photos-tab', true);
-        } catch (error) {
-            console.error('Error refreshing markers:', error);
+        if (successCount > 0) {
+            console.log('Refreshing markers after successful uploads...');
+            setTimeout(async () => {
+                try {
+                    await loadPhotoMarkers();
+                    console.log('Markers refreshed successfully');
+                    // Force the photo layer to be visible
+                    window.layerVisibility.photos = true;
+                    updateTabHighlight('photos-tab', true);
+                } catch (error) {
+                    console.error('Error refreshing markers:', error);
+                }
+            }, 2000);
         }
-    }, 2000);  // 2 second delay
-}
-    
-        // Reset button after delay
+
+        // Reset everything after delay
         setTimeout(() => {
             uploadButton.innerText = "Upload";
             uploadButton.disabled = false;
+            progressBar.style.display = 'none';
+            progressBarInner.style.width = '0%';
+            progressBarInner.setAttribute('aria-valuenow', 0);
+            progressBarInner.textContent = '0%';
+            progressBarInner.classList.remove('bg-danger', 'bg-success');
+            progressBarInner.classList.add('bg-primary', 'progress-bar-animated');
+            input.value = ''; // Clear input
         }, 3000);
-        
-        input.value = ''; // Clear input
     }
 }
 
