@@ -123,21 +123,28 @@ const handlers = {
     handlePhotoTabClick: () => {
         console.log('Photos tab clicked');
         layers.toggleLayer('photos');
+        // Add this to disable drawing mode when switching tabs
+        if (typeof window.disableDrawingMode === 'function') {
+            window.disableDrawingMode();
+        }
     },
     
     handleSegmentsTabClick: () => {
         console.log('Segments tab clicked');
         layers.toggleLayer('segments');
+        // Add this
+        if (typeof window.disableDrawingMode === 'function') {
+            window.disableDrawingMode();
+        }
     },
     
     handlePOIsTabClick: () => {
         console.log('POIs tab clicked');
         layers.toggleLayer('pois');
-    },  // Add this comma here
-    
-    handleContributeClick: async () => {
-        console.log('Contribute tab clicked');
-        await toggleContributeDropdown(); // Make sure this function is available
+        // Add this
+        if (typeof window.disableDrawingMode === 'function') {
+            window.disableDrawingMode();
+        }
     }
 };
 

@@ -400,6 +400,10 @@ async function toggleContributeDropdown() {
         contributeTab.classList.remove('active');
         resetActiveDropdownTabs();
         hideControlPanel();
+        // Add this to disable drawing mode when closing dropdown
+        if (typeof window.disableDrawingMode === 'function') {
+            window.disableDrawingMode();
+        }
     }
 }
 
