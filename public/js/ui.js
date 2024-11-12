@@ -453,12 +453,6 @@ function hideControlPanel() {
 // SECTION: Initialize UI
 // ============================
 function initUI() {
-    // Initialize contribute tab
-    const contributeTab = document.getElementById('draw-route-tab');
-    if (contributeTab) {
-        contributeTab.removeEventListener('click', toggleContributeDropdown); // Remove any existing listeners
-        contributeTab.addEventListener('click', toggleContributeDropdown);
-    }
 
     // Ensure contribute dropdown is hidden initially
     const dropdown = document.getElementById('contribute-dropdown');
