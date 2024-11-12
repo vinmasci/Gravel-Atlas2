@@ -439,6 +439,11 @@ function showControlPanel() {
     }
     
     setActiveDropdownTab('draw-route-dropdown');
+    
+    // Add this line to enable drawing mode when showing the control panel
+    if (typeof window.enableDrawingMode === 'function') {
+        window.enableDrawingMode();
+    }
 }
 
 // Show upload photo panel and activate the tab

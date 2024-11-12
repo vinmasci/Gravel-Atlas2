@@ -58,13 +58,26 @@ function toggleDrawingMode() {
 // ============================
 function enableDrawingMode() {
     console.log("Drawing mode enabled.");
-    document.getElementById('control-panel').style.display = 'block';  // Show the control panel
-    map.on('click', drawPoint);  // Start capturing clicks to draw points
-    map.getCanvas().style.cursor = 'crosshair';  // Change cursor to crosshair
+    
+    // Initialize GeoJSON source if it doesn't exist
+    if (!map.getSource('drawnSegments')) {
+        initGeoJSONSource();
+        addSegmentLayers();
+    }
+    
+    document.getElementById('control-panel').style.display = 'block';
+    map.on('click', drawPoint);
+    map.getCanvas().style.cursor = 'crosshair';
 
     // Set the default route color to 'easy' (gravel type 0, green)
-    selectedColor = gravelColors[0];  // Set to the color defined for gravel type 0 (easy, green)
-    selectedLineStyle = 'solid';  // Ensure the line style is set to solid for easy
+    selectedColor = gravelColors[0];
+    selectedLineStyle = 'solid';
+    
+    // Set the first radio button as checked by default
+    const firstGravelType = document.querySelector('input[name="gravelType"][value="0"]');
+    if (firstGravelType) {
+        firstGravelType.checked = true;
+    }
 
     console.log("Default color set to 'easy' (green) for drawing mode.");
 }
