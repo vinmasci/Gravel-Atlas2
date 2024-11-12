@@ -76,10 +76,78 @@ map = new mapboxgl.Map({
 // Export map globally
 window.map = map;
 
-// Layer management (no changes to your existing code)
+// Layer management
 const layers = {
     toggleLayer: async (layerType) => {
-        // ... your existing layers.toggleLayer code ...
+        try {
+            showLoadingSpinner(`Loading ${layerType}...`);
+            
+            // Wait for map to be loaded
+            if (!map.loaded()) {
+                await new Promise(resolve => map.on('load', resolve));
+            }
+
+            layerVisibility[layerType] = !layerVisibility[layerType];
+            console.log(`${layerType} layer visibility:`, layerVisibility[layerType]);
+
+            if (layerVisibility[layerType]) {
+                switch(layerType) {
+                    case 'photos':
+                        if (!window.loadPhotoMarkers) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        if (typeof window.loadPhotoMarkers !== 'function') {
+                            throw new Error('Photo markers functionality not loaded');
+                        }
+                        await window.loadPhotoMarkers();
+                        break;
+                    case 'segments':
+                        if (!window.loadSegments) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        if (typeof window.loadSegments !== 'function') {
+                            throw new Error('Segments functionality not loaded');
+                        }
+                        await window.loadSegments();
+                        break;
+                    case 'pois':
+                        if (!window.loadPOIMarkers) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        if (typeof window.loadPOIMarkers !== 'function') {
+                            throw new Error('POI markers functionality not loaded');
+                        }
+                        await window.loadPOIMarkers();
+                        break;
+                }
+            } else {
+                switch(layerType) {
+                    case 'photos':
+                        if (typeof window.removePhotoMarkers === 'function') {
+                            window.removePhotoMarkers();
+                        }
+                        break;
+                    case 'segments':
+                        if (typeof window.removeSegments === 'function') {
+                            window.removeSegments();
+                        }
+                        break;
+                    case 'pois':
+                        if (typeof window.removePOIMarkers === 'function') {
+                            window.removePOIMarkers();
+                        }
+                        break;
+                }
+            }
+
+            utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
+        } catch (error) {
+            utils.showError(`Error toggling ${layerType} layer: ${error.message}`);
+            layerVisibility[layerType] = !layerVisibility[layerType];
+            utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
+        } finally {
+            hideLoadingSpinner();
+        }
     }
 };
 
