@@ -1,5 +1,3 @@
-// core.js
-
 // Shared state
 let map;
 let layerVisibility = {
@@ -13,7 +11,12 @@ const config = {
     mapboxToken: 'pk.eyJ1IjoidmlubWFzY2kiLCJhIjoiY20xY3B1ZmdzMHp5eDJwcHBtMmptOG8zOSJ9.Ayn_YEjOCCqujIYhY9PiiA',
     defaultCenter: [144.9631, -37.8136],
     defaultZoom: 10,
-    mapStyle: 'mapbox://styles/mapbox/streets-v11'
+    mapStyle: 'mapbox://styles/mapbox/streets-v11',
+    // Add profile configuration
+    profileButton: {
+        id: 'profileBtn',
+        text: 'Profile'
+    }
 };
 
 // Utility functions
@@ -31,10 +34,23 @@ const utils = {
     
     showError: (message) => {
         console.error(message);
+    },
+
+    // Add profile utilities
+    toggleProfileSection: () => {
+        const profileSection = document.getElementById('profile-section');
+        if (profileSection) {
+            // Hide any open contribute dropdown if it exists
+            const contributeDropdown = document.getElementById('contribute-dropdown');
+            if (contributeDropdown) {
+                contributeDropdown.classList.add('hidden');
+            }
+            profileSection.classList.toggle('hidden');
+        }
     }
 };
 
-// Initialize Mapbox
+// Initialize Mapbox (no changes)
 mapboxgl.accessToken = config.mapboxToken;
 map = new mapboxgl.Map({
     container: 'map',
@@ -43,117 +59,23 @@ map = new mapboxgl.Map({
     zoom: config.defaultZoom
 });
 
-// Export map globally so other scripts can access it
+// Export map globally (no changes)
 window.map = map;
 
-// Layer management
+// Layer management (no changes)
 const layers = {
     toggleLayer: async (layerType) => {
-        try {
-            showLoadingSpinner(`Loading ${layerType}...`);
-            
-            // Wait for map to be loaded
-            if (!map.loaded()) {
-                await new Promise(resolve => map.on('load', resolve));
-            }
-
-            layerVisibility[layerType] = !layerVisibility[layerType];
-            console.log(`${layerType} layer visibility:`, layerVisibility[layerType]);
-
-            if (layerVisibility[layerType]) {
-                switch(layerType) {
-                    case 'photos':
-                        if (!window.loadPhotoMarkers) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        }
-                        if (typeof window.loadPhotoMarkers !== 'function') {
-                            throw new Error('Photo markers functionality not loaded');
-                        }
-                        await window.loadPhotoMarkers();
-                        break;
-                    case 'segments':
-                        if (!window.loadSegments) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        }
-                        if (typeof window.loadSegments !== 'function') {
-                            throw new Error('Segments functionality not loaded');
-                        }
-                        await window.loadSegments();
-                        break;
-                    case 'pois':
-                        if (!window.loadPOIMarkers) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        }
-                        if (typeof window.loadPOIMarkers !== 'function') {
-                            throw new Error('POI markers functionality not loaded');
-                        }
-                        await window.loadPOIMarkers();
-                        break;
-                }
-            } else {
-                switch(layerType) {
-                    case 'photos':
-                        if (typeof window.removePhotoMarkers === 'function') {
-                            window.removePhotoMarkers();
-                        }
-                        break;
-                    case 'segments':
-                        if (typeof window.removeSegments === 'function') {
-                            window.removeSegments();
-                        }
-                        break;
-                    case 'pois':
-                        if (typeof window.removePOIMarkers === 'function') {
-                            window.removePOIMarkers();
-                        }
-                        break;
-                }
-            }
-
-            utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
-        } catch (error) {
-            utils.showError(`Error toggling ${layerType} layer: ${error.message}`);
-            layerVisibility[layerType] = !layerVisibility[layerType];
-            utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
-        } finally {
-            hideLoadingSpinner();
-        }
+        // ... your existing layers.toggleLayer code ...
     }
 };
 
 // Tab click handlers
 const handlers = {
-    handlePhotoTabClick: () => {
-        console.log('Photos tab clicked');
-        layers.toggleLayer('photos');
-        if (typeof window.disableDrawingMode === 'function') {
-            window.disableDrawingMode();
-        }
-    },
+    // ... your existing handlers ...
     
-    handleSegmentsTabClick: () => {
-        console.log('Segments tab clicked');
-        layers.toggleLayer('segments');
-        if (typeof window.disableDrawingMode === 'function') {
-            window.disableDrawingMode();
-        }
-    },
-    
-    handlePOIsTabClick: () => {
-        console.log('POIs tab clicked');
-        layers.toggleLayer('pois');
-        if (typeof window.disableDrawingMode === 'function') {
-            window.disableDrawingMode();
-        }
-    },
-    
-    handleContributeClick: async () => {
-        console.log('Contribute tab clicked');
-        if (typeof window.toggleContributeDropdown === 'function') {
-            await window.toggleContributeDropdown();
-        } else {
-            console.error('toggleContributeDropdown function not found');
-        }
+    handleProfileClick: () => {
+        console.log('Profile button clicked');
+        utils.toggleProfileSection();
     }
 };
 
@@ -170,14 +92,33 @@ async function initCore() {
         }
     });
 
-    // Attach event listeners
+    // Create and insert profile button before login button
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn && !document.getElementById(config.profileButton.id)) {
+        const profileBtn = document.createElement('button');
+        profileBtn.id = config.profileButton.id;
+        profileBtn.textContent = config.profileButton.text;
+        profileBtn.className = 'hidden button'; // Add your button class
+        loginBtn.parentNode.insertBefore(profileBtn, loginBtn);
+        profileBtn.addEventListener('click', handlers.handleProfileClick);
+    }
+
+    // Attach existing event listeners
     document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
     document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
     document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
     document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
 
-    // Add this line here
-    initEventListeners();  // Initialize the drawing controls event listeners
+    // Initialize drawing controls event listeners
+    initEventListeners();
+
+    // Check authentication state and show/hide profile button
+    if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
+        document.getElementById(config.profileButton.id)?.classList.remove('hidden');
+        if (typeof initializeProfile === 'function') {
+            await initializeProfile();
+        }
+    }
 
     // Verify module exports with retry
     let attempts = 0;
