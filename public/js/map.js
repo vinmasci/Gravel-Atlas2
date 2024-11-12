@@ -183,9 +183,6 @@ function addSegmentLayers() {
 // ============================
 // SECTION: Load Segments
 // ============================
-// ============================
-// SECTION: Load Segments
-// ============================
 async function loadSegments() {
     try {
         // Wait for map to be fully loaded if it isn't already
@@ -263,7 +260,6 @@ function removeSegments() {
 // ============================
 function initEventListeners() {
     // Tabs and control buttons
-    document.getElementById('draw-route-tab').addEventListener('click', toggleDrawingMode);
     document.getElementById('reset-btn').addEventListener('click', resetRoute);
     document.getElementById('undo-btn').addEventListener('click', undoLastSegment);
     document.getElementById('save-btn').addEventListener('click', saveDrawnRoute);
