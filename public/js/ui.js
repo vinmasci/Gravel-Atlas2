@@ -391,16 +391,17 @@ async function toggleContributeDropdown() {
         loginRequired.style.display = 'none';
     }
 
+    // Existing dropdown toggle logic
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
         dropdown.style.display = 'flex';
         contributeTab.classList.add('active');
-        showControlPanel(); // This will now show the parent control panel and the draw route panel
+        showControlPanel();
     } else {
         dropdown.style.display = 'none';
         contributeTab.classList.remove('active');
         resetActiveDropdownTabs();
         hideControlPanel();
-        // Add this to disable drawing mode when closing dropdown
+        // Disable drawing mode when closing dropdown
         if (typeof window.disableDrawingMode === 'function') {
             window.disableDrawingMode();
         }
