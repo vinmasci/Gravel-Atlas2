@@ -463,6 +463,11 @@ function showControlPanel() {
 
 // Show upload photo panel and activate the tab
 function showPhotoUploadPanel() {
+    // Disable drawing mode if it's active
+    if (typeof window.disableDrawingMode === 'function') {
+        window.disableDrawingMode();
+    }
+
     const controlPanel = document.getElementById('control-panel');
     const drawRoutePanel = document.getElementById('draw-route-control-panel');
     const photoUploadPanel = document.getElementById('photo-upload-control-panel');
