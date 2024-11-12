@@ -449,6 +449,29 @@ function hideControlPanel() {
     document.getElementById('photo-upload-control-panel').style.display = 'none';
 }
 
+// ============================
+// SECTION: Initialize UI
+// ============================
+function initUI() {
+    // Initialize contribute tab
+    const contributeTab = document.getElementById('draw-route-tab');
+    if (contributeTab) {
+        contributeTab.removeEventListener('click', toggleContributeDropdown); // Remove any existing listeners
+        contributeTab.addEventListener('click', toggleContributeDropdown);
+    }
+
+    // Ensure contribute dropdown is hidden initially
+    const dropdown = document.getElementById('contribute-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+
+    console.log('UI initialized');
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initUI);
+
 // Make these functions globally available
 window.toggleContributeDropdown = toggleContributeDropdown;
 window.showControlPanel = showControlPanel;
@@ -457,3 +480,12 @@ window.showTempOverlay = showTempOverlay;
 window.hideControlPanel = hideControlPanel;
 window.setActiveDropdownTab = setActiveDropdownTab;
 window.resetActiveDropdownTabs = resetActiveDropdownTabs;
+// Add these to existing global exports
+window.openSegmentModal = openSegmentModal;
+window.addComment = addComment;
+window.deleteComment = deleteComment;
+window.flagComment = flagComment;
+window.deleteSegment = deleteSegment;
+window.closeModal = closeModal;
+window.openRouteNameModal = openRouteNameModal;
+window.closeRouteNameModal = closeRouteNameModal;
