@@ -26,8 +26,7 @@
 /* ============================
    SECTION: Loading CSS
    ============================ */
-
-.loading-spinner {
+   .loading-spinner {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -58,7 +57,7 @@
 /* ============================
    SECTION: Basic Reset & Layout
    ============================ */
-   body {
+body {
     margin: 0;
     padding: 0;
 }
@@ -72,15 +71,15 @@
 }
 
 /* ============================
-   SECTION: Auth Container
+   SECTION: Auth & Profile Container
    ============================ */
-   #auth-container {
+#auth-container {
     position: absolute;
     top: 10px;
     left: 10px;
     z-index: 2;
     display: flex;
-    gap: 8px;  /* Adds consistent spacing between buttons */
+    gap: 8px;
     align-items: center;
 }
 
@@ -94,23 +93,21 @@
     font-size: 12px;
     transition: background-color 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    white-space: nowrap;  /* Prevents button text from wrapping */
+    white-space: nowrap;
 }
 
 #auth-container button:hover {
     background-color: #34495e;
 }
 
-/* Profile button specific styles */
 #profileBtn {
-    background-color: #3498db;  /* Different color to distinguish from login */
+    background-color: #3498db !important;
 }
 
 #profileBtn:hover {
-    background-color: #2980b9;
+    background-color: #2980b9 !important;
 }
 
-/* Logout button specific styles */
 #auth-container #logoutBtn {
     background-color: #95a5a6;
 }
@@ -126,6 +123,70 @@
     margin-left: 8px;
     display: inline-block;
     vertical-align: middle;
+}
+
+/* ============================
+   SECTION: Profile Section
+   ============================ */
+#profile-section {
+    position: absolute;
+    top: 60px;
+    right: 10px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    padding: 20px;
+    min-width: 300px;
+}
+
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 300px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group label {
+    font-weight: 500;
+}
+
+.form-group input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.profile-image-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.save-profile-btn {
+    padding: 8px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.save-profile-btn:hover {
+    background: #0056b3;
 }
 
 /* ============================
@@ -183,6 +244,7 @@
     line-height: 50px;
     color: white;
     cursor: pointer;
+    display: block !important;
 }
 
 .draw-route-tab {
@@ -234,7 +296,7 @@
 }
 
 /* ============================
-   SECTION: Modal Base Styles
+   SECTION: Modal Styles
    ============================ */
 .modal {
     display: none;
@@ -263,9 +325,7 @@
     margin: 0;
 }
 
-/* ============================
-   SECTION: Segment Modal Specific
-   ============================ */
+/* Segment Modal Specific */
 #segment-modal {
     width: 400px;
     max-height: 80vh;
@@ -315,11 +375,10 @@
     border-bottom: 1px solid #eee;
     margin-bottom: 5px;
     font-size: 12px;
-    position: relative; /* For positioning the buttons */
+    position: relative;
     display: flex;
     justify-content: space-between;
 }
-
 
 .comment-content {
     flex-grow: 1;
@@ -382,7 +441,7 @@
 }
 
 /* ============================
-   SECTION: Control Panel
+   SECTION: Control Panel & Drawing Options
    ============================ */
 #control-panel {
     display: none;
@@ -396,10 +455,7 @@
     z-index: 1000;
 }
 
-/* ============================
-   SECTION: Drawing Options
-   ============================ */
-   .drawing-options {
+.drawing-options {
     margin-top: 10px;
     width: 100%;
     display: flex;
@@ -418,109 +474,30 @@
     font-size: 13px;
 }
 
-#drawingOptionsModal .drawing-options {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-}
-
-#drawingOptionsModal .drawing-options label {
-    display: block;
-    margin-bottom: 8px;
-}
-
 /* ============================
    SECTION: Utility Classes
    ============================ */
+.hidden {
+    display: none !important;
+}
+
 .small-modal {
     width: 250px;
     padding: 10px;
 }
 
-/* ============================
-   SECTION: Utility Classes
-   ============================ */
-
-.profile-container {
-    position: absolute;
-    top: 60px;
-    right: 10px;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-}
-
-#profile-section {
-    position: absolute;
-    top: 60px; /* Adjust based on your header height */
-    right: 10px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-    padding: 20px;
-    min-width: 300px;
-}
-
-/* Ensure hidden class works properly */
-.hidden {
+/* Hidden class specifics */
+#profile-section.hidden,
+#profileBtn.hidden,
+.modal.hidden,
+#contribute-dropdown.hidden {
     display: none !important;
 }
 
-.profile-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    min-width: 300px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.form-group label {
-    font-weight: 500;
-}
-
-.form-group input {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.profile-image-section {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.profile-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.save-profile-btn {
-    padding: 8px 16px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.save-profile-btn:hover {
-    background: #0056b3;
-}
-
-#profileBtn {
-    /* Match your existing button styles */
-    margin-right: 10px;
+/* Tab visibility specifics */
+.tab.hidden:not(.active),
+.draw-route-tab.hidden:not(.active) {
+    display: block !important;
 }
     </style>
     
