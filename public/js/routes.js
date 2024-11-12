@@ -353,8 +353,13 @@ function flattenFeatureCollection(featureCollection) {
     return featureCollection;  // Return as-is if not a FeatureCollection
 }
 
-window.drawRoute = drawRoute;
 window.toggleDrawingMode = toggleDrawingMode;
 window.resetRoute = resetRoute;
 window.undoLastSegment = undoLastSegment;
 window.saveDrawnRoute = saveDrawnRoute;
+window.drawPoint = drawPoint; // Add this since it's used in the click handler
+window.createMarker = createMarker;
+window.addSegment = addSegment;
+window.drawSegmentsOnMap = drawSegmentsOnMap;
+window.enableDrawingMode = enableDrawingMode;
+window.disableDrawingMode = disableDrawingMode;
