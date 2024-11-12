@@ -133,6 +133,11 @@ const handlers = {
     handlePOIsTabClick: () => {
         console.log('POIs tab clicked');
         layers.toggleLayer('pois');
+    },  // Add this comma here
+    
+    handleContributeClick: async () => {
+        console.log('Contribute tab clicked');
+        await toggleContributeDropdown(); // Make sure this function is available
     }
 };
 
@@ -153,6 +158,7 @@ async function initCore() {
     document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
     document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
     document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
+    document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
 
     // Verify module exports with retry
     let attempts = 0;

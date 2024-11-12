@@ -1,31 +1,20 @@
-// modal.js - Generic Modal Handling
-
-// Function to close a modal with animation
+// modal.js - keep only the generic modal functionality
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 150); // Small delay for animation
+        modal.style.display = 'none';
     }
 }
 
-// Function to open a modal with animation
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'block';
-        // Small delay to trigger animation
-        setTimeout(() => {
-            modal.classList.add('show');
-        }, 10);
     }
 }
 
 // Initialize modals
 function initModals() {
-    // Close buttons
     const closeButtons = document.querySelectorAll('.modal .close');
     closeButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -42,19 +31,9 @@ function initModals() {
             closeModal(e.target.id);
         }
     });
-
-    // ESC key to close
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const visibleModal = document.querySelector('.modal.show');
-            if (visibleModal) {
-                closeModal(visibleModal.id);
-            }
-        }
-    });
 }
 
-// Make functions available globally
+// Make functions globally available
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.initModals = initModals;

@@ -24,11 +24,12 @@ let segmentInteractionInitialized = false;
 function setupSegmentInteraction() {
     if (segmentInteractionInitialized) {
         console.log("Segment interaction already initialized. Skipping.");
-        return;  // Prevent adding duplicate listeners
+        return;
     }
 
     // Hover interaction for showing segment title
     map.on('mouseenter', 'drawn-segments-layer', (e) => {
+        console.log("Segment hover detected");
         map.getCanvas().style.cursor = 'pointer';
         const title = e.features[0].properties.title;
         if (title) {
@@ -36,27 +37,27 @@ function setupSegmentInteraction() {
         }
     });
 
-    // Hide popup and reset cursor on mouse leave
     map.on('mouseleave', 'drawn-segments-layer', () => {
         map.getCanvas().style.cursor = '';
         segmentPopup.remove();
     });
 
-    // NEW click handler that uses ui.js openSegmentModal
     map.on('click', 'drawn-segments-layer', async (e) => {
+        console.log("Segment clicked");
         const title = e.features[0].properties.title;
         const routeId = e.features[0].properties.routeId;
-
         console.log('Opening modal for routeId:', routeId);
 
-        // Use the openSegmentModal function from ui.js
-        await openSegmentModal(title, routeId);
+        if (typeof window.openSegmentModal === 'function') {
+            await window.openSegmentModal(title, routeId);
+        } else {
+            console.error('openSegmentModal function not found');
+        }
     });
 
-    // Mark that the segment interaction has been initialized
     segmentInteractionInitialized = true;
+    console.log("Segment interaction initialized");
 }
-
 
 // ===========================
 // Function to reset to original Mapbox style

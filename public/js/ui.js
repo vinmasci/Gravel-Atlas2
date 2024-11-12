@@ -452,3 +452,12 @@ function hideControlPanel() {
     document.getElementById('draw-route-control-panel').style.display = 'none';
     document.getElementById('photo-upload-control-panel').style.display = 'none';
 }
+
+// Make these functions globally available
+window.toggleContributeDropdown = toggleContributeDropdown;
+window.showControlPanel = showControlPanel;
+window.showPhotoUploadPanel = showPhotoUploadPanel;
+window.showTempOverlay = showTempOverlay;
+window.hideControlPanel = hideControlPanel;
+window.setActiveDropdownTab = setActiveDropdownTab;
+window.resetActiveDropdownTabs = resetActiveDropdownTabs;
