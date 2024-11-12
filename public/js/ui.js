@@ -378,6 +378,10 @@ async function toggleContributeDropdown() {
     const contributeTab = document.getElementById('draw-route-tab');
     const loginRequired = document.querySelector('.login-required');
 
+    console.log("Toggle contribute dropdown called");
+    console.log("Dropdown display style:", dropdown.style.display);
+    console.log("Is authenticated:", isAuthenticated);
+
     if (!isAuthenticated) {
         console.log("User not authenticated");
         if (loginRequired) {
@@ -391,21 +395,27 @@ async function toggleContributeDropdown() {
         loginRequired.style.display = 'none';
     }
 
+    console.log("About to toggle dropdown visibility");
+    console.log("Current dropdown display:", dropdown.style.display);
+
     // Existing dropdown toggle logic
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        console.log("Showing dropdown");
         dropdown.style.display = 'flex';
         contributeTab.classList.add('active');
         showControlPanel();
     } else {
+        console.log("Hiding dropdown");
         dropdown.style.display = 'none';
         contributeTab.classList.remove('active');
         resetActiveDropdownTabs();
         hideControlPanel();
-        // Disable drawing mode when closing dropdown
         if (typeof window.disableDrawingMode === 'function') {
             window.disableDrawingMode();
         }
     }
+    
+    console.log("Final dropdown display:", dropdown.style.display);
 }
 
 // Helper function to set active state on the selected dropdown tab
