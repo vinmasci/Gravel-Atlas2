@@ -123,7 +123,6 @@ const handlers = {
     handlePhotoTabClick: () => {
         console.log('Photos tab clicked');
         layers.toggleLayer('photos');
-        // Add this to disable drawing mode when switching tabs
         if (typeof window.disableDrawingMode === 'function') {
             window.disableDrawingMode();
         }
@@ -132,7 +131,6 @@ const handlers = {
     handleSegmentsTabClick: () => {
         console.log('Segments tab clicked');
         layers.toggleLayer('segments');
-        // Add this
         if (typeof window.disableDrawingMode === 'function') {
             window.disableDrawingMode();
         }
@@ -141,9 +139,17 @@ const handlers = {
     handlePOIsTabClick: () => {
         console.log('POIs tab clicked');
         layers.toggleLayer('pois');
-        // Add this
         if (typeof window.disableDrawingMode === 'function') {
             window.disableDrawingMode();
+        }
+    },
+    
+    handleContributeClick: async () => {
+        console.log('Contribute tab clicked');
+        if (typeof window.toggleContributeDropdown === 'function') {
+            await window.toggleContributeDropdown();
+        } else {
+            console.error('toggleContributeDropdown function not found');
         }
     }
 };
