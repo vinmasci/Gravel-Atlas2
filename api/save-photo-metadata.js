@@ -33,8 +33,8 @@ module.exports = async (req, res) => {
             url: req.body.url,
             originalName: req.body.originalName,
             uploadedAt: new Date(),
-            latitude: null,  // We can add these later if needed
-            longitude: null
+            latitude: req.body.latitude,
+            longitude: req.body.longitude
         };
 
         const result = await collection.insertOne(photoData);

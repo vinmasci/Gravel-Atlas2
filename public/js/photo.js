@@ -1,3 +1,43 @@
+// Add at the top of photo.js
+async function extractCoordinates(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const exif = EXIF.readFromBinaryFile(e.target.result);
+                if (exif && exif.GPSLatitude && exif.GPSLongitude) {
+                    const lat = convertDMSToDD(exif.GPSLatitude, exif.GPSLatitudeRef);
+                    const lng = convertDMSToDD(exif.GPSLongitude, exif.GPSLongitudeRef);
+                    if (isValidCoordinate(lat, lng)) {
+                        resolve({ latitude: lat, longitude: lng });
+                        return;
+                    }
+                }
+                resolve(null);
+            } catch (error) {
+                console.error('Error reading EXIF:', error);
+                resolve(null);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function convertDMSToDD(dms, ref) {
+    const degrees = dms[0];
+    const minutes = dms[1];
+    const seconds = dms[2];
+    let dd = degrees + minutes/60 + seconds/3600;
+    if (ref === 'S' || ref === 'W') {
+        dd = dd * -1;
+    }
+    return dd;
+}
+
+function isValidCoordinate(lat, lng) {
+    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
 // Compression function
 function compressImage(file) {
     console.log(`Starting compression for ${file.name}`);
@@ -79,42 +119,47 @@ async function handlePhotoUpload() {
         for (let i = 0; i < files.length; i += 2) { // Process 2 at a time
             const batch = files.slice(i, i + 2);
             
-            for (const file of batch) {
-                try {
-                    uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
-                    
-                    // Compress
-                    const compressedFile = await compressImage(file);
-                    
-                    // Upload to S3
-                    const fileUrl = await uploadToS3(compressedFile);
-                    
-                    // Save metadata
-                    const metadataResponse = await fetch('/api/save-photo-metadata', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            url: fileUrl,
-                            originalName: file.name
-                        })
-                    });
+// In handlePhotoUpload function, modify the metadata saving part:
+for (const file of batch) {
+    try {
+        uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
+        
+        // Extract coordinates before compression
+        const coordinates = await extractCoordinates(file);
+        
+        // Compress
+        const compressedFile = await compressImage(file);
+        
+        // Upload to S3
+        const fileUrl = await uploadToS3(compressedFile);
+        
+        // Save metadata with coordinates
+        const metadataResponse = await fetch('/api/save-photo-metadata', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: fileUrl,
+                originalName: file.name,
+                latitude: coordinates?.latitude || null,
+                longitude: coordinates?.longitude || null
+            })
+        });
 
-                    // Add this logging
-const metadataResult = await metadataResponse.json();
-console.log('Metadata save response:', metadataResult);
+        const metadataResult = await metadataResponse.json();
+        console.log('Metadata save response:', metadataResult);
 
-                    if (!metadataResponse.ok) {
-                        throw new Error('Failed to save photo metadata');
-                    }
+        if (!metadataResponse.ok) {
+            throw new Error('Failed to save photo metadata');
+        }
 
-                    successCount++;
-                } catch (error) {
-                    console.error(`Failed to process ${file.name}:`, error);
-                    failCount++;
-                }
-            }
+        successCount++;
+    } catch (error) {
+        console.error(`Failed to process ${file.name}:`, error);
+        failCount++;
+    }
+}
 
             // Small delay between batches
             if (i + 2 < files.length) {
