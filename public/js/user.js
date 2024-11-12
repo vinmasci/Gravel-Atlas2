@@ -167,7 +167,7 @@ if (document.readyState === 'complete') {
 }
 
 // Export the functions
-export {
+module.exports = {
     getCurrentUser,
     updateUserProfile,
     deleteUserProfile,
