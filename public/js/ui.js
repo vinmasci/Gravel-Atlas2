@@ -294,10 +294,6 @@ async function deleteSegment() {
     }
 }
 
-
-
-
-
 // ============================
 // SECTION: Close Modal
 // ============================
@@ -325,10 +321,12 @@ document.getElementById('delete-segment').addEventListener('click', () => {
 // ============================
 function updateTabHighlight(tabId, isActive) {
     const tab = document.getElementById(tabId);
-    if (isActive) {
-        tab.classList.add('active');
-    } else {
-        tab.classList.remove('active');
+    if (tab) {
+        if (isActive) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
     }
 }
 
@@ -397,16 +395,14 @@ async function toggleContributeDropdown() {
 
     // Existing dropdown toggle logic
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        console.log("Opening dropdown and setting active state");
-        dropdown.style.display = 'flex'; // Show the dropdown
-        contributeTab.classList.add('active'); // Highlight Contribute tab
-        showControlPanel(); // Show Draw Route panel by default
+        dropdown.style.display = 'flex';
+        contributeTab.classList.add('active');
+        showControlPanel();
     } else {
-        console.log("Closing dropdown");
-        dropdown.style.display = 'none'; // Hide the dropdown
-        contributeTab.classList.remove('active'); // Remove highlight from Contribute tab
-        resetActiveDropdownTabs(); // Reset active state of each dropdown tab button
-        hideControlPanel(); // Hide all control panels
+        dropdown.style.display = 'none';
+        contributeTab.classList.remove('active');
+        resetActiveDropdownTabs();
+        hideControlPanel();
     }
 }
 
