@@ -160,6 +160,9 @@ async function initCore() {
     document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
     document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
 
+    // Add this line here
+    initEventListeners();  // Initialize the drawing controls event listeners
+
     // Verify module exports with retry
     let attempts = 0;
     while (attempts < 3) {
