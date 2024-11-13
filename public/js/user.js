@@ -23,29 +23,7 @@ function waitForAuth0() {
     });
 }
 
-async function getToken() {
-    try {
-        debugLog('Getting token...');
-        const auth0 = await waitForAuth0();
-        
-        const isAuthenticated = await auth0.isAuthenticated();
-        if (!isAuthenticated) {
-            debugLog('User not authenticated, redirecting to login');
-            throw new Error('Not authenticated');
-        }
-
-        const token = await auth0.getTokenSilently({
-            audience: 'https://gravel-atlas2.vercel.app/api',
-            scope: 'openid profile email read:profile update:profile offline_access'
-        });
-        debugLog('Token received successfully');
-        return token;
-    } catch (error) {
-        debugLog('Token error:', error);
-        throw error;
-    }
-}
-
+// Modify initializeProfile to use localStorage
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
@@ -58,41 +36,17 @@ async function initializeProfile() {
             return;
         }
 
-        try {
-            // Try to get profile from MongoDB first
-            const token = await getToken();
-            const response = await fetch('/api/user', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+        // Get Auth0 user info
+        const user = await auth0.getUser();
+        debugLog('Auth0 user data:', user);
 
-            debugLog('Profile API response status:', response.status);
-
-            if (response.ok) {
-                const profile = await response.json();
-                debugLog('Profile data received from MongoDB:', profile);
-                
-                // Update localStorage with MongoDB data
-                localStorage.setItem('userProfile', JSON.stringify(profile));
-                
-                // Populate form with MongoDB data
-                populateForm(profile);
-                return;
-            }
-            debugLog('MongoDB profile fetch failed, falling back to localStorage');
-        } catch (error) {
-            debugLog('MongoDB fetch error, falling back to localStorage:', error);
-        }
-
-        // Fallback to localStorage or initialize new profile
+        // Try to get existing profile from localStorage
         let profile = localStorage.getItem('userProfile');
         if (profile) {
             profile = JSON.parse(profile);
             debugLog('Found existing profile in localStorage:', profile);
         } else {
-            const user = await auth0.getUser();
+            // Initialize new profile with Auth0 data
             profile = {
                 bioName: user.name || user.nickname || '',
                 email: user.email || '',
@@ -107,25 +61,23 @@ async function initializeProfile() {
             debugLog('Initialized new profile:', profile);
         }
         
-        populateForm(profile);
+        // Populate form with profile data
+        const form = document.getElementById('profile-form');
+        if (form) {
+            form.querySelector('#bioName').value = profile.bioName || '';
+            form.querySelector('#website').value = profile.website || '';
+            form.querySelector('#instagram').value = profile.socialLinks?.instagram || '';
+            form.querySelector('#strava').value = profile.socialLinks?.strava || '';
+            form.querySelector('#facebook').value = profile.socialLinks?.facebook || '';
+            debugLog('Form populated with profile data');
+        }
     } catch (error) {
         console.error('Error initializing profile:', error);
         debugLog('Profile initialization error:', error);
     }
 }
 
-function populateForm(profile) {
-    const form = document.getElementById('profile-form');
-    if (form) {
-        form.querySelector('#bioName').value = profile.bioName || '';
-        form.querySelector('#website').value = profile.website || '';
-        form.querySelector('#instagram').value = profile.socialLinks?.instagram || '';
-        form.querySelector('#strava').value = profile.socialLinks?.strava || '';
-        form.querySelector('#facebook').value = profile.socialLinks?.facebook || '';
-        debugLog('Form populated with profile data');
-    }
-}
-
+// Modify getCurrentUser to use localStorage
 async function getCurrentUser() {
     debugLog('Getting current user');
     try {
@@ -133,29 +85,7 @@ async function getCurrentUser() {
         const auth0User = await auth0.getUser();
         debugLog('Auth0 user:', auth0User);
 
-        try {
-            // Try to get profile from MongoDB first
-            const token = await getToken();
-            const response = await fetch('/api/user', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const userData = await response.json();
-                debugLog('Profile data from MongoDB:', userData);
-                return {
-                    ...auth0User,
-                    profile: userData
-                };
-            }
-        } catch (error) {
-            debugLog('MongoDB fetch error, falling back to localStorage:', error);
-        }
-
-        // Fallback to localStorage
+        // Get profile from localStorage
         const profile = localStorage.getItem('userProfile');
         const userData = profile ? JSON.parse(profile) : null;
         debugLog('Profile data from localStorage:', userData);
@@ -171,6 +101,7 @@ async function getCurrentUser() {
     }
 }
 
+// Modify setupProfileForm to use localStorage
 function setupProfileForm() {
     debugLog('Setting up profile form - START');
     const profileForm = document.getElementById('profile-form');
@@ -208,39 +139,17 @@ function setupProfileForm() {
                 
                 debugLog('Form data to be saved:', profileData);
 
-                // Save to localStorage first
+                // Save to localStorage
                 localStorage.setItem('userProfile', JSON.stringify(profileData));
-                debugLog('Saved to localStorage');
-
-                // Then save to MongoDB
-                try {
-                    const token = await getToken();
-                    const response = await fetch('/api/user', {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(profileData)
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`API error: ${await response.text()}`);
-                    }
-
-                    debugLog('Saved to MongoDB successfully');
-                } catch (error) {
-                    debugLog('MongoDB save error:', error);
-                    // Continue since we at least saved to localStorage
-                }
-
-                // Update UI
+                debugLog('Profile saved successfully');
+                
+                alert('Profile updated successfully!');
+                
+                // Update display name in header if it exists
                 const userInfo = document.getElementById('userInfo');
                 if (userInfo) {
                     userInfo.innerHTML = `Welcome, ${profileData.bioName}`;
                 }
-                
-                alert('Profile updated successfully!');
                 
                 if (typeof utils !== 'undefined' && utils.hideProfileSection) {
                     utils.hideProfileSection();
