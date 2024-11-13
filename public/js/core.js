@@ -1,10 +1,11 @@
-// Add this waitForAuth0 function
 function waitForAuth0() {
     return new Promise((resolve) => {
         const checkAuth0 = () => {
-            if (window.auth0) {
+            if (window.auth0 && typeof window.auth0.isAuthenticated === 'function') {
+                console.log('Auth0 fully initialized with methods');
                 resolve(window.auth0);
             } else {
+                console.log('Waiting for complete Auth0 initialization...');
                 setTimeout(checkAuth0, 100);
             }
         };
@@ -12,6 +13,7 @@ function waitForAuth0() {
     });
 }
 
+// Make it globally available
 window.waitForAuth0 = waitForAuth0;
 
 // Your existing core.js code
