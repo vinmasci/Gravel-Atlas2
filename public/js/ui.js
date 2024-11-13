@@ -1,55 +1,40 @@
 async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
-    
-    const modal = document.getElementById('segment-modal');
-    const segmentTitle = document.getElementById('segment-details');
-    const routeIdElement = document.getElementById('route-id');
-    const deleteButton = document.getElementById('delete-segment');
-    const addCommentSection = document.getElementById('add-comment');
-
-    if (!modal || !segmentTitle || !routeIdElement || !deleteButton) {
-        console.error("Modal, segment title, route ID element, or delete button not found.");
-        return;
-    }
-
-    // Display the segment title and route ID in the modal
-    segmentTitle.innerText = title;
-    routeIdElement.innerText = `Route ID: ${routeId}`;
-    console.log("Set routeId in modal:", routeId); // Debug log
-
-    // Store the current routeId for use in comments
-    window.currentRouteId = routeId;
-    console.log("Stored currentRouteId:", window.currentRouteId); // Debug log
-
-    // Show the modal
-    modal.classList.add('show');
-    modal.style.display = 'block';
-
-    // Clear previous event listeners to avoid duplicate calls
-    deleteButton.onclick = null;
-
-    // Assign delete function directly to delete button
-    deleteButton.onclick = function() {
-        deleteSegment(routeId);
-    };
-
-    // Check authentication state
-    const isAuthenticated = await isUserAuthenticated();
-    console.log("Auth state:", isAuthenticated); // Debug log
-
-    // Show/hide comment input based on authentication
-    if (addCommentSection) {
-        addCommentSection.style.display = isAuthenticated ? 'block' : 'none';
-        console.log("Comment section visibility:", addCommentSection.style.display); // Debug log
-    }
-
-    // Always render comments, regardless of authentication
-    console.log("About to render comments for routeId:", routeId); // Debug log
     try {
+        const auth0 = await window.authReady;
+        
+        const modal = document.getElementById('segment-modal');
+        const segmentTitle = document.getElementById('segment-details');
+        const routeIdElement = document.getElementById('route-id');
+        const deleteButton = document.getElementById('delete-segment');
+        const addCommentSection = document.getElementById('add-comment');
+
+        if (!modal || !segmentTitle || !routeIdElement || !deleteButton) {
+            console.error("Modal, segment title, route ID element, or delete button not found.");
+            return;
+        }
+
+        segmentTitle.innerText = title;
+        routeIdElement.innerText = `Route ID: ${routeId}`;
+        window.currentRouteId = routeId;
+
+        modal.classList.add('show');
+        modal.style.display = 'block';
+
+        deleteButton.onclick = function() {
+            deleteSegment(routeId);
+        };
+
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log("Auth state:", isAuthenticated);
+
+        if (addCommentSection) {
+            addCommentSection.style.display = isAuthenticated ? 'block' : 'none';
+        }
+
         await renderComments(routeId);
-        console.log("Comments rendered successfully"); // Debug log
     } catch (error) {
-        console.error("Error rendering comments:", error); // Debug log
+        console.error("Error in openSegmentModal:", error);
     }
 }
 
@@ -106,15 +91,16 @@ function createCommentElement(comment, currentUser) {
 
 async function renderComments(routeId) {
     console.log("Rendering comments for routeId:", routeId);
-    const commentsList = document.getElementById('comments-list');
-    if (!commentsList) {
-        console.error("Comments list element not found");
-        return;
-    }
-
-    commentsList.innerHTML = '';
-
     try {
+        const auth0 = await window.authReady;
+        const commentsList = document.getElementById('comments-list');
+        if (!commentsList) {
+            console.error("Comments list element not found");
+            return;
+        }
+
+        commentsList.innerHTML = '';
+
         const [currentUser, response] = await Promise.all([
             getCurrentUser(),
             fetch(`/api/comments?routeId=${routeId}`)
@@ -373,49 +359,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // In your toggleContributeDropdown function, ensure the control panel shows by default
 async function toggleContributeDropdown() {
-    const isAuthenticated = await isUserAuthenticated();
-    const dropdown = document.getElementById('contribute-dropdown');
-    const contributeTab = document.getElementById('draw-route-tab');
-    const loginRequired = document.querySelector('.login-required');
+    try {
+        const auth0 = await window.authReady;
+        const isAuthenticated = await auth0.isAuthenticated();
+        const dropdown = document.getElementById('contribute-dropdown');
+        const contributeTab = document.getElementById('draw-route-tab');
+        const loginRequired = document.querySelector('.login-required');
 
-    console.log("Toggle contribute dropdown called");
-    console.log("Dropdown display style:", dropdown.style.display);
-    console.log("Is authenticated:", isAuthenticated);
+        console.log("Toggle contribute dropdown called");
+        console.log("Is authenticated:", isAuthenticated);
 
-    if (!isAuthenticated) {
-        console.log("User not authenticated");
+        if (!isAuthenticated) {
+            console.log("User not authenticated");
+            if (loginRequired) {
+                loginRequired.style.display = 'inline';
+            }
+            await login();
+            return;
+        }
+
         if (loginRequired) {
-            loginRequired.style.display = 'inline';
+            loginRequired.style.display = 'none';
         }
-        await login();
-        return;
-    }
 
-    if (loginRequired) {
-        loginRequired.style.display = 'none';
-    }
-
-    console.log("About to toggle dropdown visibility");
-    console.log("Current dropdown display:", dropdown.style.display);
-
-    // Existing dropdown toggle logic
-    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        console.log("Showing dropdown");
-        dropdown.style.display = 'flex';
-        contributeTab.classList.add('active');
-        showControlPanel();
-    } else {
-        console.log("Hiding dropdown");
-        dropdown.style.display = 'none';
-        contributeTab.classList.remove('active');
-        resetActiveDropdownTabs();
-        hideControlPanel();
-        if (typeof window.disableDrawingMode === 'function') {
-            window.disableDrawingMode();
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'flex';
+            contributeTab.classList.add('active');
+            showControlPanel();
+        } else {
+            dropdown.style.display = 'none';
+            contributeTab.classList.remove('active');
+            resetActiveDropdownTabs();
+            hideControlPanel();
+            if (typeof window.disableDrawingMode === 'function') {
+                window.disableDrawingMode();
+            }
         }
+    } catch (error) {
+        console.error("Error in toggleContributeDropdown:", error);
     }
-    
-    console.log("Final dropdown display:", dropdown.style.display);
 }
 
 // Helper function to set active state on the selected dropdown tab
