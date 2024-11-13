@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Logout button not found');
     }
 
-    // Initialize Auth0
+    // Initialize Auth0.
     initializeAuth().catch(err => {
         console.error('Failed to initialize Auth0:', err);
     });
