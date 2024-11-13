@@ -1,5 +1,22 @@
+// Wait for auth0 to be ready
+function waitForAuth0() {
+    return new Promise((resolve) => {
+        const checkAuth0 = () => {
+            if (window.auth0) {
+                resolve(window.auth0);
+            } else {
+                setTimeout(checkAuth0, 100);
+            }
+        };
+        checkAuth0();
+    });
+}
+
 async function getCurrentUser() {
     try {
+        // Ensure auth0 is ready
+        const auth0 = await waitForAuth0();
+        
         // Get the user's auth0 profile first
         const auth0User = await auth0.getUser();
         console.log('Auth0 user:', auth0User);
@@ -7,6 +24,13 @@ async function getCurrentUser() {
         // Then get any additional profile data
         const token = await auth0.getTokenSilently();
         console.log('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
+
+        // Add this token format check
+        console.log('Token format check:', {
+            length: token.length,
+            startsWithEy: token.startsWith('ey'),
+            parts: token.split('.').length
+        });
 
         const response = await fetch('/api/user', {
             headers: {
@@ -41,6 +65,7 @@ function setupProfileForm() {
             e.preventDefault();
             
             try {
+                const auth0 = await waitForAuth0();
                 const formData = new FormData(profileForm);
                 const profileData = {
                     bioName: formData.get('bioName'),
@@ -63,6 +88,8 @@ function setupProfileForm() {
                 });
 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Error response:', errorText);
                     throw new Error(`HTTP error ${response.status}`);
                 }
 
@@ -83,6 +110,7 @@ function setupProfileForm() {
 
 async function initializeProfile() {
     try {
+        const auth0 = await waitForAuth0();
         if (await auth0.isAuthenticated()) {
             const user = await getCurrentUser();
             if (user && user.profile) {
@@ -102,12 +130,16 @@ async function initializeProfile() {
     }
 }
 
+// Set up global access
 window.userModule = {
     getCurrentUser,
     initializeProfile
 };
 
-// Add this initialization block
-if (typeof auth0 !== 'undefined') {
-    initializeProfile().catch(console.error);
-}
+// Initialize only after auth.js has loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait a bit for auth0 to be ready
+    setTimeout(() => {
+        initializeProfile().catch(console.error);
+    }, 1000);
+});

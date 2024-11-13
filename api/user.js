@@ -22,8 +22,11 @@ const connectDB = async () => {
 // Verify Auth0 token
 const verifyToken = (token) => {
     try {
+        console.log('Verifying token...');
         const bearerToken = token.split(' ')[1];
+        console.log('Bearer token first 20 chars:', bearerToken.substring(0, 20) + '...');
         const decoded = jwt.decode(bearerToken);
+        console.log('Decoded token:', decoded);
         return decoded;
     } catch (error) {
         console.error('Token verification error:', error);
@@ -33,20 +36,36 @@ const verifyToken = (token) => {
 
 export default async function handler(req, res) {
     try {
+        console.log('API request received:', {
+            method: req.method,
+            path: req.url,
+            headers: {
+                ...req.headers,
+                authorization: req.headers.authorization ? 'Bearer [hidden]' : undefined
+            }
+        });
+
         // Ensure MongoDB is connected
         await connectDB();
 
         // Get token from Authorization header
         const authHeader = req.headers.authorization;
         if (!authHeader) {
+            console.log('No authorization header found');
             return res.status(401).json({ error: 'No authorization header' });
         }
 
         // Verify token and get user info
         const tokenInfo = verifyToken(authHeader);
         if (!tokenInfo) {
+            console.log('Token verification failed');
             return res.status(401).json({ error: 'Invalid token' });
         }
+        
+        console.log('Token verified successfully:', {
+            sub: tokenInfo.sub,
+            email: tokenInfo.email
+        });
 
         const { method } = req;
 
