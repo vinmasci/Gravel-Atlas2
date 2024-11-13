@@ -1,8 +1,19 @@
+// Add debug logging functionality
+const DEBUG = true;
+
+function debugLog(...args) {
+    if (DEBUG) {
+        console.log('[Profile Debug]:', ...args);
+    }
+}
+
 // Wait for auth0 to be ready
 function waitForAuth0() {
+    debugLog('Waiting for Auth0...');
     return new Promise((resolve) => {
         const checkAuth0 = () => {
             if (window.auth0) {
+                debugLog('Auth0 is ready');
                 resolve(window.auth0);
             } else {
                 setTimeout(checkAuth0, 100);
@@ -13,15 +24,16 @@ function waitForAuth0() {
 }
 
 async function initializeProfile() {
+    debugLog('Initializing profile');
     try {
         // Ensure auth0 is ready
         const auth0 = await waitForAuth0();
         
         const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Authentication check:', isAuthenticated);
+        debugLog('Authentication check:', isAuthenticated);
 
         if (!isAuthenticated) {
-            console.log('User not authenticated');
+            debugLog('User not authenticated');
             return;
         }
 
@@ -30,7 +42,7 @@ async function initializeProfile() {
             audience: 'https://gravel-atlas2.vercel.app/api',
             scope: 'openid profile email read:profile update:profile'
         });
-        console.log('Token received:', token.substring(0, 20) + '...');
+        debugLog('Token received:', token.substring(0, 20) + '...');
 
         // Get user profile data
         const response = await fetch('/api/user', {
@@ -40,16 +52,16 @@ async function initializeProfile() {
             }
         });
 
-        console.log('Profile API response status:', response.status);
+        debugLog('Profile API response status:', response.status);
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.log('Profile API error:', errorText);
+            debugLog('Profile API error:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const profile = await response.json();
-        console.log('Profile data received:', profile);
+        debugLog('Profile data received:', profile);
         
         // Populate form with profile data
         const form = document.getElementById('profile-form');
@@ -59,7 +71,7 @@ async function initializeProfile() {
             form.querySelector('#instagram').value = profile.socialLinks?.instagram || '';
             form.querySelector('#strava').value = profile.socialLinks?.strava || '';
             form.querySelector('#facebook').value = profile.socialLinks?.facebook || '';
-            console.log('Form populated with profile data');
+            debugLog('Form populated with profile data');
         }
     } catch (error) {
         console.error('Error initializing profile:', error);
@@ -67,23 +79,22 @@ async function initializeProfile() {
 }
 
 async function getCurrentUser() {
+    debugLog('Getting current user');
     try {
         // Ensure auth0 is ready
         const auth0 = await waitForAuth0();
         
         // Get the user's auth0 profile first
         const auth0User = await auth0.getUser();
-        console.log('Auth0 user:', auth0User);
+        debugLog('Auth0 user:', auth0User);
 
         // Then get any additional profile data
         const token = await auth0.getTokenSilently({
             audience: 'https://gravel-atlas2.vercel.app/api',
-            scope: 'openid profile email'
+            scope: 'openid profile email read:profile update:profile'
         });
-        console.log('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
-
-        // Add this token format check
-        console.log('Token format check:', {
+        debugLog('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
+        debugLog('Token format check:', {
             length: token.length,
             startsWithEy: token.startsWith('ey'),
             parts: token.split('.').length
@@ -96,15 +107,15 @@ async function getCurrentUser() {
             }
         });
 
-        console.log('API Response status:', response.status);
+        debugLog('API Response status:', response.status);
         if (!response.ok) {
             const errorText = await response.text();
-            console.log('Error response:', errorText);
+            debugLog('Error response:', errorText);
             throw new Error(`HTTP error ${response.status}`);
         }
 
         const userData = await response.json();
-        console.log('User data received:', userData);
+        debugLog('User data received:', userData);
         return {
             ...auth0User,
             profile: userData
@@ -115,28 +126,31 @@ async function getCurrentUser() {
     }
 }
 
-// Setup profile form 
 function setupProfileForm() {
-    console.log('Setting up profile form - START');
+    debugLog('Setting up profile form - START');
     const profileForm = document.getElementById('profile-form');
-    console.log('Found profile form:', profileForm);
+    debugLog('Found profile form:', profileForm);
 
     if (profileForm) {
-        console.log('Adding submit event listener');
-        
         // Remove any existing listeners
         const newForm = profileForm.cloneNode(true);
         profileForm.parentNode.replaceChild(newForm, profileForm);
         
-        // Add click handler to button directly
-        const submitButton = newForm.querySelector('button[type="submit"]');
-        console.log('Found submit button:', submitButton);
-        
-        submitButton.addEventListener('click', async (e) => {
-            console.log('Submit button clicked');
+        // Add submit handler to form
+        newForm.addEventListener('submit', async (e) => {
+            debugLog('Form submit triggered');
             e.preventDefault();
             
             try {
+                // Check auth0 is available
+                const auth0 = await waitForAuth0();
+                const isAuthenticated = await auth0.isAuthenticated();
+                debugLog('Authentication status:', isAuthenticated);
+                
+                if (!isAuthenticated) {
+                    throw new Error('Not authenticated');
+                }
+                
                 const formData = new FormData(newForm);
                 const profileData = {
                     bioName: formData.get('bioName'),
@@ -148,15 +162,14 @@ function setupProfileForm() {
                     }
                 };
                 
-                console.log('Form data to be sent:', profileData);
-        
-                // Get token with explicit permissions
+                debugLog('Form data to be sent:', profileData);
+
                 const token = await auth0.getTokenSilently({
                     audience: 'https://gravel-atlas2.vercel.app/api',
                     scope: 'openid profile email read:profile update:profile'
                 });
-                console.log('Update token received:', token.substring(0, 20) + '...');
-        
+                debugLog('Update token received');
+
                 const response = await fetch('/api/user', {
                     method: 'PUT',
                     headers: {
@@ -165,42 +178,38 @@ function setupProfileForm() {
                     },
                     body: JSON.stringify(profileData)
                 });
-        
-                console.log('Update API response status:', response.status);
-        
+                
+                debugLog('Update API response status:', response.status);
+
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.log('Update API error:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    debugLog('Update API error:', errorText);
+                    throw new Error(`API error: ${errorText}`);
                 }
-        
+
                 const result = await response.json();
-                console.log('Profile updated successfully:', result);
+                debugLog('Profile updated successfully:', result);
+                
                 alert('Profile updated successfully!');
-        
+                
                 if (typeof utils !== 'undefined' && utils.hideProfileSection) {
                     utils.hideProfileSection();
                 }
             } catch (error) {
-                console.error('Error updating profile:', error);
-                alert('Error updating profile: ' + error.message);
+                console.error('Profile update error:', error);
+                alert(`Error updating profile: ${error.message}`);
             }
         });
         
-        newForm.addEventListener('submit', (e) => {
-            console.log('Form submit triggered');
-            e.preventDefault();
-            return false;
-        });
+        debugLog('Profile form setup complete');
     } else {
         console.error('Profile form not found in the DOM');
     }
-    
-    console.log('Setting up profile form - COMPLETE');
 }
 
-// Initialize form setup and profile data
+// Initialize everything
 async function initialize() {
+    debugLog('Starting initialization');
     try {
         // Wait for auth0 to be ready
         const auth0 = await waitForAuth0();
@@ -227,5 +236,8 @@ window.userModule = {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    initialize().catch(console.error);
+    debugLog('DOM loaded, initializing profile module');
+    initialize().catch(error => {
+        console.error('Initialization failed:', error);
+    });
 });
