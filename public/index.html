@@ -669,34 +669,44 @@ body {
 </div>
 
 <!-- Profile Section -->
-<form id="profile-form" class="profile-form">
-    <div class="mb-3">
-      <label for="bioName" class="form-label">Bio Name</label>
-      <input type="text" class="form-control" id="bioName" name="bioName">
-    </div>
-    
-    <div class="mb-3">
-      <label for="instagram" class="form-label">Instagram</label>
-      <input type="text" class="form-control" id="instagram" name="socialLinks.instagram">
-    </div>
-    
-    <div class="mb-3">
-      <label for="strava" class="form-label">Strava</label>
-      <input type="text" class="form-control" id="strava" name="socialLinks.strava">
-    </div>
-    
-    <div class="mb-3">
-      <label for="facebook" class="form-label">Facebook</label>
-      <input type="text" class="form-control" id="facebook" name="socialLinks.facebook">
-    </div>
-    
-    <div class="mb-3">
-      <label for="website" class="form-label">Website</label>
-      <input type="url" class="form-control" id="website" name="website">
-    </div>
+<div id="profile-section" class="hidden">
+    <div class="profile-container">
+      <form id="profile-form" class="profile-form" onsubmit="return false;">
+        <div class="mb-3">
+          <label for="bioName" class="form-label">Bio Name</label>
+          <input type="text" class="form-control" id="bioName" name="bioName">
+        </div>
+        
+        <div class="mb-3">
+          <label for="instagram" class="form-label">Instagram</label>
+          <input type="text" class="form-control" id="instagram" name="socialLinks.instagram">
+        </div>
+        
+        <div class="mb-3">
+          <label for="strava" class="form-label">Strava</label>
+          <input type="text" class="form-control" id="strava" name="socialLinks.strava">
+        </div>
+        
+        <div class="mb-3">
+          <label for="facebook" class="form-label">Facebook</label>
+          <input type="text" class="form-control" id="facebook" name="socialLinks.facebook">
+        </div>
+        
+        <div class="mb-3">
+          <label for="website" class="form-label">Website</label>
+          <input type="url" class="form-control" id="website" name="website">
+        </div>
   
-    <button type="submit" class="btn btn-primary w-100">Save Profile</button>
-  </form>
+      <!-- Modified button -->
+      <button 
+        type="submit" 
+        class="btn btn-primary w-100" 
+        onclick="console.log('Save button clicked');">
+        Save Profile
+      </button>
+      </form>
+    </div>
+  </div>
 
 <!-- Core Application -->
 <script src="/js/core.js"></script>
