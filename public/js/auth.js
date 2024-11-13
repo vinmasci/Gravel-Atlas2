@@ -20,9 +20,11 @@ async function clearAuthState() {
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
+        const profileBtn = document.getElementById("profileBtn");
         
         if (loginBtn) loginBtn.style.display = "block";
         if (logoutBtn) logoutBtn.style.display = "none";
+        if (profileBtn) profileBtn.classList.add('hidden');
         if (userInfo) {
             userInfo.style.display = "none";
             userInfo.innerHTML = '';
@@ -45,40 +47,19 @@ async function initializeAuth() {
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             cacheLocation: 'localstorage',
             useRefreshTokens: true,
-            authorizationParams: {
-                response_type: 'code',
-                audience: 'https://gravel-atlas2.vercel.app/api',
-                scope: 'openid profile email read:profile update:profile offline_access'
-            }
         });
 
         console.log('Auth0 client created successfully');
+        window.auth0 = auth0;
+        console.log('window.auth0 is set:', window.auth0);
 
-                // Assign auth0 to window.auth0
-                window.auth0 = auth0;
-                console.log('window.auth0 is set:', window.auth0);
-
-                        // Add the redirect handling here
-        const query = window.location.search;
-        if (query.includes("code=") && query.includes("state=")) {
-            try {
-                await auth0.handleRedirectCallback();
-                window.history.replaceState({}, document.title, window.location.pathname);
-                await updateUI();
-            } catch (err) {
-                console.error("Error handling callback:", err);
-                await clearAuthState();
-            }
-        }
-
-        // Here's where the updated code goes
+        // Handle redirect callback
         if (window.location.search.includes("code=")) {
             try {
                 console.log('Handling redirect callback...');
                 const result = await auth0.handleRedirectCallback();
                 console.log('Redirect handled successfully', result);
                 
-                // Add this to handle the return state
                 if (result.appState && result.appState.returnTo) {
                     window.location.href = result.appState.returnTo;
                 }
@@ -90,13 +71,24 @@ async function initializeAuth() {
             }
         }
 
-        // Rest of your existing code...
         const isAuthenticated = await auth0.isAuthenticated();
         console.log('Authentication state after initialization:', isAuthenticated);
         
         if (isAuthenticated) {
             const user = await auth0.getUser();
             console.log('User profile:', user);
+            
+            // Load or initialize user profile in localStorage
+            let userProfile = localStorage.getItem('userProfile');
+            if (!userProfile) {
+                userProfile = {
+                    bioName: user.name || user.nickname || '',
+                    email: user.email || '',
+                    socialLinks: {}
+                };
+                localStorage.setItem('userProfile', JSON.stringify(userProfile));
+                console.log('Initialized user profile in localStorage:', userProfile);
+            }
         }
 
         await updateUI();
@@ -107,9 +99,6 @@ async function initializeAuth() {
     }
 }
 
-// ============================
-// SECTION: UI Management
-// ============================
 // ============================
 // SECTION: UI Management
 // ============================
@@ -137,6 +126,16 @@ async function updateUI() {
             const user = await auth0.getUser();
             console.log('User info:', user);
             
+            // Get display name from localStorage profile if available
+            let displayName = user.name || user.email;
+            const userProfile = localStorage.getItem('userProfile');
+            if (userProfile) {
+                const profile = JSON.parse(userProfile);
+                if (profile.bioName) {
+                    displayName = profile.bioName;
+                }
+            }
+            
             loginBtn.style.display = "none";
             logoutBtn.style.display = "block";
             if (profileBtn) {
@@ -144,9 +143,9 @@ async function updateUI() {
                 profileBtn.classList.remove('hidden');
             }
             userInfo.style.display = "block";
-            userInfo.innerHTML = `Welcome, ${user.name || user.email}`;
+            userInfo.innerHTML = `Welcome, ${displayName}`;
             
-            // Update any other auth-dependent UI elements
+            // Update auth-dependent UI elements
             const contributeTab = document.querySelector('.draw-route-tab .login-required');
             if (contributeTab) {
                 contributeTab.style.display = 'none';
@@ -160,7 +159,7 @@ async function updateUI() {
             }
             userInfo.style.display = "none";
             
-            // Update any other auth-dependent UI elements
+            // Update auth-dependent UI elements
             const contributeTab = document.querySelector('.draw-route-tab .login-required');
             if (contributeTab) {
                 contributeTab.style.display = 'inline';
@@ -168,43 +167,6 @@ async function updateUI() {
         }
     } catch (err) {
         console.error("Error updating UI:", err);
-    }
-}
-
-// Keep your existing isUserAuthenticated and checkAuthState functions as they are
-
-async function isUserAuthenticated() {
-    if (!auth0) {
-        console.error('Auth0 client not initialized');
-        return false;
-    }
-    try {
-        return await auth0.isAuthenticated();
-    } catch (err) {
-        console.error('Error checking authentication:', err);
-        return false;
-    }
-}
-
-async function checkAuthState() {
-    if (!auth0) {
-        console.error('Auth0 client not initialized');
-        return false;
-    }
-
-    try {
-        const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Current auth state:', isAuthenticated ? 'Logged In' : 'Logged Out');
-        
-        if (isAuthenticated) {
-            const user = await auth0.getUser();
-            console.log('Current user:', user);
-        }
-        
-        return isAuthenticated;
-    } catch (err) {
-        console.error('Error checking auth state:', err);
-        return false;
     }
 }
 
@@ -222,7 +184,12 @@ async function getCurrentUser() {
             return null;
         }
         const user = await auth0.getUser();
-        return user;
+        // Merge Auth0 user data with localStorage profile
+        const userProfile = localStorage.getItem('userProfile');
+        return {
+            ...user,
+            profile: userProfile ? JSON.parse(userProfile) : null
+        };
     } catch (err) {
         console.error('Error getting current user:', err);
         return null;
@@ -238,10 +205,6 @@ async function login() {
         await auth0.loginWithRedirect({
             appState: { 
                 returnTo: window.location.pathname 
-            },
-            authorizationParams: {
-                audience: 'https://gravel-atlas2.vercel.app/api',
-                scope: 'openid profile email read:profile update:profile offline_access'
             }
         });
     } catch (err) {
@@ -257,6 +220,10 @@ async function logout() {
 
     try {
         console.log('Starting logout...');
+        // Clear profile data
+        if (window.ProfileManager) {
+            window.ProfileManager.clearProfile();
+        }
         await auth0.logout({
             returnTo: 'https://gravel-atlas2.vercel.app',
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT'
@@ -292,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Logout button not found');
     }
 
-    // Initialize Auth0.
+    // Initialize Auth0
     initializeAuth().catch(err => {
         console.error('Failed to initialize Auth0:', err);
     });

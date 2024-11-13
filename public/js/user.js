@@ -1,4 +1,4 @@
-// Add debug logging functionality
+// Keep your existing debug logging setup
 const DEBUG = true;
 
 function debugLog(...args) {
@@ -7,7 +7,7 @@ function debugLog(...args) {
     }
 }
 
-// Wait for auth0 to be ready
+// Keep your existing waitForAuth0 function
 function waitForAuth0() {
     debugLog('Waiting for Auth0...');
     return new Promise((resolve) => {
@@ -23,43 +23,7 @@ function waitForAuth0() {
     });
 }
 
-// In user.js, modify getToken
-async function getToken() {
-    try {
-        debugLog('Getting token...');
-        const auth0 = await window.authReady;
-        
-        // Check authentication first
-        const isAuthenticated = await auth0.isAuthenticated();
-        if (!isAuthenticated) {
-            debugLog('User not authenticated, redirecting to login');
-            await auth0.loginWithRedirect({
-                appState: { returnTo: window.location.pathname }
-            });
-            throw new Error('Not authenticated');
-        }
-
-        const token = await auth0.getTokenSilently({
-            audience: 'https://gravel-atlas2.vercel.app/api',
-            scope: 'openid profile email read:profile update:profile offline_access'
-        });
-        debugLog('Token received successfully');
-        return token;
-    } catch (error) {
-        console.error('Error getting token:', error);
-        debugLog('Token error:', error);
-        
-        if (error.message.includes('Login required')) {
-            debugLog('Token expired or login required, redirecting...');
-            await auth0.loginWithRedirect({
-                appState: { returnTo: window.location.pathname }
-            });
-        }
-        throw error;
-    }
-}
-
-// Then in your initializeProfile function, replace the token retrieval with:
+// Modify initializeProfile to use localStorage
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
@@ -72,28 +36,30 @@ async function initializeProfile() {
             return;
         }
 
-        // Use the centralized getToken function
-        const token = await getToken();
+        // Get Auth0 user info
+        const user = await auth0.getUser();
+        debugLog('Auth0 user data:', user);
 
-        // Get user profile data
-        const response = await fetch('/api/user', {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-
-        debugLog('Profile API response status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            debugLog('Profile API error:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get existing profile from localStorage
+        let profile = localStorage.getItem('userProfile');
+        if (profile) {
+            profile = JSON.parse(profile);
+            debugLog('Found existing profile in localStorage:', profile);
+        } else {
+            // Initialize new profile with Auth0 data
+            profile = {
+                bioName: user.name || user.nickname || '',
+                email: user.email || '',
+                website: '',
+                socialLinks: {
+                    instagram: '',
+                    strava: '',
+                    facebook: ''
+                }
+            };
+            localStorage.setItem('userProfile', JSON.stringify(profile));
+            debugLog('Initialized new profile:', profile);
         }
-
-        const profile = await response.json();
-        debugLog('Profile data received:', profile);
         
         // Populate form with profile data
         const form = document.getElementById('profile-form');
@@ -107,55 +73,35 @@ async function initializeProfile() {
         }
     } catch (error) {
         console.error('Error initializing profile:', error);
+        debugLog('Profile initialization error:', error);
     }
 }
 
+// Modify getCurrentUser to use localStorage
 async function getCurrentUser() {
     debugLog('Getting current user');
     try {
-        // Ensure auth0 is ready
         const auth0 = await waitForAuth0();
-        
-        // Get the user's auth0 profile first
         const auth0User = await auth0.getUser();
         debugLog('Auth0 user:', auth0User);
 
-        // Get token using centralized function
-        const token = await getToken();
-        
-        // Additional token debugging
-        debugLog('Token format check:', {
-            length: token.length,
-            startsWithEy: token.startsWith('ey'),
-            parts: token.split('.').length
-        });
+        // Get profile from localStorage
+        const profile = localStorage.getItem('userProfile');
+        const userData = profile ? JSON.parse(profile) : null;
+        debugLog('Profile data from localStorage:', userData);
 
-        const response = await fetch('/api/user', {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        debugLog('API Response status:', response.status);
-        if (!response.ok) {
-            const errorText = await response.text();
-            debugLog('Error response:', errorText);
-            throw new Error(`HTTP error ${response.status}`);
-        }
-
-        const userData = await response.json();
-        debugLog('User data received:', userData);
         return {
             ...auth0User,
             profile: userData
         };
     } catch (error) {
         console.error('Error getting current user:', error);
+        debugLog('Get current user error:', error);
         return null;
     }
 }
 
+// Modify setupProfileForm to use localStorage
 function setupProfileForm() {
     debugLog('Setting up profile form - START');
     const profileForm = document.getElementById('profile-form');
@@ -172,7 +118,6 @@ function setupProfileForm() {
             e.preventDefault();
             
             try {
-                // Check auth0 is available
                 const auth0 = await waitForAuth0();
                 const isAuthenticated = await auth0.isAuthenticated();
                 debugLog('Authentication status:', isAuthenticated);
@@ -192,39 +137,26 @@ function setupProfileForm() {
                     }
                 };
                 
-                debugLog('Form data to be sent:', profileData);
+                debugLog('Form data to be saved:', profileData);
 
-                // Get token using centralized function
-                const token = await getToken();
-                debugLog('Update token received');
-
-                const response = await fetch('/api/user', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(profileData)
-                });
-                
-                debugLog('Update API response status:', response.status);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    debugLog('Update API error:', errorText);
-                    throw new Error(`API error: ${errorText}`);
-                }
-
-                const result = await response.json();
-                debugLog('Profile updated successfully:', result);
+                // Save to localStorage
+                localStorage.setItem('userProfile', JSON.stringify(profileData));
+                debugLog('Profile saved successfully');
                 
                 alert('Profile updated successfully!');
+                
+                // Update display name in header if it exists
+                const userInfo = document.getElementById('userInfo');
+                if (userInfo) {
+                    userInfo.innerHTML = `Welcome, ${profileData.bioName}`;
+                }
                 
                 if (typeof utils !== 'undefined' && utils.hideProfileSection) {
                     utils.hideProfileSection();
                 }
             } catch (error) {
                 console.error('Profile update error:', error);
+                debugLog('Profile update error:', error);
                 alert(`Error updating profile: ${error.message}`);
             }
         });
@@ -235,21 +167,18 @@ function setupProfileForm() {
     }
 }
 
-// Initialize everything
+// Keep your existing initialization and exports
 async function initialize() {
     debugLog('Starting initialization');
     try {
-        // Wait for auth0 to be ready
         const auth0 = await waitForAuth0();
-        
-
-        // Initialize profile if authenticated
         const isAuthenticated = await auth0.isAuthenticated();
         if (isAuthenticated) {
             await initializeProfile();
         }
     } catch (error) {
         console.error('Initialization error:', error);
+        debugLog('Initialization error:', error);
     }
 }
 
