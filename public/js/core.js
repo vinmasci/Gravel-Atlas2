@@ -241,7 +241,7 @@ async function initCore() {
         const profileBtn = document.createElement('button');
         profileBtn.id = config.profileButton.id;
         profileBtn.textContent = config.profileButton.text;
-        profileBtn.className = 'hidden button';
+        profileBtn.className = 'hidden map-button';
         buttonContainer.insertBefore(profileBtn, loginBtn);
         profileBtn.addEventListener('click', handlers.handleProfileClick);
     }
@@ -265,13 +265,15 @@ async function initCore() {
 
     initEventListeners();
 
-    // Check authentication state and show/hide profile button
-    if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
-        document.getElementById(config.profileButton.id)?.classList.remove('hidden');
-        if (typeof initializeProfile === 'function') {
-            await initializeProfile();
-        }
+// core.js
+
+if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
+    document.getElementById(config.profileButton.id)?.classList.remove('hidden');
+    if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
+        await window.userModule.initializeProfile();
     }
+}
+
 
     // Auth state change handler
     if (typeof auth0 !== 'undefined') {

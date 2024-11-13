@@ -40,7 +40,7 @@ async function initializeProfile() {
         // Get token with explicit permissions
         const token = await auth0.getTokenSilently({
             audience: 'https://gravel-atlas2.vercel.app/api',
-            scope: 'openid profile email read:profile update:profile'
+    scope: 'openid profile email read:profile update:profile offline_access'
         });
         debugLog('Token received:', token.substring(0, 20) + '...');
 
