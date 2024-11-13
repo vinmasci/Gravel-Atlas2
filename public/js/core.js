@@ -1,4 +1,21 @@
-// Shared state
+// Add auth initialization check at the top of core.js
+const authReady = new Promise((resolve) => {
+    function checkAuth() {
+        if (window.auth0) {
+            console.log('Auth0 initialized successfully');
+            resolve(window.auth0);
+        } else {
+            console.log('Waiting for Auth0 initialization...');
+            setTimeout(checkAuth, 100);
+        }
+    }
+    checkAuth();
+});
+
+// Make authReady available globally
+window.authReady = authReady;
+
+// Your existing core.js code
 let map;
 let layerVisibility = {
     segments: false,
@@ -18,18 +35,89 @@ const config = {
     }
 };
 
-// wait for auth0
-function waitForAuth0() {
-    return new Promise((resolve) => {
-        const checkAuth0 = () => {
-            if (window.auth0) {
-                resolve(window.auth0);
-            } else {
-                setTimeout(checkAuth0, 100);
+// Modify initCore to be auth-aware
+async function initCore() {
+    console.log('Initializing core...');
+    
+    try {
+        // Wait for both map and auth to be ready
+        await Promise.all([
+            new Promise(resolve => {
+                if (map.loaded()) {
+                    resolve();
+                } else {
+                    map.on('load', resolve);
+                }
+            }),
+            authReady
+        ]);
+
+        console.log('Map and Auth initialized successfully');
+
+        // Create and insert profile button next to login button
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn && !document.getElementById(config.profileButton.id)) {
+            const buttonContainer = loginBtn.parentElement;
+            const profileBtn = document.createElement('button');
+            profileBtn.id = config.profileButton.id;
+            profileBtn.textContent = config.profileButton.text;
+            profileBtn.className = 'hidden map-button';
+            buttonContainer.insertBefore(profileBtn, loginBtn);
+            profileBtn.addEventListener('click', handlers.handleProfileClick);
+        }
+
+        // The rest of your initCore function remains the same
+        document.addEventListener('click', (event) => {
+            const profileSection = document.getElementById('profile-section');
+            const profileBtn = document.getElementById(config.profileButton.id);
+            
+            if (profileSection && !profileSection.contains(event.target) && 
+                profileBtn && !profileBtn.contains(event.target)) {
+                utils.hideProfileSection();
             }
-        };
-        checkAuth0();
-    });
+        });
+
+        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
+        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
+        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
+        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
+
+        initEventListeners();
+
+        const auth0 = await authReady;
+        if (await auth0.isAuthenticated()) {
+            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
+            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
+                await window.userModule.initializeProfile();
+            }
+        }
+
+        // Verify module exports
+        let attempts = 0;
+        while (attempts < 3) {
+            console.log('Verifying module exports... Attempt', attempts + 1);
+            const functionChecks = {
+                loadSegments: typeof window.loadSegments === 'function',
+                removeSegments: typeof window.removeSegments === 'function',
+                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+                removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+            };
+            
+            if (Object.values(functionChecks).every(Boolean)) {
+                console.log('All required functions are available');
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
+
+        console.log('Core initialized successfully');
+        return { map, layerVisibility };
+    } catch (error) {
+        console.error('Error in core initialization:', error);
+        throw error;
+    }
 }
 
 // Utility functions
