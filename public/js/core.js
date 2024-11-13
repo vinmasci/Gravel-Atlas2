@@ -35,26 +35,36 @@ const utils = {
         console.error(message);
     },
 
-    toggleProfileSection: () => {
-        const profileSection = document.getElementById('profile-section');
-        const isAuthenticated = auth0.isAuthenticated();
-        
-        if (profileSection) {
-            if (isAuthenticated) {
-                // Hide any open contribute dropdown if it exists
-                const contributeDropdown = document.getElementById('contribute-dropdown');
-                if (contributeDropdown) {
-                    contributeDropdown.classList.add('hidden');
-                }
-                
-                // Toggle profile section
-                profileSection.classList.toggle('hidden');
-            } else {
-                // Ensure it's hidden if not authenticated
-                profileSection.classList.add('hidden');
+//update profile section 
+toggleProfileSection: () => {
+    const profileSection = document.getElementById('profile-section');
+    const isAuthenticated = auth0.isAuthenticated();
+    
+    if (profileSection) {
+        if (isAuthenticated) {
+            // Hide any open contribute dropdown if it exists
+            const contributeDropdown = document.getElementById('contribute-dropdown');
+            if (contributeDropdown) {
+                contributeDropdown.classList.add('hidden');
             }
+            
+            // Toggle profile section
+            profileSection.classList.toggle('hidden');
+            
+            // Setup the profile form
+            if (!profileSection.classList.contains('hidden')) {
+                // Only setup the form if the profile section is now visible
+                if (window.userModule && typeof window.userModule.setupProfileForm === 'function') {
+                    window.userModule.setupProfileForm();
+                }
+            }
+        } else {
+            // Ensure it's hidden if not authenticated
+            profileSection.classList.add('hidden');
         }
-    },
+    }
+},
+
     
     hideProfileSection: () => {
         const profileSection = document.getElementById('profile-section');

@@ -214,9 +214,7 @@ async function initialize() {
         // Wait for auth0 to be ready
         const auth0 = await waitForAuth0();
         
-        // Setup the form
-        setupProfileForm();
-        
+
         // Initialize profile if authenticated
         const isAuthenticated = await auth0.isAuthenticated();
         if (isAuthenticated) {
