@@ -91,7 +91,7 @@ async function getCurrentUser() {
         // Then get any additional profile data
         const token = await auth0.getTokenSilently({
             audience: 'https://gravel-atlas2.vercel.app/api',
-            scope: 'openid profile email read:profile update:profile'
+    scope: 'openid profile email read:profile update:profile offline_access'
         });
         debugLog('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
         debugLog('Token format check:', {

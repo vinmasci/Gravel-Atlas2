@@ -53,7 +53,7 @@ const utils = {
 toggleProfileSection: async () => {
     const profileSection = document.getElementById('profile-section');
     const auth0 = await waitForAuth0();
-    const isAuthenticated = auth0.isAuthenticated();
+    const isAuthenticated = await auth0.isAuthenticated();
     
     if (profileSection) {
         if (isAuthenticated) {

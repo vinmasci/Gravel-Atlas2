@@ -44,11 +44,11 @@ async function initializeAuth() {
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             cacheLocation: 'localstorage',
-            useRefreshTokens: true, // Add this line
+            useRefreshTokens: true,
             authorizationParams: {
                 response_type: 'code',
-                audience: 'https://gravel-atlas2.vercel.app/api',  
-                scope: 'openid profile email read:profile update:profile'  // Add the permissions here
+                audience: 'https://gravel-atlas2.vercel.app/api',
+                scope: 'openid profile email read:profile update:profile offline_access'
             }
         });
 
@@ -202,7 +202,7 @@ async function login() {
             },
             authorizationParams: {
                 audience: 'https://gravel-atlas2.vercel.app/api',
-                scope: 'openid profile email read:profile update:profile'
+                scope: 'openid profile email read:profile update:profile offline_access'
             }
         });
     } catch (err) {
