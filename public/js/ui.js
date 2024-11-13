@@ -15,13 +15,16 @@ async function waitForAuth0() {
 async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
     try {
-        const auth0 = await window.authReady;
-        
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log("Auth state:", isAuthenticated);
+
         const modal = document.getElementById('segment-modal');
         const segmentTitle = document.getElementById('segment-details');
         const routeIdElement = document.getElementById('route-id');
         const deleteButton = document.getElementById('delete-segment');
         const addCommentSection = document.getElementById('add-comment');
+        const flagButton = document.getElementById('flag-segment');
 
         if (!modal || !segmentTitle || !routeIdElement || !deleteButton) {
             console.error("Modal, segment title, route ID element, or delete button not found.");
@@ -32,20 +35,29 @@ async function openSegmentModal(title, routeId) {
         routeIdElement.innerText = `Route ID: ${routeId}`;
         window.currentRouteId = routeId;
 
+        // Show modal
         modal.classList.add('show');
         modal.style.display = 'block';
 
+        // Setup delete button
         deleteButton.onclick = function() {
             deleteSegment(routeId);
         };
 
-        const isAuthenticated = await auth0.isAuthenticated();
-        console.log("Auth state:", isAuthenticated);
-
-        if (addCommentSection) {
-            addCommentSection.style.display = isAuthenticated ? 'block' : 'none';
+        // Handle authentication-dependent elements
+        if (isAuthenticated) {
+            console.log("User is authenticated, showing auth-dependent elements");
+            if (deleteButton) deleteButton.style.display = 'block';
+            if (flagButton) flagButton.style.display = 'block';
+            if (addCommentSection) addCommentSection.style.display = 'block';
+        } else {
+            console.log("User is not authenticated, hiding auth-dependent elements");
+            if (deleteButton) deleteButton.style.display = 'none';
+            if (flagButton) flagButton.style.display = 'none';
+            if (addCommentSection) addCommentSection.style.display = 'none';
         }
 
+        // Render comments
         await renderComments(routeId);
     } catch (error) {
         console.error("Error in openSegmentModal:", error);
@@ -56,6 +68,7 @@ async function openSegmentModal(title, routeId) {
 // SECTION: Comments
 // =========================
 function createCommentElement(comment, currentUser) {
+    console.log('Creating comment element:', { comment, currentUser });
     const commentDiv = document.createElement('div');
     commentDiv.className = 'comment';
     
@@ -73,11 +86,12 @@ function createCommentElement(comment, currentUser) {
     
     // Add delete button only if it's the user's comment
     if (currentUser && comment.username === currentUser.name) {
+        console.log('Adding delete button for user comment');
         const deleteButton = document.createElement('button');
         deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
         deleteButton.className = 'delete-comment';
         deleteButton.onclick = async () => {
-            console.log('Attempting to delete comment with ID:', comment._id); // Debug log
+            console.log('Attempting to delete comment with ID:', comment._id);
             if (confirm('Are you sure you want to delete this comment?')) {
                 await deleteComment(comment._id);
             }
@@ -87,6 +101,7 @@ function createCommentElement(comment, currentUser) {
     
     // Add flag button for all users except the comment author
     if (currentUser && comment.username !== currentUser.name) {
+        console.log('Adding flag button for comment');
         const flagButton = document.createElement('button');
         flagButton.innerHTML = '<i class="fa-solid fa-flag"></i>';
         flagButton.className = 'flag-comment';
@@ -106,7 +121,10 @@ function createCommentElement(comment, currentUser) {
 async function renderComments(routeId) {
     console.log("Rendering comments for routeId:", routeId);
     try {
-        const auth0 = await window.authReady;
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log("Authentication status:", isAuthenticated);
+
         const commentsList = document.getElementById('comments-list');
         if (!commentsList) {
             console.error("Comments list element not found");
@@ -119,6 +137,9 @@ async function renderComments(routeId) {
             getCurrentUser(),
             fetch(`/api/comments?routeId=${routeId}`)
         ]);
+
+        console.log("Current user:", currentUser);
+        console.log("Comments API response status:", response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}`);
@@ -141,9 +162,11 @@ async function renderComments(routeId) {
 
         // Show/hide comment input based on authentication
         const addCommentSection = document.getElementById('add-comment');
-        if (currentUser) {
+        if (isAuthenticated && currentUser) {
+            console.log('Showing comment input for authenticated user');
             addCommentSection.style.display = 'block';
         } else {
+            console.log('Hiding comment input, showing login prompt');
             addCommentSection.style.display = 'none';
             const loginPrompt = document.createElement('div');
             loginPrompt.className = 'login-prompt';
@@ -157,14 +180,17 @@ async function renderComments(routeId) {
 }
 
 async function deleteComment(commentId) {
+    console.log('Deleting comment:', commentId);
     try {
         const response = await fetch('/api/comments', {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json' // Important!
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ commentId: commentId }) // Properly stringify the body
+            body: JSON.stringify({ commentId: commentId })
         });
+        
+        console.log('Delete comment response status:', response.status);
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -175,7 +201,7 @@ async function deleteComment(commentId) {
         const routeIdElement = document.getElementById('route-id');
         const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
         
-        // Refresh comments after successful deletion
+        console.log('Refreshing comments after deletion for routeId:', routeId);
         await renderComments(routeId);
     } catch (error) {
         console.error('Error deleting comment:', error);
@@ -184,10 +210,13 @@ async function deleteComment(commentId) {
 }
 
 async function flagComment(commentId) {
+    console.log('Flagging comment:', commentId);
     try {
         const response = await fetch(`/api/comments/${commentId}/flag`, {
             method: 'POST',
         });
+        
+        console.log('Flag comment response status:', response.status);
         
         if (!response.ok) {
             throw new Error('Failed to flag comment');
@@ -201,6 +230,7 @@ async function flagComment(commentId) {
 }
 
 async function addComment() {
+    console.log('Adding new comment');
     const commentInput = document.getElementById('comment-input');
     const commentText = commentInput.value.trim();
     const routeIdElement = document.getElementById('route-id');
@@ -213,13 +243,21 @@ async function addComment() {
         return;
     }
 
-    const user = await getCurrentUser();
-    if (!user) {
-        alert('Please log in to add comments.');
-        return;
-    }
-
     try {
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) {
+            alert('Please log in to add comments.');
+            return;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            throw new Error('User information not available');
+        }
+
+        console.log('Submitting comment as user:', user.name || user.email);
+
         const response = await fetch('/api/comments', {
             method: 'POST',
             headers: {
@@ -231,6 +269,8 @@ async function addComment() {
                 text: commentText
             })
         });
+
+        console.log('Add comment response status:', response.status);
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -245,6 +285,7 @@ async function addComment() {
         alert('Error saving comment. Please try again.');
     }
 }
+
 // ============================
 // SECTION: Delete Segment
 // ============================
