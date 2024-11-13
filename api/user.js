@@ -25,9 +25,21 @@ const verifyToken = (token) => {
         console.log('Verifying token...');
         const bearerToken = token.split(' ')[1];
         console.log('Bearer token first 20 chars:', bearerToken.substring(0, 20) + '...');
-        const decoded = jwt.decode(bearerToken);
-        console.log('Decoded token:', decoded);
-        return decoded;
+        
+        // Decode without verification first to log the structure
+        const decoded = jwt.decode(bearerToken, { complete: true });
+        console.log('Token payload:', {
+            iss: decoded?.payload?.iss,
+            aud: decoded?.payload?.aud,
+            sub: decoded?.payload?.sub
+        });
+
+        if (!decoded?.payload?.sub) {
+            console.log('No sub claim found in token');
+            return null;
+        }
+
+        return decoded.payload;
     } catch (error) {
         console.error('Token verification error:', error);
         return null;
