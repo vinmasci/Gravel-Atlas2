@@ -58,8 +58,8 @@ async function getCurrentUser() {
     }
 }
 
-// First, make it globally accessible for testing
-window.setupProfileForm = function setupProfileForm() {
+// Setup profile form 
+function setupProfileForm() {
     console.log('Setting up profile form - START');
     const profileForm = document.getElementById('profile-form');
     console.log('Found profile form:', profileForm);
@@ -93,8 +93,11 @@ window.setupProfileForm = function setupProfileForm() {
                 
                 console.log('Form data collected:', profileData);
 
-                // Get token
-                const token = await auth0.getTokenSilently();
+                // Get fresh token using getTokenSilently
+                const token = await auth0.getTokenSilently({
+                    audience: 'https://gravel-atlas2.vercel.app/api',
+                    scope: 'openid profile email'
+                });
                 console.log('Got auth token');
 
                 const response = await fetch('/api/user', {
@@ -132,7 +135,6 @@ window.setupProfileForm = function setupProfileForm() {
             e.preventDefault();
             return false;
         });
-
     } else {
         console.error('Profile form not found in the DOM');
     }

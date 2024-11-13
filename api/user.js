@@ -1,12 +1,11 @@
+// api/user.js
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
 
-// MongoDB connection function
+// MongoDB connection function (keep your existing function)
 const connectDB = async () => {
-    if (mongoose.connections[0].readyState) {
-        return;
-    }
+    if (mongoose.connections[0].readyState) return;
     try {
         await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
@@ -19,27 +18,44 @@ const connectDB = async () => {
     }
 };
 
-// Verify Auth0 token
-const verifyToken = (token) => {
+// Updated token verification function
+const verifyToken = async (authHeader) => {
     try {
-        console.log('Verifying token...');
-        const bearerToken = token.split(' ')[1];
-        console.log('Bearer token first 20 chars:', bearerToken.substring(0, 20) + '...');
-        
-        // Decode without verification first to log the structure
-        const decoded = jwt.decode(bearerToken, { complete: true });
-        console.log('Token payload:', {
-            iss: decoded?.payload?.iss,
-            aud: decoded?.payload?.aud,
-            sub: decoded?.payload?.sub
-        });
-
-        if (!decoded?.payload?.sub) {
-            console.log('No sub claim found in token');
-            return null;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            throw new Error('No bearer token provided');
         }
 
-        return decoded.payload;
+        const token = authHeader.split(' ')[1];
+        console.log('Verifying token...');
+
+        // Download JWKS from Auth0
+        const response = await fetch(`https://dev-8jmwfh4hugvdjwh8.au.auth0.com/.well-known/jwks.json`);
+        const jwks = await response.json();
+
+        // Decode token header to get key ID (kid)
+        const decodedToken = jwt.decode(token, { complete: true });
+        if (!decodedToken) {
+            throw new Error('Invalid token format');
+        }
+
+        const kid = decodedToken.header.kid;
+        const key = jwks.keys.find(k => k.kid === kid);
+
+        if (!key) {
+            throw new Error('No matching key found');
+        }
+
+        // Convert JWKS key to PEM format
+        const pemKey = `-----BEGIN PUBLIC KEY-----\n${key.x5c[0]}\n-----END PUBLIC KEY-----`;
+
+        // Verify the token
+        const verified = jwt.verify(token, pemKey, {
+            algorithms: ['RS256'],
+            audience: 'https://gravel-atlas2.vercel.app/api',
+            issuer: 'https://dev-8jmwfh4hugvdjwh8.au.auth0.com/'
+        });
+
+        return verified;
     } catch (error) {
         console.error('Token verification error:', error);
         return null;
@@ -50,89 +66,63 @@ export default async function handler(req, res) {
     try {
         console.log('API request received:', {
             method: req.method,
-            path: req.url,
-            headers: {
-                ...req.headers,
-                authorization: req.headers.authorization ? 'Bearer [hidden]' : undefined
-            }
+            path: req.url
         });
 
-        // Ensure MongoDB is connected
         await connectDB();
 
         // Get token from Authorization header
         const authHeader = req.headers.authorization;
         if (!authHeader) {
-            console.log('No authorization header found');
             return res.status(401).json({ error: 'No authorization header' });
         }
 
         // Verify token and get user info
-        const tokenInfo = verifyToken(authHeader);
-        if (!tokenInfo) {
-            console.log('Token verification failed');
+        const tokenPayload = await verifyToken(authHeader);
+        if (!tokenPayload) {
             return res.status(401).json({ error: 'Invalid token' });
         }
-        
-        console.log('Token verified successfully:', {
-            sub: tokenInfo.sub,
-            email: tokenInfo.email
-        });
+
+        const auth0Id = tokenPayload.sub;
+        if (!auth0Id) {
+            return res.status(401).json({ error: 'No user ID in token' });
+        }
 
         const { method } = req;
 
         switch (method) {
             case 'GET':
-                // Get user profile
-                let user = await User.findOne({ auth0Id: tokenInfo.sub });
+                const user = await User.findOne({ auth0Id });
                 if (!user) {
-                    // Create new user profile if it doesn't exist
-                    user = await User.create({
-                        auth0Id: tokenInfo.sub,
-                        email: tokenInfo.email,
-                        bioName: tokenInfo.name || tokenInfo.nickname,
-                        picture: tokenInfo.picture
+                    // Create new user if they don't exist
+                    const newUser = await User.create({
+                        auth0Id,
+                        email: tokenPayload.email,
+                        bioName: tokenPayload.name || tokenPayload.nickname
                     });
+                    return res.json(newUser);
                 }
-                return res.json({
-                    auth0User: tokenInfo,
-                    profile: user
-                });
+                return res.json(user);
 
             case 'PUT':
-                // Update user profile
                 const updateData = req.body;
-                // Remove any sensitive fields
+                // Remove sensitive fields
                 delete updateData.auth0Id;
                 delete updateData.email;
 
                 const updatedProfile = await User.findOneAndUpdate(
-                    { auth0Id: tokenInfo.sub },
+                    { auth0Id },
                     {
                         ...updateData,
                         updatedAt: Date.now()
                     },
-                    { new: true, runValidators: true }
+                    { new: true, upsert: true, runValidators: true }
                 );
 
-                if (!updatedProfile) {
-                    return res.status(404).json({ error: 'User profile not found' });
-                }
                 return res.json(updatedProfile);
 
-            case 'DELETE':
-                // Delete user profile
-                const deletedProfile = await User.findOneAndDelete({
-                    auth0Id: tokenInfo.sub
-                });
-
-                if (!deletedProfile) {
-                    return res.status(404).json({ error: 'User profile not found' });
-                }
-                return res.json({ message: 'Profile deleted successfully' });
-
             default:
-                res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+                res.setHeader('Allow', ['GET', 'PUT']);
                 return res.status(405).json({ error: `Method ${method} Not Allowed` });
         }
     } catch (error) {
