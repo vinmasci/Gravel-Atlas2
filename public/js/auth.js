@@ -47,7 +47,7 @@ async function initializeAuth() {
             authorizationParams: {
                 response_type: 'code',
                 audience: 'https://gravel-atlas2.vercel.app/api',  
-                scope: 'openid profile email'
+                scope: 'openid profile email read:profile update:profile'  // Add the permissions here
             }
         });
 
