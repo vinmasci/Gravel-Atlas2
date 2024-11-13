@@ -671,39 +671,39 @@ body {
 <!-- Profile Section -->
 <div id="profile-section" class="hidden">
     <div class="profile-container">
-        <div id="profile-root"></div>
-        <div class="mb-3">
-          <label for="bioName" class="form-label">Bio Name</label>
-          <input type="text" class="form-control" id="bioName" name="bioName">
-        </div>
-        
-        <div class="mb-3">
-          <label for="instagram" class="form-label">Instagram</label>
-          <input type="text" class="form-control" id="instagram" name="socialLinks.instagram">
-        </div>
-        
-        <div class="mb-3">
-          <label for="strava" class="form-label">Strava</label>
-          <input type="text" class="form-control" id="strava" name="socialLinks.strava">
-        </div>
-        
-        <div class="mb-3">
-          <label for="facebook" class="form-label">Facebook</label>
-          <input type="text" class="form-control" id="facebook" name="socialLinks.facebook">
-        </div>
-        
-        <div class="mb-3">
-          <label for="website" class="form-label">Website</label>
-          <input type="url" class="form-control" id="website" name="website">
-        </div>
-  
-      <!-- Modified button -->
-      <button type="submit" class="btn btn-primary w-100">
-        Save Profile
-    </button>
-</div>
+        <form id="profile-form" class="profile-form">
+            <div class="mb-3">
+                <label for="bioName" class="form-label">Bio Name</label>
+                <input type="text" class="form-control" id="bioName" name="bioName">
+            </div>
+            
+            <div class="mb-3">
+                <label for="instagram" class="form-label">Instagram</label>
+                <input type="text" class="form-control" id="instagram" name="socialLinks.instagram">
+            </div>
+            
+            <div class="mb-3">
+                <label for="strava" class="form-label">Strava</label>
+                <input type="text" class="form-control" id="strava" name="socialLinks.strava">
+            </div>
+            
+            <div class="mb-3">
+                <label for="facebook" class="form-label">Facebook</label>
+                <input type="text" class="form-control" id="facebook" name="socialLinks.facebook">
+            </div>
+            
+            <div class="mb-3">
+                <label for="website" class="form-label">Website</label>
+                <input type="url" class="form-control" id="website" name="website">
+            </div>
+            
+            <!-- Modified button -->
+            <button type="submit" class="btn btn-primary w-100">
+                Save Profile
+            </button>
+        </form>
     </div>
-  </div>
+</div>
 
 <!-- Authentication -->
 <script src="/js/auth.js"></script>

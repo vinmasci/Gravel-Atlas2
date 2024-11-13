@@ -1,3 +1,17 @@
+async function waitForAuth0() {
+    return new Promise((resolve) => {
+        const checkAuth0 = () => {
+            if (window.auth0 && typeof window.auth0.isAuthenticated === 'function') {
+                console.log('Auth0 fully initialized with methods');
+                resolve(window.auth0);
+            } else {
+                setTimeout(checkAuth0, 100);
+            }
+        };
+        checkAuth0();
+    });
+}
+
 async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
     try {
@@ -360,7 +374,8 @@ document.addEventListener('DOMContentLoaded', function () {
 // In your toggleContributeDropdown function, ensure the control panel shows by default
 async function toggleContributeDropdown() {
     try {
-        const auth0 = await window.authReady;
+        // Use waitForAuth0 instead of window.authReady
+        const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
         const dropdown = document.getElementById('contribute-dropdown');
         const contributeTab = document.getElementById('draw-route-tab');
@@ -369,12 +384,23 @@ async function toggleContributeDropdown() {
         console.log("Toggle contribute dropdown called");
         console.log("Is authenticated:", isAuthenticated);
 
+        // Safety check for dropdown
+        if (!dropdown) {
+            console.error("Contribute dropdown element not found");
+            return;
+        }
+
         if (!isAuthenticated) {
             console.log("User not authenticated");
             if (loginRequired) {
                 loginRequired.style.display = 'inline';
             }
-            await login();
+            // Make sure login is defined and available
+            if (typeof window.login === 'function') {
+                await window.login();
+            } else {
+                console.error("Login function not found");
+            }
             return;
         }
 
@@ -382,23 +408,44 @@ async function toggleContributeDropdown() {
             loginRequired.style.display = 'none';
         }
 
+        // Toggle dropdown visibility
         if (dropdown.style.display === 'none' || dropdown.style.display === '') {
             dropdown.style.display = 'flex';
-            contributeTab.classList.add('active');
-            showControlPanel();
+            if (contributeTab) {
+                contributeTab.classList.add('active');
+            }
+            if (typeof window.showControlPanel === 'function') {
+                showControlPanel();
+            }
         } else {
             dropdown.style.display = 'none';
-            contributeTab.classList.remove('active');
-            resetActiveDropdownTabs();
-            hideControlPanel();
+            if (contributeTab) {
+                contributeTab.classList.remove('active');
+            }
+            if (typeof window.resetActiveDropdownTabs === 'function') {
+                resetActiveDropdownTabs();
+            }
+            if (typeof window.hideControlPanel === 'function') {
+                hideControlPanel();
+            }
             if (typeof window.disableDrawingMode === 'function') {
                 window.disableDrawingMode();
             }
         }
     } catch (error) {
         console.error("Error in toggleContributeDropdown:", error);
+        // Log additional error details if available
+        if (error.message) {
+            console.error("Error message:", error.message);
+        }
+        if (error.stack) {
+            console.error("Error stack:", error.stack);
+        }
     }
 }
+
+// Make function globally available
+window.toggleContributeDropdown = toggleContributeDropdown;
 
 // Helper function to set active state on the selected dropdown tab
 function setActiveDropdownTab(selectedId) {
