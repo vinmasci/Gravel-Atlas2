@@ -2,7 +2,13 @@ async function getCurrentUser() {
     try {
         // First verify we have a valid token
         const token = await auth0.getTokenSilently();
-        console.log('Auth token exists:', !!token);
+        console.log('Auth token first 20 chars:', token.substring(0, 20) + '...');
+
+        // Log the full request details
+        console.log('Making request with headers:', {
+            'Authorization': `Bearer ${token.substring(0, 20)}...`,
+            'Content-Type': 'application/json'
+        });
 
         const response = await fetch('/api/user', {
             headers: {
@@ -10,14 +16,24 @@ async function getCurrentUser() {
                 'Content-Type': 'application/json'
             }
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+
         if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+            const errorText = await response.text();
+            console.log('Error response body:', errorText);
+            throw new Error(`HTTP error ${response.status}: ${errorText}`);
         }
+
         const currentUser = await response.json();
         console.log('Retrieved current user:', currentUser);
         return currentUser;
     } catch (error) {
         console.error('Error getting current user:', error);
+        // Add auth state check
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Auth state:', { isAuthenticated });
         return null;
     }
 }
