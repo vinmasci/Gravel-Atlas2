@@ -12,6 +12,53 @@ function waitForAuth0() {
     });
 }
 
+// Initialize profile function
+async function initializeProfile() {
+    try {
+        // Ensure auth0 is ready
+        const auth0 = await waitForAuth0();
+        
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('User not authenticated');
+            return;
+        }
+
+        // Get the user's auth0 profile and token
+        const auth0User = await auth0.getUser();
+        const token = await auth0.getTokenSilently({
+            audience: 'https://gravel-atlas2.vercel.app/api',
+            scope: 'openid profile email'
+        });
+
+        // Get user profile data from your API
+        const response = await fetch('/api/user', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const profile = await response.json();
+        
+        // Populate form with profile data
+        const form = document.getElementById('profile-form');
+        if (form) {
+            form.querySelector('#bioName').value = profile.bioName || '';
+            form.querySelector('#website').value = profile.website || '';
+            form.querySelector('#instagram').value = profile.socialLinks?.instagram || '';
+            form.querySelector('#strava').value = profile.socialLinks?.strava || '';
+            form.querySelector('#facebook').value = profile.socialLinks?.facebook || '';
+        }
+    } catch (error) {
+        console.error('Error initializing profile:', error);
+    }
+}
+
 async function getCurrentUser() {
     try {
         // Ensure auth0 is ready
@@ -22,7 +69,10 @@ async function getCurrentUser() {
         console.log('Auth0 user:', auth0User);
 
         // Then get any additional profile data
-        const token = await auth0.getTokenSilently();
+        const token = await auth0.getTokenSilently({
+            audience: 'https://gravel-atlas2.vercel.app/api',
+            scope: 'openid profile email'
+        });
         console.log('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
 
         // Add this token format check
@@ -80,6 +130,13 @@ function setupProfileForm() {
             e.preventDefault();
             
             try {
+                // Check authentication first
+                const auth0 = await waitForAuth0();
+                const isAuthenticated = await auth0.isAuthenticated();
+                if (!isAuthenticated) {
+                    throw new Error('Login required');
+                }
+
                 const formData = new FormData(newForm);
                 const profileData = {
                     bioName: formData.get('bioName'),
@@ -93,7 +150,7 @@ function setupProfileForm() {
                 
                 console.log('Form data collected:', profileData);
 
-                // Get fresh token using getTokenSilently
+                // Get fresh token
                 const token = await auth0.getTokenSilently({
                     audience: 'https://gravel-atlas2.vercel.app/api',
                     scope: 'openid profile email'
@@ -126,7 +183,14 @@ function setupProfileForm() {
                 }
             } catch (error) {
                 console.error('Error updating profile:', error);
-                alert('Error updating profile. Please try again.');
+                if (error.message === 'Login required') {
+                    alert('Please log in to update your profile');
+                    if (typeof login === 'function') {
+                        await login();
+                    }
+                } else {
+                    alert('Error updating profile. Please try again.');
+                }
             }
         });
         
@@ -142,22 +206,33 @@ function setupProfileForm() {
     console.log('Setting up profile form - COMPLETE');
 }
 
-// Call it immediately if we're on the right page
-if (document.getElementById('profile-form')) {
-    console.log('Found profile form on page load, setting up...');
-    setupProfileForm();
+// Initialize form setup and profile data
+async function initialize() {
+    try {
+        // Wait for auth0 to be ready
+        const auth0 = await waitForAuth0();
+        
+        // Setup the form
+        setupProfileForm();
+        
+        // Initialize profile if authenticated
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (isAuthenticated) {
+            await initializeProfile();
+        }
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
 }
 
+// Export necessary functions
 window.userModule = {
     getCurrentUser,
     initializeProfile,
-    setupProfileForm  // Export it as part of the module
+    setupProfileForm
 };
 
-// Initialize only after auth.js has loaded
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Wait a bit for auth0 to be ready
-    setTimeout(() => {
-        initializeProfile().catch(console.error);
-    }, 1000);
+    initialize().catch(console.error);
 });
