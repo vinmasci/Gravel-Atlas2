@@ -53,7 +53,9 @@ async function initializeAuth() {
 
         console.log('Auth0 client created successfully');
 
-
+                // Assign auth0 to window.auth0
+                window.auth0 = auth0;
+                console.log('window.auth0 is set:', window.auth0);
 
         // Here's where the updated code goes
         if (window.location.search.includes("code=")) {
