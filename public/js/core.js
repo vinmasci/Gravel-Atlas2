@@ -1,45 +1,16 @@
-// ADD THIS AT THE TOP OF core.js, BEFORE ANYTHING ELSE
-const authReady = new Promise((resolve) => {
-    function checkAuth() {
-        if (window.auth0 && window.auth0.isAuthenticated) {
-            console.log('Auth0 fully initialized with methods');
-            resolve(window.auth0);
-        } else {
-            console.log('Waiting for complete Auth0 initialization...');
-            setTimeout(checkAuth, 100);
-        }
-    }
-    checkAuth();
-});
-
-// Make authReady available globally
-window.authReady = authReady;
-
-// ADD THIS RIGHT AFTER THE ABOVE CODE
-const authInitComplete = authReady.then(async (auth0) => {
-    try {
-        const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Initial auth state:', isAuthenticated);
-        
-        if (isAuthenticated) {
-            try {
-                const token = await auth0.getTokenSilently({
-                    audience: 'https://gravel-atlas2.vercel.app/api',
-                    scope: 'openid profile email read:profile update:profile offline_access'
-                });
-                console.log('Initial token fetched successfully');
-            } catch (tokenError) {
-                console.error('Error pre-fetching token:', tokenError);
+// Add this waitForAuth0 function
+function waitForAuth0() {
+    return new Promise((resolve) => {
+        const checkAuth0 = () => {
+            if (window.auth0) {
+                resolve(window.auth0);
+            } else {
+                setTimeout(checkAuth0, 100);
             }
-        }
-        
-        return isAuthenticated;
-    } catch (error) {
-        console.error('Error checking initial auth state:', error);
-        return false;
-    }
-});
-
+        };
+        checkAuth0();
+    });
+}
 // Your existing core.js code
 let map;
 let layerVisibility = {
