@@ -27,27 +27,33 @@ function waitForAuth0() {
 async function getToken() {
     try {
         debugLog('Getting token...');
-        const auth0 = await window.waitForAuth0();
+        const auth0 = await window.authReady;
         
+        // Check authentication first
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) {
+            debugLog('User not authenticated, redirecting to login');
+            await auth0.loginWithRedirect({
+                appState: { returnTo: window.location.pathname }
+            });
+            throw new Error('Not authenticated');
+        }
+
         const token = await auth0.getTokenSilently({
             audience: 'https://gravel-atlas2.vercel.app/api',
             scope: 'openid profile email read:profile update:profile offline_access'
         });
+        debugLog('Token received successfully');
         return token;
     } catch (error) {
+        console.error('Error getting token:', error);
         debugLog('Token error:', error);
+        
         if (error.message.includes('Login required')) {
-            try {
-                debugLog('Attempting to refresh token...');
-                await auth0.loginWithRedirect({
-                    appState: { 
-                        returnTo: window.location.pathname 
-                    }
-                });
-            } catch (refreshError) {
-                debugLog('Failed to refresh token:', refreshError);
-                throw refreshError;
-            }
+            debugLog('Token expired or login required, redirecting...');
+            await auth0.loginWithRedirect({
+                appState: { returnTo: window.location.pathname }
+            });
         }
         throw error;
     }
