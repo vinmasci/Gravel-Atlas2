@@ -1,9 +1,13 @@
-// Get current user with auth token
 async function getCurrentUser() {
     try {
+        // First verify we have a valid token
+        const token = await auth0.getTokenSilently();
+        console.log('Auth token exists:', !!token);
+
         const response = await fetch('/api/user', {
             headers: {
-                'Authorization': `Bearer ${await auth0.getTokenSilently()}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
         if (!response.ok) {
@@ -18,12 +22,12 @@ async function getCurrentUser() {
     }
 }
 
-// Update user profile
 async function updateUserProfile(profileData) {
     try {
         console.log('Sending profile data:', profileData);
+        // Get a fresh token
         const token = await auth0.getTokenSilently();
-        console.log('Got auth token');
+        console.log('Got auth token:', !!token);
 
         const response = await fetch('/api/user', {
             method: 'PUT',
@@ -34,9 +38,9 @@ async function updateUserProfile(profileData) {
             body: JSON.stringify(profileData)
         });
         
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -49,50 +53,24 @@ async function updateUserProfile(profileData) {
     }
 }
 
-// Delete user profile
-async function deleteUserProfile() {
-    try {
-        const response = await fetch('/api/user', {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${await auth0.getTokenSilently()}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error deleting profile:', error);
-        throw error;
-    }
-}
-
-// Setup profile form with enhanced feedback
 function setupProfileForm() {
     console.log('Setting up profile form');
     const profileForm = document.getElementById('profile-form');
     console.log('Found profile form:', profileForm);
 
     if (profileForm) {
-        // Remove any existing event listeners
-        const newForm = profileForm.cloneNode(true);
-        profileForm.parentNode.replaceChild(newForm, profileForm);
-        
-        newForm.addEventListener('submit', async function(e) {
+        profileForm.addEventListener('submit', async (e) => {
             console.log('Form submit triggered');
             e.preventDefault();
-            e.stopPropagation();
             
             // Show loading state
-            const submitButton = this.querySelector('button[type="submit"]');
+            const submitButton = e.target.querySelector('button[type="submit"]');
             const originalButtonText = submitButton.textContent;
             submitButton.textContent = 'Saving...';
             submitButton.disabled = true;
             
             try {
-                const formData = new FormData(this);
+                const formData = new FormData(profileForm);
                 const profileData = {
                     bioName: formData.get('bioName'),
                     website: formData.get('website'),
@@ -105,8 +83,8 @@ function setupProfileForm() {
                 
                 console.log('Collected form data:', profileData);
                 
-                await updateUserProfile(profileData);
-                console.log('Profile updated successfully');
+                const user = await updateUserProfile(profileData);
+                console.log('Profile updated successfully:', user);
                 
                 // Show success message
                 alert('Profile updated successfully!');
@@ -123,16 +101,10 @@ function setupProfileForm() {
                 submitButton.textContent = originalButtonText;
                 submitButton.disabled = false;
             }
-            
-            return false;
         });
-
-        // Add this to double-ensure no form submission
-        newForm.onsubmit = function() { return false; };
     }
 }
 
-// Initialize profile with enhanced error handling
 async function initializeProfile() {
     try {
         console.log('Initializing profile');
@@ -144,7 +116,6 @@ async function initializeProfile() {
                 const profileForm = document.getElementById('profile-form');
                 if (profileForm) {
                     console.log('Populating form with user data');
-                    // Populate form with existing data
                     profileForm.elements['bioName'].value = user.profile.bioName || '';
                     profileForm.elements['website'].value = user.profile.website || '';
                     profileForm.elements['socialLinks.instagram'].value = user.profile.socialLinks?.instagram || '';
@@ -159,17 +130,9 @@ async function initializeProfile() {
     }
 }
 
-// Initialize immediately if document is ready
-if (document.readyState === 'complete') {
-    initializeProfile();
-} else {
-    window.addEventListener('load', initializeProfile);
-}
-
 // Export the functions
 module.exports = {
     getCurrentUser,
     updateUserProfile,
-    deleteUserProfile,
     initializeProfile
 };
