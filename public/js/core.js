@@ -1,11 +1,11 @@
-// Add auth initialization check at the top of core.js
+// ADD THIS AT THE TOP OF core.js, BEFORE ANYTHING ELSE
 const authReady = new Promise((resolve) => {
     function checkAuth() {
-        if (window.auth0) {
-            console.log('Auth0 initialized successfully');
+        if (window.auth0 && window.auth0.isAuthenticated) {
+            console.log('Auth0 fully initialized with methods');
             resolve(window.auth0);
         } else {
-            console.log('Waiting for Auth0 initialization...');
+            console.log('Waiting for complete Auth0 initialization...');
             setTimeout(checkAuth, 100);
         }
     }
@@ -14,6 +14,31 @@ const authReady = new Promise((resolve) => {
 
 // Make authReady available globally
 window.authReady = authReady;
+
+// ADD THIS RIGHT AFTER THE ABOVE CODE
+const authInitComplete = authReady.then(async (auth0) => {
+    try {
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Initial auth state:', isAuthenticated);
+        
+        if (isAuthenticated) {
+            try {
+                const token = await auth0.getTokenSilently({
+                    audience: 'https://gravel-atlas2.vercel.app/api',
+                    scope: 'openid profile email read:profile update:profile offline_access'
+                });
+                console.log('Initial token fetched successfully');
+            } catch (tokenError) {
+                console.error('Error pre-fetching token:', tokenError);
+            }
+        }
+        
+        return isAuthenticated;
+    } catch (error) {
+        console.error('Error checking initial auth state:', error);
+        return false;
+    }
+});
 
 // Your existing core.js code
 let map;
