@@ -18,6 +18,20 @@ const config = {
     }
 };
 
+// wait for auth0
+function waitForAuth0() {
+    return new Promise((resolve) => {
+        const checkAuth0 = () => {
+            if (window.auth0) {
+                resolve(window.auth0);
+            } else {
+                setTimeout(checkAuth0, 100);
+            }
+        };
+        checkAuth0();
+    });
+}
+
 // Utility functions
 const utils = {
     updateTabHighlight: (tabId, isActive) => {
@@ -36,8 +50,9 @@ const utils = {
     },
 
 //update profile section 
-toggleProfileSection: () => {
+toggleProfileSection: async () => {
     const profileSection = document.getElementById('profile-section');
+    const auth0 = await waitForAuth0();
     const isAuthenticated = auth0.isAuthenticated();
     
     if (profileSection) {
@@ -197,7 +212,7 @@ const handlers = {
         }
     },
     
-    handleProfileClick: () => {
+    handleProfileClick: async () => {
         console.log('Profile button clicked');
         utils.toggleProfileSection();
     }
@@ -215,6 +230,9 @@ async function initCore() {
             map.on('load', resolve);
         }
     });
+
+    // Wait for auth0 to be initialized
+    const auth0 = await waitForAuth0();
 
     // Create and insert profile button next to login button
     const loginBtn = document.getElementById('loginBtn');
