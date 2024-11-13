@@ -50,8 +50,10 @@ async function initCore() {
                     map.on('load', resolve);
                 }
             }),
-            authReady
+            waitForAuth0() // Changed from authReady to waitForAuth0()
         ]);
+
+        console.log('Map and Auth initialized successfully');
 
         console.log('Map and Auth initialized successfully');
 
