@@ -58,6 +58,19 @@ async function initializeAuth() {
                 window.auth0 = auth0;
                 console.log('window.auth0 is set:', window.auth0);
 
+                        // Add the redirect handling here
+        const query = window.location.search;
+        if (query.includes("code=") && query.includes("state=")) {
+            try {
+                await auth0.handleRedirectCallback();
+                window.history.replaceState({}, document.title, window.location.pathname);
+                await updateUI();
+            } catch (err) {
+                console.error("Error handling callback:", err);
+                await clearAuthState();
+            }
+        }
+
         // Here's where the updated code goes
         if (window.location.search.includes("code=")) {
             try {
@@ -97,6 +110,9 @@ async function initializeAuth() {
 // ============================
 // SECTION: UI Management
 // ============================
+// ============================
+// SECTION: UI Management
+// ============================
 async function updateUI() {
     if (!auth0) {
         console.error('Auth0 client not initialized');
@@ -109,6 +125,7 @@ async function updateUI() {
         
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
+        const profileBtn = document.getElementById("profileBtn");
         const userInfo = document.getElementById("userInfo");
 
         if (!loginBtn || !logoutBtn || !userInfo) {
@@ -122,17 +139,39 @@ async function updateUI() {
             
             loginBtn.style.display = "none";
             logoutBtn.style.display = "block";
+            if (profileBtn) {
+                profileBtn.style.display = "block";
+                profileBtn.classList.remove('hidden');
+            }
             userInfo.style.display = "block";
             userInfo.innerHTML = `Welcome, ${user.name || user.email}`;
+            
+            // Update any other auth-dependent UI elements
+            const contributeTab = document.querySelector('.draw-route-tab .login-required');
+            if (contributeTab) {
+                contributeTab.style.display = 'none';
+            }
         } else {
             loginBtn.style.display = "block";
             logoutBtn.style.display = "none";
+            if (profileBtn) {
+                profileBtn.style.display = "none";
+                profileBtn.classList.add('hidden');
+            }
             userInfo.style.display = "none";
+            
+            // Update any other auth-dependent UI elements
+            const contributeTab = document.querySelector('.draw-route-tab .login-required');
+            if (contributeTab) {
+                contributeTab.style.display = 'inline';
+            }
         }
     } catch (err) {
         console.error("Error updating UI:", err);
     }
 }
+
+// Keep your existing isUserAuthenticated and checkAuthState functions as they are
 
 async function isUserAuthenticated() {
     if (!auth0) {

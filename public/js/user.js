@@ -23,12 +23,29 @@ function waitForAuth0() {
     });
 }
 
+async function getToken() {
+    try {
+        debugLog('Getting token...');
+        return await auth0.getTokenSilently({
+            audience: 'https://gravel-atlas2.vercel.app/api',
+            scope: 'openid profile email read:profile update:profile offline_access'
+        });
+    } catch (error) {
+        console.error('Error getting token:', error);
+        debugLog('Token error:', error);
+        if (error.message.includes('expired')) {
+            debugLog('Token expired, redirecting to login...');
+            await auth0.loginWithRedirect();
+        }
+        throw error;
+    }
+}
+
+// Then in your initializeProfile function, replace the token retrieval with:
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
-        // Ensure auth0 is ready
         const auth0 = await waitForAuth0();
-        
         const isAuthenticated = await auth0.isAuthenticated();
         debugLog('Authentication check:', isAuthenticated);
 
@@ -37,12 +54,8 @@ async function initializeProfile() {
             return;
         }
 
-        // Get token with explicit permissions
-        const token = await auth0.getTokenSilently({
-            audience: 'https://gravel-atlas2.vercel.app/api',
-    scope: 'openid profile email read:profile update:profile offline_access'
-        });
-        debugLog('Token received:', token.substring(0, 20) + '...');
+        // Use the centralized getToken function
+        const token = await getToken();
 
         // Get user profile data
         const response = await fetch('/api/user', {
@@ -51,6 +64,7 @@ async function initializeProfile() {
                 'Content-Type': 'application/json'
             }
         });
+
 
         debugLog('Profile API response status:', response.status);
 
@@ -88,12 +102,10 @@ async function getCurrentUser() {
         const auth0User = await auth0.getUser();
         debugLog('Auth0 user:', auth0User);
 
-        // Then get any additional profile data
-        const token = await auth0.getTokenSilently({
-            audience: 'https://gravel-atlas2.vercel.app/api',
-    scope: 'openid profile email read:profile update:profile offline_access'
-        });
-        debugLog('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
+        // Get token using centralized function
+        const token = await getToken();
+        
+        // Additional token debugging
         debugLog('Token format check:', {
             length: token.length,
             startsWithEy: token.startsWith('ey'),
@@ -164,10 +176,8 @@ function setupProfileForm() {
                 
                 debugLog('Form data to be sent:', profileData);
 
-                const token = await auth0.getTokenSilently({
-                    audience: 'https://gravel-atlas2.vercel.app/api',
-                    scope: 'openid profile email read:profile update:profile'
-                });
+                // Get token using centralized function
+                const token = await getToken();
                 debugLog('Update token received');
 
                 const response = await fetch('/api/user', {
