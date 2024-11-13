@@ -58,29 +58,29 @@ async function getCurrentUser() {
     }
 }
 
-function setupProfileForm() {
-    console.log('Setting up profile form');
+// First, make it globally accessible for testing
+window.setupProfileForm = function setupProfileForm() {
+    console.log('Setting up profile form - START');
     const profileForm = document.getElementById('profile-form');
     console.log('Found profile form:', profileForm);
 
     if (profileForm) {
-        // Add event listener using inline function to ensure 'this' context
-        profileForm.addEventListener('submit', async function(event) {
-            // Immediately prevent default
-            event.preventDefault();
-            event.stopPropagation();
+        console.log('Adding submit event listener');
+        
+        // Remove any existing listeners
+        const newForm = profileForm.cloneNode(true);
+        profileForm.parentNode.replaceChild(newForm, profileForm);
+        
+        // Add click handler to button directly
+        const submitButton = newForm.querySelector('button[type="submit"]');
+        console.log('Found submit button:', submitButton);
+        
+        submitButton.addEventListener('click', async (e) => {
+            console.log('Submit button clicked');
+            e.preventDefault();
             
-            console.log('Form submission started');
-            
-            // Show loading state
-            const submitButton = this.querySelector('button[type="submit"]');
-            const originalButtonText = submitButton.textContent;
-            submitButton.textContent = 'Saving...';
-            submitButton.disabled = true;
-
             try {
-                // Get form data
-                const formData = new FormData(this);
+                const formData = new FormData(newForm);
                 const profileData = {
                     bioName: formData.get('bioName'),
                     website: formData.get('website'),
@@ -90,13 +90,13 @@ function setupProfileForm() {
                         facebook: formData.get('socialLinks.facebook')
                     }
                 };
-
-                console.log('Submitting profile data:', profileData);
+                
+                console.log('Form data collected:', profileData);
 
                 // Get token
                 const token = await auth0.getTokenSilently();
-                
-                // Make API request
+                console.log('Got auth token');
+
                 const response = await fetch('/api/user', {
                     method: 'PUT',
                     headers: {
@@ -106,69 +106,50 @@ function setupProfileForm() {
                     body: JSON.stringify(profileData)
                 });
 
-                console.log('Response status:', response.status);
+                console.log('API response status:', response.status);
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.log('Error response:', errorText);
+                    console.log('API error:', errorText);
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const result = await response.json();
                 console.log('Profile updated successfully:', result);
-                
-                // Show success message
                 alert('Profile updated successfully!');
-                
-                // Hide the profile section
+
                 if (typeof utils !== 'undefined' && utils.hideProfileSection) {
                     utils.hideProfileSection();
                 }
-
             } catch (error) {
                 console.error('Error updating profile:', error);
                 alert('Error updating profile. Please try again.');
-            } finally {
-                // Restore button state
-                submitButton.textContent = originalButtonText;
-                submitButton.disabled = false;
             }
-
-            // Return false to ensure form doesn't submit
+        });
+        
+        newForm.addEventListener('submit', (e) => {
+            console.log('Form submit triggered');
+            e.preventDefault();
             return false;
         });
 
-        // Double ensure no regular form submission
-        profileForm.onsubmit = () => false;
+    } else {
+        console.error('Profile form not found in the DOM');
     }
+    
+    console.log('Setting up profile form - COMPLETE');
 }
 
-async function initializeProfile() {
-    try {
-        const auth0 = await waitForAuth0();
-        if (await auth0.isAuthenticated()) {
-            const user = await getCurrentUser();
-            if (user && user.profile) {
-                const profileForm = document.getElementById('profile-form');
-                if (profileForm) {
-                    profileForm.elements['bioName'].value = user.profile.bioName || '';
-                    profileForm.elements['website'].value = user.profile.website || '';
-                    profileForm.elements['socialLinks.instagram'].value = user.profile.socialLinks?.instagram || '';
-                    profileForm.elements['socialLinks.strava'].value = user.profile.socialLinks?.strava || '';
-                    profileForm.elements['socialLinks.facebook'].value = user.profile.socialLinks?.facebook || '';
-                }
-            }
-            setupProfileForm();
-        }
-    } catch (error) {
-        console.error('Error initializing profile:', error);
-    }
+// Call it immediately if we're on the right page
+if (document.getElementById('profile-form')) {
+    console.log('Found profile form on page load, setting up...');
+    setupProfileForm();
 }
 
-// Set up global access
 window.userModule = {
     getCurrentUser,
-    initializeProfile
+    initializeProfile,
+    setupProfileForm  // Export it as part of the module
 };
 
 // Initialize only after auth.js has loaded

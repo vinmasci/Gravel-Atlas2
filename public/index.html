@@ -670,7 +670,7 @@ body {
 
 <div id="profile-section" class="hidden">
     <div class="profile-container">
-      <form id="profile-form" class="profile-form" onsubmit="event.preventDefault(); return false;">
+      <form id="profile-form" class="profile-form" onsubmit="return false;">
         <div class="mb-3">
           <label for="bioName" class="form-label">Bio Name</label>
           <input type="text" class="form-control" id="bioName" name="bioName">
@@ -696,7 +696,13 @@ body {
           <input type="url" class="form-control" id="website" name="website">
         </div>
   
-        <button type="button" class="btn btn-primary w-100" onclick="document.getElementById('profile-form').dispatchEvent(new Event('submit'))">Save Profile</button>
+      <!-- Modified button -->
+      <button 
+        type="submit" 
+        class="btn btn-primary w-100" 
+        onclick="console.log('Save button clicked');">
+        Save Profile
+      </button>
       </form>
     </div>
   </div>
