@@ -437,10 +437,54 @@ body {
     color: #ffc107;
 }
 
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.social-links {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.social-links a {
+    color: #666;
+    transition: color 0.2s;
+}
+
+.social-links a:hover {
+    color: #333;
+}
+
+.social-links .fa-instagram:hover {
+    color: #E4405F;
+}
+
+.social-links .fa-strava:hover {
+    color: #FC4C02;
+}
+
+.social-links .fa-facebook:hover {
+    color: #1877F2;
+}
+
 .comment-date {
+    color: #666;
     font-size: 6px;
-    color: #999;
-    margin-top: 2px;
+}
+
+.comment-text {
+    margin-top: 4px;
 }
 
 #route-id {

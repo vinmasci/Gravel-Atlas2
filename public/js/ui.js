@@ -67,17 +67,52 @@ async function openSegmentModal(title, routeId) {
 // =========================
 // SECTION: Comments
 // =========================
-function createCommentElement(comment, currentUser) {
+async function createCommentElement(comment, currentUser) {
     console.log('Creating comment element:', { comment, currentUser });
     const commentDiv = document.createElement('div');
     commentDiv.className = 'comment';
     
-    // Create content div
+    // Fetch user profile for this comment
+    let userProfile;
+    try {
+        const response = await fetch(`/api/user/${comment.auth0Id}`);
+        if (response.ok) {
+            userProfile = await response.json();
+            console.log('Fetched user profile:', userProfile);
+        }
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+    }
+
+    // Create content div with user info
     const contentDiv = document.createElement('div');
     contentDiv.className = 'comment-content';
+    
+    // Use bioName if available, fallback to username
+    const displayName = userProfile?.bioName || comment.username;
+    
+    // Create social links HTML if profile exists
+    let socialLinksHtml = '';
+    if (userProfile?.socialLinks) {
+        const { instagram, strava, facebook } = userProfile.socialLinks;
+        socialLinksHtml = `
+            <div class="social-links">
+                ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+                ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+                ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+            </div>
+        `;
+    }
+
     contentDiv.innerHTML = `
-        <strong>${comment.username}</strong>: ${comment.text}
-        <div class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</div>
+        <div class="comment-header">
+            <strong>${displayName}</strong>
+            <div class="comment-meta">
+                <span class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</span>
+                ${socialLinksHtml}
+            </div>
+        </div>
+        <div class="comment-text">${comment.text}</div>
     `;
     
     // Create actions div
@@ -266,6 +301,7 @@ async function addComment() {
             body: JSON.stringify({
                 routeId: routeId,
                 username: user.name || user.email,
+                auth0Id: user.sub, // Add auth0Id to the comment
                 text: commentText
             })
         });
