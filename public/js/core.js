@@ -11,6 +11,9 @@ function waitForAuth0() {
         checkAuth0();
     });
 }
+
+window.waitForAuth0 = waitForAuth0;
+
 // Your existing core.js code
 let map;
 let layerVisibility = {
