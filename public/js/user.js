@@ -59,14 +59,28 @@ async function getCurrentUser() {
 }
 
 function setupProfileForm() {
+    console.log('Setting up profile form');
     const profileForm = document.getElementById('profile-form');
+    console.log('Found profile form:', profileForm);
+
     if (profileForm) {
-        profileForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Add event listener using inline function to ensure 'this' context
+        profileForm.addEventListener('submit', async function(event) {
+            // Immediately prevent default
+            event.preventDefault();
+            event.stopPropagation();
             
+            console.log('Form submission started');
+            
+            // Show loading state
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.textContent = 'Saving...';
+            submitButton.disabled = true;
+
             try {
-                const auth0 = await waitForAuth0();
-                const formData = new FormData(profileForm);
+                // Get form data
+                const formData = new FormData(this);
                 const profileData = {
                     bioName: formData.get('bioName'),
                     website: formData.get('website'),
@@ -77,7 +91,12 @@ function setupProfileForm() {
                     }
                 };
 
+                console.log('Submitting profile data:', profileData);
+
+                // Get token
                 const token = await auth0.getTokenSilently();
+                
+                // Make API request
                 const response = await fetch('/api/user', {
                     method: 'PUT',
                     headers: {
@@ -87,24 +106,40 @@ function setupProfileForm() {
                     body: JSON.stringify(profileData)
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.log('Error response:', errorText);
-                    throw new Error(`HTTP error ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const result = await response.json();
-                console.log('Profile updated:', result);
+                console.log('Profile updated successfully:', result);
+                
+                // Show success message
                 alert('Profile updated successfully!');
-
+                
+                // Hide the profile section
                 if (typeof utils !== 'undefined' && utils.hideProfileSection) {
                     utils.hideProfileSection();
                 }
+
             } catch (error) {
                 console.error('Error updating profile:', error);
                 alert('Error updating profile. Please try again.');
+            } finally {
+                // Restore button state
+                submitButton.textContent = originalButtonText;
+                submitButton.disabled = false;
             }
+
+            // Return false to ensure form doesn't submit
+            return false;
         });
+
+        // Double ensure no regular form submission
+        profileForm.onsubmit = () => false;
     }
 }
 
