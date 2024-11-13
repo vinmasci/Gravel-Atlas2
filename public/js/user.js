@@ -1,17 +1,13 @@
 async function getCurrentUser() {
     try {
-        // Use the same auth pattern you're already using
-        const isAuthenticated = await auth0.isAuthenticated();
-        if (!isAuthenticated) {
-            return null;
-        }
-
         // Get the user's auth0 profile first
         const auth0User = await auth0.getUser();
         console.log('Auth0 user:', auth0User);
 
         // Then get any additional profile data
         const token = await auth0.getTokenSilently();
+        console.log('Token obtained, first 20 chars:', token.substring(0, 20) + '...');
+
         const response = await fetch('/api/user', {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -19,11 +15,15 @@ async function getCurrentUser() {
             }
         });
 
+        console.log('API Response status:', response.status);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.log('Error response:', errorText);
             throw new Error(`HTTP error ${response.status}`);
         }
 
         const userData = await response.json();
+        console.log('User data received:', userData);
         return {
             ...auth0User,
             profile: userData
@@ -102,7 +102,12 @@ async function initializeProfile() {
     }
 }
 
-module.exports = {
+window.userModule = {
     getCurrentUser,
     initializeProfile
 };
+
+// Add this initialization block
+if (typeof auth0 !== 'undefined') {
+    initializeProfile().catch(console.error);
+}
