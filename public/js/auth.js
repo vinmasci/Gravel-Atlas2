@@ -46,6 +46,7 @@ async function initializeAuth() {
             cacheLocation: 'localstorage',
             authorizationParams: {
                 response_type: 'code',
+                audience: 'https://gravel-atlas2.vercel.app', // Add this line
                 scope: 'openid profile email'
             }
         });

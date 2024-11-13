@@ -1,13 +1,12 @@
 import mongoose from 'mongoose';
 const User = require('../models/User');
-const { getSession } = require('@auth0/nextjs-auth0');
+const jwt = require('jsonwebtoken');
 
 // MongoDB connection function
 const connectDB = async () => {
     if (mongoose.connections[0].readyState) {
         return;
     }
-
     try {
         await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
@@ -20,14 +19,33 @@ const connectDB = async () => {
     }
 };
 
+// Verify Auth0 token
+const verifyToken = (token) => {
+    try {
+        const bearerToken = token.split(' ')[1];
+        const decoded = jwt.decode(bearerToken);
+        return decoded;
+    } catch (error) {
+        console.error('Token verification error:', error);
+        return null;
+    }
+};
+
 export default async function handler(req, res) {
     try {
         // Ensure MongoDB is connected
         await connectDB();
 
-        const session = await getSession(req, res);
-        if (!session || !session.user) {
-            return res.status(401).json({ error: 'Not authenticated' });
+        // Get token from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ error: 'No authorization header' });
+        }
+
+        // Verify token and get user info
+        const tokenInfo = verifyToken(authHeader);
+        if (!tokenInfo) {
+            return res.status(401).json({ error: 'Invalid token' });
         }
 
         const { method } = req;
@@ -35,18 +53,18 @@ export default async function handler(req, res) {
         switch (method) {
             case 'GET':
                 // Get user profile
-                let user = await User.findOne({ auth0Id: session.user.sub });
+                let user = await User.findOne({ auth0Id: tokenInfo.sub });
                 if (!user) {
                     // Create new user profile if it doesn't exist
                     user = await User.create({
-                        auth0Id: session.user.sub,
-                        email: session.user.email,
-                        bioName: session.user.name || session.user.nickname,
-                        picture: session.user.picture
+                        auth0Id: tokenInfo.sub,
+                        email: tokenInfo.email,
+                        bioName: tokenInfo.name || tokenInfo.nickname,
+                        picture: tokenInfo.picture
                     });
                 }
                 return res.json({
-                    ...session.user,
+                    auth0User: tokenInfo,
                     profile: user
                 });
 
@@ -58,7 +76,7 @@ export default async function handler(req, res) {
                 delete updateData.email;
 
                 const updatedProfile = await User.findOneAndUpdate(
-                    { auth0Id: session.user.sub },
+                    { auth0Id: tokenInfo.sub },
                     {
                         ...updateData,
                         updatedAt: Date.now()
@@ -74,7 +92,7 @@ export default async function handler(req, res) {
             case 'DELETE':
                 // Delete user profile
                 const deletedProfile = await User.findOneAndDelete({
-                    auth0Id: session.user.sub
+                    auth0Id: tokenInfo.sub
                 });
 
                 if (!deletedProfile) {

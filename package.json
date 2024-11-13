@@ -17,6 +17,7 @@
     "dotenv": "^16.4.5",
     "exif-parser": "^0.1.12",
     "fast-xml-parser": "^4.5.0",
+    "jsonwebtoken": "^9.0.2",
     "mapbox-gl": "^3.6.0",
     "mongodb": "^6.9.0",
     "mongoose": "^8.6.3",
