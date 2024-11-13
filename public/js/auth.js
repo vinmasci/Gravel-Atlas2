@@ -44,6 +44,7 @@ async function initializeAuth() {
             client_id: 'sKXwkLddTR5XHbIv0FC5fqBszkKEwCXT',
             redirect_uri: 'https://gravel-atlas2.vercel.app',
             cacheLocation: 'localstorage',
+            useRefreshTokens: true, // Add this line
             authorizationParams: {
                 response_type: 'code',
                 audience: 'https://gravel-atlas2.vercel.app/api',  
@@ -198,6 +199,10 @@ async function login() {
         await auth0.loginWithRedirect({
             appState: { 
                 returnTo: window.location.pathname 
+            },
+            authorizationParams: {
+                audience: 'https://gravel-atlas2.vercel.app/api',
+                scope: 'openid profile email read:profile update:profile'
             }
         });
     } catch (err) {
