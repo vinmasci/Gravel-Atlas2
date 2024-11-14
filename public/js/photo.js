@@ -280,31 +280,39 @@ async function handlePhotoClick(e) {
             .addTo(map);
 
         // Fetch social links in background
-        try {
-            const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
-            if (profileResponse.ok) {
-                const userProfile = await profileResponse.json();
-                if (userProfile?.socialLinks) {
-                    const { instagram, strava, facebook, website } = userProfile.socialLinks;
-                    socialLinksHtml = `
-                        <div class="social-links">
-                            ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
-                            ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
-                            ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
-                            ${website ? `<a href="${website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
-                        </div>
-                    `;
-                    // Update social links div if it exists
-                    const socialLinksDiv = document.getElementById(`socialLinks-${photoId}`);
-                    if (socialLinksDiv) {
-                        socialLinksDiv.innerHTML = socialLinksHtml;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('Could not load social links:', error);
-            // Non-critical error, popup still works
+// Fetch social links in background
+try {
+    const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
+    if (profileResponse.ok) {
+        const userProfile = await profileResponse.json();
+        
+        // Update bioName if available
+        const nameElement = popup.getElement().querySelector('.name-and-social strong');
+        if (nameElement && userProfile.bioName) {
+            nameElement.textContent = userProfile.bioName;
         }
+
+        if (userProfile?.socialLinks) {
+            const { instagram, strava, facebook } = userProfile.socialLinks;
+            socialLinksHtml = `
+                <div class="social-links">
+                    ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+                    ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+                    ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+                    ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
+                </div>
+            `;
+            
+            // Update social links div if it exists
+            const socialLinksDiv = document.getElementById(`socialLinks-${photoId}`);
+            if (socialLinksDiv) {
+                socialLinksDiv.innerHTML = socialLinksHtml;
+            }
+        }
+    }
+} catch (error) {
+    console.log('Could not load social links:', error);
+}
 
         // Add delete handler
         setTimeout(() => {
