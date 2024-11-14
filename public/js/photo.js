@@ -234,36 +234,28 @@ function handleClusterClick(e) {
 }
 
 async function handlePhotoClick(e) {
-    const coordinates = e.features[0].geometry.coordinates.slice();
-    const { originalName, url, _id: photoId, auth0Id, username, uploadedAt } = e.features[0].properties;
-
     try {
-        // Fetch user profile
-        const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
-        const userProfile = profileResponse.ok ? await profileResponse.json() : null;
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const { 
+            originalName, 
+            url, 
+            _id: photoId, 
+            auth0Id,
+            username,
+            picture, // We already have this
+            uploadedAt 
+        } = e.features[0].properties;
 
-        // Create social links HTML
-        let socialLinksHtml = '';
-        if (userProfile?.socialLinks) {
-            const { instagram, strava, facebook, website } = userProfile.socialLinks;
-            socialLinksHtml = `
-                <div class="social-links">
-                    ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
-                    ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
-                    ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
-                    ${website ? `<a href="${website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
-                </div>
-            `;
-        }
-
-        const popupContent = `
+        // Create initial popup with data we already have
+        let socialLinksHtml = ''; // Will update this later
+        let popupContent = `
             <div class="photo-popup">
                 <div class="photo-header">
                     <div class="user-info">
-                        <img src="${userProfile?.picture || currentUser?.picture}" class="profile-pic" />
+                        <img src="${picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" class="profile-pic" />
                         <div class="name-and-social">
-                            <strong>${userProfile?.bioName || username}</strong>
-                            ${socialLinksHtml}
+                            <strong>${username}</strong>
+                            <div id="socialLinks-${photoId}"></div>
                         </div>
                     </div>
                     <div class="photo-date">
@@ -275,7 +267,7 @@ async function handlePhotoClick(e) {
                 </div>
                 <div class="photo-footer">
                     <span class="photo-id">Photo ID: ${photoId}</span>
-                    ${auth0Id === currentUser?.sub ? 
+                    ${auth0Id === (await getCurrentUser())?.sub ? 
                         `<span id="deletePhotoText" data-photo-id="${photoId}" 
                             class="delete-photo">Delete Photo</span>` : ''}
                 </div>
@@ -287,7 +279,34 @@ async function handlePhotoClick(e) {
             .setHTML(popupContent)
             .addTo(map);
 
-        // Add delete handler after popup is added
+        // Fetch social links in background
+        try {
+            const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
+            if (profileResponse.ok) {
+                const userProfile = await profileResponse.json();
+                if (userProfile?.socialLinks) {
+                    const { instagram, strava, facebook, website } = userProfile.socialLinks;
+                    socialLinksHtml = `
+                        <div class="social-links">
+                            ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+                            ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+                            ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+                            ${website ? `<a href="${website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
+                        </div>
+                    `;
+                    // Update social links div if it exists
+                    const socialLinksDiv = document.getElementById(`socialLinks-${photoId}`);
+                    if (socialLinksDiv) {
+                        socialLinksDiv.innerHTML = socialLinksHtml;
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Could not load social links:', error);
+            // Non-critical error, popup still works
+        }
+
+        // Add delete handler
         setTimeout(() => {
             const deleteText = document.getElementById('deletePhotoText');
             if (deleteText) {
