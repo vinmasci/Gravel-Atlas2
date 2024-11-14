@@ -225,6 +225,38 @@ async function renderComments(routeId) {
     }
 }
 
+// First, make sure deleteComment is defined before it's used
+async function deleteComment(commentId) {
+    console.log('Deleting comment:', commentId);
+    try {
+        const response = await fetch('/api/comments', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ commentId: commentId })
+        });
+        
+        console.log('Delete comment response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete comment');
+        }
+        
+        // Get the current routeId from the modal
+        const routeIdElement = document.getElementById('route-id');
+        const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
+        
+        console.log('Refreshing comments after deletion for routeId:', routeId);
+        await renderComments(routeId);
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Failed to delete comment. Please try again.');
+    }
+}
+
+
 // ============================
 // SECTION: Delete Segment
 // ============================
