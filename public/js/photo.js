@@ -376,7 +376,7 @@ async function loadPhotoMarkers() {
         // Remove existing layers and handlers
         removePhotoMarkers();
 
-        // Convert valid photos into GeoJSON
+        // Convert valid photos into GeoJSON with all user properties
         const photoGeoJSON = {
             type: 'FeatureCollection',
             features: validPhotos.map(photo => ({
@@ -388,7 +388,12 @@ async function loadPhotoMarkers() {
                 properties: {
                     originalName: photo.originalName,
                     url: photo.url,
-                    _id: photo._id
+                    _id: photo._id,
+                    auth0Id: photo.auth0Id,
+                    username: photo.username,
+                    picture: photo.picture,
+                    uploadedAt: photo.uploadedAt,
+                    caption: photo.caption || ''
                 }
             }))
         };
