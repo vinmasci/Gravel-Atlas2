@@ -315,7 +315,7 @@ try {
     console.log('Could not load social links:', error);
 }
 
-        // Add delete handler
+// Add delete handler
         setTimeout(() => {
             const deleteText = document.getElementById('deletePhotoText');
             if (deleteText) {
@@ -331,6 +331,23 @@ try {
 
     } catch (error) {
         console.error('Error creating photo popup:', error);
+    }
+}
+
+async function deletePhoto(photoId) {
+    try {
+        const response = await fetch(`/api/delete-photo?photoId=${photoId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete photo');
+        }
+        
+        return response.json();
+    } catch (error) {
+        console.error('Error deleting photo:', error);
+        throw error;
     }
 }
 
@@ -521,3 +538,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.removePhotoMarkers = removePhotoMarkers;
 window.togglePhotoLayer = togglePhotoLayer;
+window.deletePhoto = deletePhoto;
