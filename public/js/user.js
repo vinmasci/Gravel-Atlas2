@@ -38,6 +38,13 @@ async function initializeProfile() {
         const user = await auth0.getUser();
         debugLog('Auth0 user data:', user);
 
+                // Display the auth0Id
+                const idDisplay = document.getElementById('profile-auth0id');
+                if (idDisplay) {
+                    idDisplay.textContent = user.sub;
+                }
+        
+
         try {
             // Try to get profile from MongoDB first
             const response = await fetch(`/api/user/${user.sub}`);

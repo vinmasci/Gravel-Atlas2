@@ -507,6 +507,20 @@ body {
     padding: 4px 8px;
 }
 
+.id-display {
+    font-size: 6px;
+    color: #cccccc;
+    text-align: right;
+    margin-top: 10px;
+    position: relative;
+    bottom: 0;
+}
+
+.user-id {
+    font-family: monospace;
+    user-select: all; /* Makes it easy to copy */
+}
+
 /* ============================
    SECTION: Control Panel & Drawing Options
    ============================ */
@@ -716,6 +730,9 @@ body {
 <div id="profile-section" class="hidden">
     <div class="profile-container">
         <form id="profile-form" class="profile-form">
+            <div class="id-display">
+                <small>ID: <span id="profile-auth0id" class="user-id"></span></small>
+            </div>
             <div class="mb-3">
                 <label for="bioName" class="form-label">Bio Name</label>
                 <input type="text" class="form-control" id="bioName" name="bioName">
