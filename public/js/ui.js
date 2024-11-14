@@ -123,9 +123,7 @@ function createCommentElement(comment, currentUser, userProfile = null) {
         </div>
     </div>
     <div class="comment-text">${comment.text}</div>
-`;"comment-text">${comment.text}</div>
 `;
-
     console.log('Final content HTML:', contentHTML);
     contentDiv.innerHTML = contentHTML;
 
