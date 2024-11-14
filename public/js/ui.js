@@ -184,36 +184,34 @@ async function renderComments(routeId) {
             const displayedAuth0Id = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
             console.log("Using auth0Id from display:", displayedAuth0Id);
 
-            // Fetch all user profiles in parallel
-            const userProfiles = new Map();
-            await Promise.all(comments.map(async (comment) => {
-                if (comment.auth0Id) {
-                    try {
-                        console.log('Fetching profile for auth0Id:', comment.auth0Id);
-                        // Use the displayed ID instead of the comment's auth0Id
-                        const encodedAuth0Id = encodeURIComponent(displayedAuth0Id || comment.auth0Id);
-                        const profileResponse = await fetch(`/api/user?id=${encodedAuth0Id}`);
-                        console.log('Profile response status:', profileResponse.status);
+        // Fetch all user profiles in parallel
+        const userProfiles = new Map();
+        await Promise.all(comments.map(async (comment) => {
+            if (comment.auth0Id) {
+                try {
+                    console.log('Fetching profile for auth0Id:', comment.auth0Id);
+                    const encodedAuth0Id = encodeURIComponent(comment.auth0Id);
+                    // Change this line to use query parameter
+                    const profileResponse = await fetch(`/api/user?id=${encodedAuth0Id}`);
+                    console.log('Profile response status:', profileResponse.status);
 
-                        if (profileResponse.ok) {
-                            const profile = await profileResponse.json();
-                            console.log('Retrieved profile:', profile);
-                            userProfiles.set(comment.auth0Id, profile);
-                        } else {
-                            const errorText = await profileResponse.text();
-                            console.log('Failed to fetch profile:', {
-                                status: profileResponse.status,
-                                error: errorText,
-                                requestedId: displayedAuth0Id || comment.auth0Id,
-                                displayedId: displayedAuth0Id,
-                                commentId: comment.auth0Id
-                            });
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching profile for user ${comment.auth0Id}:`, error);
+                    if (profileResponse.ok) {
+                        const profile = await profileResponse.json();
+                        console.log('Retrieved profile:', profile);
+                        userProfiles.set(comment.auth0Id, profile);
+                    } else {
+                        const errorText = await profileResponse.text();
+                        console.log('Failed to fetch profile:', {
+                            status: profileResponse.status,
+                            error: errorText,
+                            requestedId: comment.auth0Id
+                        });
                     }
+                } catch (error) {
+                    console.error(`Error fetching profile for user ${comment.auth0Id}:`, error);
                 }
-            }));
+            }
+        }));
 
             // Create and append all comments
             comments.forEach((comment) => {

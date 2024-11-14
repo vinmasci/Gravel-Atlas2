@@ -24,15 +24,8 @@ export default async function handler(req, res) {
 
         switch (method) {
             case 'GET':
-                // Get auth0Id from either query or URL
-                let auth0Id;
-                if (req.query.id) {
-                    auth0Id = req.query.id;
-                } else {
-                    // Handle path parameter case
-                    const urlParts = req.url.split('/');
-                    auth0Id = decodeURIComponent(urlParts[urlParts.length - 1]);
-                }
+                // Get auth0Id from query parameter only
+                const auth0Id = req.query.id;
 
                 console.log('GET request details:', {
                     receivedAuth0Id: auth0Id,
@@ -49,9 +42,9 @@ export default async function handler(req, res) {
                 console.log('Database query result:', userProfile);
 
                 if (!userProfile) {
-                    return res.status(404).json({ 
+                    return res.status(404).json({
                         error: 'Profile not found',
-                        queriedId: auth0Id 
+                        queriedId: auth0Id
                     });
                 }
 
@@ -63,9 +56,9 @@ export default async function handler(req, res) {
         }
     } catch (error) {
         console.error('Error in user API:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
             error: 'Internal server error',
-            details: error.message 
+            details: error.message
         });
     }
 }
