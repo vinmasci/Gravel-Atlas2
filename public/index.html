@@ -613,6 +613,67 @@ body {
 .draw-route-tab.hidden:not(.active) {
     display: block !important;
 }
+
+/* ============================
+   SECTION: Photo Popup
+   ============================ */
+   .photo-popup {
+    max-width: 300px;
+}
+
+.photo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-pic {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.name-and-social {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.photo-date {
+    font-size: 12px;
+    color: #666;
+}
+
+.photo-content {
+    margin: 10px 0;
+}
+
+.photo-image {
+    width: 100%;
+    border-radius: 4px;
+}
+
+.photo-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #666;
+}
+
+.delete-photo {
+    color: #dc3545;
+    cursor: pointer;
+    text-decoration: underline;
+}
     </style>
     
 <!-- Map container should be empty -->

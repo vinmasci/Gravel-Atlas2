@@ -127,6 +127,12 @@ for (const file of batch) {
     try {
         uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
         
+        // Get current user first
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+            throw new Error('User not authenticated');
+        }
+
         // Extract coordinates before compression
         const coordinates = await extractCoordinates(file);
         
@@ -136,7 +142,7 @@ for (const file of batch) {
         // Upload to S3
         const fileUrl = await uploadToS3(compressedFile);
         
-        // Save metadata with coordinates
+        // Save metadata with coordinates and user info
         const metadataResponse = await fetch('/api/save-photo-metadata', {
             method: 'POST',
             headers: {
@@ -146,7 +152,10 @@ for (const file of batch) {
                 url: fileUrl,
                 originalName: file.name,
                 latitude: coordinates?.latitude || null,
-                longitude: coordinates?.longitude || null
+                longitude: coordinates?.longitude || null,
+                auth0Id: currentUser.sub,
+                username: currentUser.name || currentUser.email,
+                picture: currentUser.picture || null
             })
         });
 
@@ -224,39 +233,77 @@ function handleClusterClick(e) {
     );
 }
 
-function handlePhotoClick(e) {
+async function handlePhotoClick(e) {
     const coordinates = e.features[0].geometry.coordinates.slice();
-    const { originalName, url, _id: photoId } = e.features[0].properties;
+    const { originalName, url, _id: photoId, auth0Id, username, uploadedAt } = e.features[0].properties;
 
-    const popupContent = `
-        <div style="text-align: center;">
-            <img src="${url}" style="max-width:200px; margin-bottom: 10px;">
-            <p style="font-size: small; color: gray;">Photo ID: ${photoId}</p>
-            <span id="deletePhotoText" data-photo-id="${photoId}" 
-                  style="color: red; cursor: pointer; text-decoration: underline;">
-                Delete Photo
-            </span>
-        </div>
-    `;
+    try {
+        // Fetch user profile
+        const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
+        const userProfile = profileResponse.ok ? await profileResponse.json() : null;
 
-    const popup = new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(popupContent)
-        .addTo(map);
-
-    // Add delete handler after popup is added
-    setTimeout(() => {
-        const deleteText = document.getElementById('deletePhotoText');
-        if (deleteText) {
-            deleteText.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to delete this photo?')) {
-                    await deletePhoto(photoId);
-                    popup.remove();
-                    loadPhotoMarkers(); // Refresh markers
-                }
-            });
+        // Create social links HTML
+        let socialLinksHtml = '';
+        if (userProfile?.socialLinks) {
+            const { instagram, strava, facebook, website } = userProfile.socialLinks;
+            socialLinksHtml = `
+                <div class="social-links">
+                    ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+                    ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+                    ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+                    ${website ? `<a href="${website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
+                </div>
+            `;
         }
-    }, 0);
+
+        const popupContent = `
+            <div class="photo-popup">
+                <div class="photo-header">
+                    <div class="user-info">
+                        <img src="${userProfile?.picture || currentUser?.picture}" class="profile-pic" />
+                        <div class="name-and-social">
+                            <strong>${userProfile?.bioName || username}</strong>
+                            ${socialLinksHtml}
+                        </div>
+                    </div>
+                    <div class="photo-date">
+                        ${new Date(uploadedAt).toLocaleDateString()}
+                    </div>
+                </div>
+                <div class="photo-content">
+                    <img src="${url}" alt="${originalName}" class="photo-image">
+                </div>
+                <div class="photo-footer">
+                    <span class="photo-id">Photo ID: ${photoId}</span>
+                    ${auth0Id === currentUser?.sub ? 
+                        `<span id="deletePhotoText" data-photo-id="${photoId}" 
+                            class="delete-photo">Delete Photo</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        const popup = new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(popupContent)
+            .addTo(map);
+
+        // Add delete handler after popup is added
+        setTimeout(() => {
+            const deleteText = document.getElementById('deletePhotoText');
+            if (deleteText) {
+                deleteText.addEventListener('click', async () => {
+                    if (confirm('Are you sure you want to delete this photo?')) {
+                        await deletePhoto(photoId);
+                        popup.remove();
+                        loadPhotoMarkers();
+                    }
+                });
+            }
+        }, 0);
+
+    } catch (error) {
+        console.error('Error creating photo popup:', error);
+    }
 }
 
 // Add this function to photo.js (right before or after loadPhotoMarkers)

@@ -1,4 +1,3 @@
-// api/save-photo-metadata.js
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
@@ -28,20 +27,23 @@ module.exports = async (req, res) => {
 
     try {
         const collection = await connectToMongo();
-        
         const photoData = {
             url: req.body.url,
             originalName: req.body.originalName,
             uploadedAt: new Date(),
             latitude: req.body.latitude,
-            longitude: req.body.longitude
+            longitude: req.body.longitude,
+            auth0Id: req.body.auth0Id,
+            username: req.body.username,
+            caption: req.body.caption || '',
+            picture: req.body.picture || null // User's profile picture
         };
 
         const result = await collection.insertOne(photoData);
-        
         console.log('Saved photo metadata:', {
             id: result.insertedId,
-            url: photoData.url
+            url: photoData.url,
+            username: photoData.username
         });
 
         res.status(200).json({
@@ -51,9 +53,9 @@ module.exports = async (req, res) => {
         });
     } catch (error) {
         console.error('Error saving photo metadata:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to save photo metadata',
-            details: error.message 
+            details: error.message
         });
     }
 };
