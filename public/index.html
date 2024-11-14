@@ -436,22 +436,17 @@ body {
 /* Social Links */
 .social-links {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
 }
 
 .social-links a {
     color: #666;
     transition: color 0.2s;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
 }
 
 .social-links i {
-    font-size: 14px;
-    padding: 4px;
-    display: inline-block;
+    font-size: 12px; /* Made slightly smaller to match text */
 }
 
 /* Social Links Hover States */
@@ -469,6 +464,10 @@ body {
 
 .social-links .fa-facebook:hover {
     color: #1877F2;
+}
+
+.social-links .fa-globe:hover {
+    color: #2196F3;
 }
 
 /* Comment Actions */
@@ -528,6 +527,12 @@ body {
 .user-id {
     font-family: monospace;
     user-select: all;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* ============================

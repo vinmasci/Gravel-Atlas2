@@ -98,21 +98,24 @@ function createCommentElement(comment, currentUser, userProfile = null) {
             ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
             ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
             ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+            ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
         </div>
     `;
         console.log('Generated socialLinksHtml:', socialLinksHtml);
     }
 
-    const contentHTML = `
-        <div class="comment-header">
+    contentDiv.innerHTML = `
+    <div class="comment-header">
+        <div class="user-info">
             <strong>${displayName}</strong>
-            <div class="comment-meta">
-                <span class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</span>
-                ${socialLinksHtml}
-            </div>
+            ${socialLinksHtml}
         </div>
-        <div class="comment-text">${comment.text}</div>
-    `;
+        <div class="comment-meta">
+            <span class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</span>
+        </div>
+    </div>
+    <div class="comment-text">${comment.text}</div>
+`;
 
     console.log('Final content HTML:', contentHTML);
     contentDiv.innerHTML = contentHTML;
