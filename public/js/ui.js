@@ -225,6 +225,97 @@ async function renderComments(routeId) {
     }
 }
 
+async function addComment() {
+    console.log('Adding new comment');
+    try {
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        
+        if (!isAuthenticated) {
+            console.log('User not authenticated');
+            alert('Please log in to add comments.');
+            return;
+        }
+
+        const commentInput = document.getElementById('comment-input');
+        const commentText = commentInput.value.trim();
+        const routeIdElement = document.getElementById('route-id');
+        const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
+
+        console.log('Adding comment with routeId:', routeId);
+
+        if (!commentText) {
+            alert('Please enter a comment.');
+            return;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            alert('Please log in to add comments.');
+            return;
+        }
+
+        const response = await fetch('/api/comments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                routeId: routeId,
+                username: user.name || user.email,
+                text: commentText,
+                auth0Id: user.sub // Include auth0Id for profile linking
+            })
+        });
+
+        console.log('Add comment response status:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`HTTP error ${response.status}: ${errorData.error}`);
+        }
+
+        // Clear input and refresh comments
+        commentInput.value = '';
+        await renderComments(routeId);
+    } catch (error) {
+        console.error('Error saving comment:', error);
+        alert('Error saving comment. Please try again.');
+    }
+}
+
+async function flagComment(commentId) {
+    console.log('Flagging comment:', commentId);
+    try {
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        
+        if (!isAuthenticated) {
+            console.log('User not authenticated');
+            alert('Please log in to flag comments.');
+            return;
+        }
+
+        const response = await fetch(`/api/comments/${commentId}/flag`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('Flag comment response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error('Failed to flag comment');
+        }
+        
+        alert('Comment has been flagged for review.');
+    } catch (error) {
+        console.error('Error flagging comment:', error);
+        alert('Failed to flag comment. Please try again.');
+    }
+}
+
 // First, make sure deleteComment is defined before it's used
 async function deleteComment(commentId) {
     console.log('Deleting comment:', commentId);
