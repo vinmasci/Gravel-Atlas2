@@ -104,7 +104,7 @@ function createCommentElement(comment, currentUser, userProfile = null) {
         console.log('Generated socialLinksHtml:', socialLinksHtml);
     }
 
-    contentDiv.innerHTML = `
+    const contentHTML = `
     <div class="comment-header">
         <div class="user-info">
             <strong>${displayName}</strong>
