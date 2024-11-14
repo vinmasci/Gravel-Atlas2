@@ -249,30 +249,32 @@ async function handlePhotoClick(e) {
         // Create initial popup with data we already have
         let socialLinksHtml = ''; // Will update this later
         let popupContent = `
-            <div class="photo-popup">
-                <div class="photo-header">
-                    <div class="user-info">
-                        <img src="${picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" class="profile-pic" />
-                        <div class="name-and-social">
+        <div class="photo-popup">
+            <div class="photo-header">
+                <div class="user-info">
+                    <img src="${picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" class="profile-pic" />
+                    <div class="name-and-social">
+                        <div class="name-social-line">
                             <strong>${username}</strong>
                             <div id="socialLinks-${photoId}"></div>
                         </div>
+                        <div class="photo-date">
+                            ${new Date(uploadedAt).toLocaleDateString()}
+                        </div>
                     </div>
-                    <div class="photo-date">
-                        ${new Date(uploadedAt).toLocaleDateString()}
-                    </div>
-                </div>
-                <div class="photo-content">
-                    <img src="${url}" alt="${originalName}" class="photo-image">
-                </div>
-                <div class="photo-footer">
-                    <span class="photo-id">Photo ID: ${photoId}</span>
-                    ${auth0Id === (await getCurrentUser())?.sub ? 
-                        `<span id="deletePhotoText" data-photo-id="${photoId}" 
-                            class="delete-photo">Delete Photo</span>` : ''}
                 </div>
             </div>
-        `;
+            <div class="photo-content">
+                <img src="${url}" alt="${originalName}" class="photo-image">
+            </div>
+            <div class="photo-footer">
+                <span class="photo-id">Photo ID: ${photoId}</span>
+                ${auth0Id === (await getCurrentUser())?.sub ? 
+                    `<span id="deletePhotoText" data-photo-id="${photoId}" 
+                        class="delete-photo"><i class="fa-solid fa-trash"></i></span>` : ''}
+            </div>
+        </div>
+    `;
 
         const popup = new mapboxgl.Popup()
             .setLngLat(coordinates)
