@@ -69,7 +69,14 @@ async function openSegmentModal(title, routeId) {
 // =========================
 // Make createCommentElement synchronous and handle profile data separately
 function createCommentElement(comment, currentUser, userProfile = null) {
-    console.log('Creating comment element:', { comment, currentUser, userProfile });
+    console.log('Creating comment element with:', {
+        comment,
+        currentUser,
+        userProfile,
+        hasSocialLinks: userProfile?.socialLinks ? 'yes' : 'no',
+        socialLinks: userProfile?.socialLinks
+    });
+
     const commentDiv = document.createElement('div');
     commentDiv.className = 'comment';
     
@@ -84,6 +91,8 @@ function createCommentElement(comment, currentUser, userProfile = null) {
     let socialLinksHtml = '';
     if (userProfile?.socialLinks) {
         const { instagram, strava, facebook } = userProfile.socialLinks;
+        console.log('Building social links HTML with:', { instagram, strava, facebook });
+        
         socialLinksHtml = `
             <div class="social-links">
                 ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
@@ -91,9 +100,10 @@ function createCommentElement(comment, currentUser, userProfile = null) {
                 ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
             </div>
         `;
+        console.log('Generated socialLinksHtml:', socialLinksHtml);
     }
 
-    contentDiv.innerHTML = `
+    const contentHTML = `
         <div class="comment-header">
             <strong>${displayName}</strong>
             <div class="comment-meta">
@@ -103,6 +113,10 @@ function createCommentElement(comment, currentUser, userProfile = null) {
         </div>
         <div class="comment-text">${comment.text}</div>
     `;
+
+    console.log('Final content HTML:', contentHTML);
+    contentDiv.innerHTML = contentHTML;
+
     
     // Create actions div
     const actionsDiv = document.createElement('div');
