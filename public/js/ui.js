@@ -184,10 +184,16 @@ async function renderComments(routeId) {
             await Promise.all(comments.map(async (comment) => {
                 if (comment.auth0Id) {
                     try {
+                        console.log('Fetching profile for auth0Id:', comment.auth0Id);
                         const profileResponse = await fetch(`/api/user/${comment.auth0Id}`);
+                        console.log('Profile response status:', profileResponse.status);
+                        
                         if (profileResponse.ok) {
                             const profile = await profileResponse.json();
+                            console.log('Retrieved profile:', profile);
                             userProfiles.set(comment.auth0Id, profile);
+                        } else {
+                            console.log('Failed to fetch profile:', await profileResponse.text());
                         }
                     } catch (error) {
                         console.error(`Error fetching profile for user ${comment.auth0Id}:`, error);
