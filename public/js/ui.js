@@ -67,23 +67,12 @@ async function openSegmentModal(title, routeId) {
 // =========================
 // SECTION: Comments
 // =========================
-async function createCommentElement(comment, currentUser) {
-    console.log('Creating comment element:', { comment, currentUser });
+// Make createCommentElement synchronous and handle profile data separately
+function createCommentElement(comment, currentUser, userProfile = null) {
+    console.log('Creating comment element:', { comment, currentUser, userProfile });
     const commentDiv = document.createElement('div');
     commentDiv.className = 'comment';
     
-    // Fetch user profile for this comment
-    let userProfile;
-    try {
-        const response = await fetch(`/api/user/${comment.auth0Id}`);
-        if (response.ok) {
-            userProfile = await response.json();
-            console.log('Fetched user profile:', userProfile);
-        }
-    } catch (error) {
-        console.error('Error fetching user profile:', error);
-    }
-
     // Create content div with user info
     const contentDiv = document.createElement('div');
     contentDiv.className = 'comment-content';
@@ -153,6 +142,7 @@ async function createCommentElement(comment, currentUser) {
     return commentDiv;
 }
 
+// Updated renderComments function
 async function renderComments(routeId) {
     console.log("Rendering comments for routeId:", routeId);
     try {
@@ -189,8 +179,26 @@ async function renderComments(routeId) {
             noCommentsDiv.innerText = 'No comments yet.';
             commentsList.appendChild(noCommentsDiv);
         } else {
+            // Fetch all user profiles in parallel
+            const userProfiles = new Map();
+            await Promise.all(comments.map(async (comment) => {
+                if (comment.auth0Id) {
+                    try {
+                        const profileResponse = await fetch(`/api/user/${comment.auth0Id}`);
+                        if (profileResponse.ok) {
+                            const profile = await profileResponse.json();
+                            userProfiles.set(comment.auth0Id, profile);
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching profile for user ${comment.auth0Id}:`, error);
+                    }
+                }
+            }));
+
+            // Create and append all comments
             comments.forEach((comment) => {
-                const commentElement = createCommentElement(comment, currentUser);
+                const userProfile = userProfiles.get(comment.auth0Id);
+                const commentElement = createCommentElement(comment, currentUser, userProfile);
                 commentsList.appendChild(commentElement);
             });
         }
@@ -210,115 +218,10 @@ async function renderComments(routeId) {
         }
     } catch (error) {
         console.error('Error fetching comments:', error);
-        commentsList.innerHTML = '<div class="error">Error loading comments. Please try again later.</div>';
-    }
-}
-
-async function deleteComment(commentId) {
-    console.log('Deleting comment:', commentId);
-    try {
-        const response = await fetch('/api/comments', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ commentId: commentId })
-        });
-        
-        console.log('Delete comment response status:', response.status);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to delete comment');
+        const commentsList = document.getElementById('comments-list');
+        if (commentsList) {
+            commentsList.innerHTML = '<div class="error">Error loading comments. Please try again later.</div>';
         }
-        
-        // Get the current routeId from the modal
-        const routeIdElement = document.getElementById('route-id');
-        const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
-        
-        console.log('Refreshing comments after deletion for routeId:', routeId);
-        await renderComments(routeId);
-    } catch (error) {
-        console.error('Error deleting comment:', error);
-        alert('Failed to delete comment. Please try again.');
-    }
-}
-
-async function flagComment(commentId) {
-    console.log('Flagging comment:', commentId);
-    try {
-        const response = await fetch(`/api/comments/${commentId}/flag`, {
-            method: 'POST',
-        });
-        
-        console.log('Flag comment response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error('Failed to flag comment');
-        }
-        
-        alert('Comment has been flagged for review.');
-    } catch (error) {
-        console.error('Error flagging comment:', error);
-        alert('Failed to flag comment. Please try again.');
-    }
-}
-
-async function addComment() {
-    console.log('Adding new comment');
-    const commentInput = document.getElementById('comment-input');
-    const commentText = commentInput.value.trim();
-    const routeIdElement = document.getElementById('route-id');
-    const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
-
-    console.log('Adding comment with routeId:', routeId);
-
-    if (!commentText) {
-        alert('Please enter a comment.');
-        return;
-    }
-
-    try {
-        const auth0 = await waitForAuth0();
-        const isAuthenticated = await auth0.isAuthenticated();
-        if (!isAuthenticated) {
-            alert('Please log in to add comments.');
-            return;
-        }
-
-        const user = await getCurrentUser();
-        if (!user) {
-            throw new Error('User information not available');
-        }
-
-        console.log('Submitting comment as user:', user.name || user.email);
-
-        const response = await fetch('/api/comments', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                routeId: routeId,
-                username: user.name || user.email,
-                auth0Id: user.sub, // Add auth0Id to the comment
-                text: commentText
-            })
-        });
-
-        console.log('Add comment response status:', response.status);
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`HTTP error ${response.status}: ${errorData.error}`);
-        }
-
-        // Clear input and refresh comments
-        commentInput.value = '';
-        await renderComments(routeId);
-    } catch (error) {
-        console.error('Error saving comment:', error);
-        alert('Error saving comment. Please try again.');
     }
 }
 

@@ -10,6 +10,10 @@ const commentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    auth0Id: {  // Add this field
+        type: String,
+        required: true
+    },
     text: {
         type: String,
         required: true
@@ -17,6 +21,10 @@ const commentSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    flagged: {
+        type: Boolean,
+        default: false
     }
 });
 
