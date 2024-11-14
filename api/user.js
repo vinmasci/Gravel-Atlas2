@@ -17,45 +17,55 @@ const connectDB = async () => {
     }
 };
 
-// api/user.js
 export default async function handler(req, res) {
     try {
-        console.log('API request received:', {
-            method: req.method,
-            path: req.url,
-            auth0Id: req.query.id || req.url.split('/').pop()
-        });
-        
         await connectDB();
         const { method } = req;
-        
+
         switch (method) {
             case 'GET':
-                // Clean up the auth0Id extraction
-                let auth0Id = req.query.id;
-                if (!auth0Id && req.url.includes('/')) {
-                    auth0Id = req.url.split('/').pop();
+                // Get auth0Id from either query or URL
+                let auth0Id;
+                if (req.query.id) {
+                    auth0Id = req.query.id;
+                } else {
+                    // Handle path parameter case
+                    const urlParts = req.url.split('/');
+                    auth0Id = decodeURIComponent(urlParts[urlParts.length - 1]);
                 }
-                
-                console.log('Searching for user with auth0Id:', auth0Id);
-                
+
+                console.log('GET request details:', {
+                    receivedAuth0Id: auth0Id,
+                    url: req.url,
+                    query: req.query
+                });
+
                 if (!auth0Id) {
                     return res.status(400).json({ error: 'No auth0Id provided' });
                 }
-                
+
+                // Try to find the user profile
                 const userProfile = await User.findOne({ auth0Id });
+                console.log('Database query result:', userProfile);
+
                 if (!userProfile) {
-                    console.log('No profile found for auth0Id:', auth0Id);
-                    return res.status(404).json({ error: 'Profile not found' });
+                    return res.status(404).json({ 
+                        error: 'Profile not found',
+                        queriedId: auth0Id 
+                    });
                 }
-                
+
                 return res.json(userProfile);
-                
+
             case 'PUT':
                 // Your existing PUT code...
+                break;
         }
     } catch (error) {
         console.error('Error in user API:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
     }
 }
