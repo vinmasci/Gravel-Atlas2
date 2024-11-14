@@ -287,10 +287,11 @@ try {
         const userProfile = await profileResponse.json();
         
         // Update bioName if available
-        const nameElement = popup.getElement().querySelector('.name-and-social strong');
+        const nameElement = popup.getElement().querySelector('.name-social-line strong');
         if (nameElement && userProfile.bioName) {
             nameElement.textContent = userProfile.bioName;
         }
+
 
         if (userProfile?.socialLinks) {
             const { instagram, strava, facebook } = userProfile.socialLinks;
