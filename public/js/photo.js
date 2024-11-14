@@ -261,9 +261,9 @@ async function handlePhotoClick(e) {
             </div>
             <div class="photo-content">
                 <img src="${url}" alt="${originalName}" class="photo-image">
-            </div>
-            <div class="photo-date">
-                ${new Date(uploadedAt).toLocaleDateString()}
+                <div class="photo-date">
+                    ${new Date(uploadedAt).toLocaleDateString()}
+                </div>
             </div>
             <div class="photo-footer">
                 <span class="photo-id">Photo ID: ${photoId}</span>
