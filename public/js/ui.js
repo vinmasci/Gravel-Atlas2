@@ -95,9 +95,12 @@ function createCommentElement(comment, currentUser, userProfile = null) {
         
         socialLinksHtml = `
         <div class="social-links">
-            ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fab fa-instagram"></i></a>` : ''}
-            ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fab fa-strava"></i></a>` : ''}
-            ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fab fa-facebook"></i></a>` : ''}
+            X <!-- Test character -->
+            <i class="fa-solid fa-check"></i> <!-- Test icon -->
+            <i class="fas fa-star"></i> <!-- Another test icon -->
+            ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+            ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+            ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
         </div>
     `;
         console.log('Generated socialLinksHtml:', socialLinksHtml);
