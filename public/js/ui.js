@@ -87,6 +87,9 @@ function createCommentElement(comment, currentUser, userProfile = null) {
     // Use bioName if available, fallback to username
     const displayName = userProfile?.bioName || comment.username;
     
+    // Get profile picture from auth0 user or use default
+    const profilePicture = userProfile?.picture || currentUser?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
+
     // Create social links HTML if profile exists
     let socialLinksHtml = '';
     if (userProfile?.socialLinks) {
@@ -107,14 +110,20 @@ function createCommentElement(comment, currentUser, userProfile = null) {
     const contentHTML = `
     <div class="comment-header">
         <div class="user-info">
-            <strong>${displayName}</strong>
-            ${socialLinksHtml}
+            <div class="profile-pic">
+                <img src="${profilePicture}" alt="${displayName}" />
+            </div>
+            <div class="name-and-social">
+                <strong>${displayName}</strong>
+                ${socialLinksHtml}
+            </div>
         </div>
         <div class="comment-meta">
             <span class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</span>
         </div>
     </div>
     <div class="comment-text">${comment.text}</div>
+`;"comment-text">${comment.text}</div>
 `;
 
     console.log('Final content HTML:', contentHTML);
