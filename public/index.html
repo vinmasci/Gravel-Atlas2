@@ -617,6 +617,7 @@ body {
 /* ============================
    SECTION: Segment Modal Creator Info
    ============================ */
+
    .segment-header {
     display: flex;
     flex-direction: column;
@@ -624,27 +625,34 @@ body {
     padding-bottom: 8px;
 }
 
-/* Reuse photo popup styles but make them work for segments too */
 .creator-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em; /* Smaller than the title */
+}
+
+.segment-title {
+    font-size: 1.2em; /* Make the title larger */
+    font-weight: bold;
+}
+
+/* Adjusted avatar size */
+.creator-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Align name and social links horizontally */
+.name-and-social {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.creator-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.name-and-social {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-/* These social link styles should already exist from your photo popup */
+/* Adjust social links styling */
 .social-links {
     display: flex;
     gap: 8px;
@@ -670,6 +678,7 @@ body {
 .social-links a:hover .fa-globe {
     color: #2196F3;
 }
+
 
 /* ============================
    SECTION: Photo Popup

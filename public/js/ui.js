@@ -46,7 +46,7 @@ async function openSegmentModal(title, routeId) {
         const data = await response.json();
         console.log("Full API response data:", data);
 
-        // Get the specific route from the routes array - log all IDs for debugging
+        // Get the specific route from the routes array
         console.log("Available route IDs:", data.routes?.map(r => r._id));
         const route = data.routes?.find(r => {
             console.log("Comparing:", {
@@ -58,57 +58,75 @@ async function openSegmentModal(title, routeId) {
         });
         console.log("Found route:", route);
 
-        if (route?.auth0Id) {
-            console.log("Route auth0Id:", route.auth0Id);
-            console.log("Route userProfile:", route.userProfile);
-            
-            // Update modal content with creator info
-            segmentTitle.innerHTML = `
-                <div class="segment-header">
-                    <div class="segment-title">${title}</div>
-                    <div class="creator-info">
-                        <img src="${route.userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
-                             class="creator-avatar" 
-                             alt="Creator avatar"/>
-                        <div class="name-and-social">
-                            <strong>${route.userProfile?.bioName || 'Anonymous'}</strong>
-                            ${route.userProfile?.socialLinks ? `
-                                <div class="social-links">
-                                    ${route.userProfile.socialLinks.instagram ? 
-                                        `<a href="${route.userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
-                                            <i class="fa-brands fa-instagram"></i>
-                                        </a>` : ''}
-                                    ${route.userProfile.socialLinks.strava ? 
-                                        `<a href="${route.userProfile.socialLinks.strava}" target="_blank" title="Strava">
-                                            <i class="fa-brands fa-strava"></i>
-                                        </a>` : ''}
-                                    ${route.userProfile.socialLinks.facebook ? 
-                                        `<a href="${route.userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
-                                            <i class="fa-brands fa-facebook"></i>
-                                        </a>` : ''}
-                                    ${route.userProfile.website ? 
-                                        `<a href="${route.userProfile.website}" target="_blank" title="Website">
-                                            <i class="fa-solid fa-globe"></i>
-                                        </a>` : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
+        // Initialize userProfile variable
+        let userProfile = route?.userProfile;
 
-            // Only show delete button if user is the creator
-            if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {
-                console.log("User is the creator, showing delete button");
-                deleteButton.style.display = 'block';
-                deleteButton.onclick = () => deleteSegment(routeId);
-            } else {
-                console.log("User is not the creator, hiding delete button");
-                deleteButton.style.display = 'none';
+        // Fetch user profile separately if picture is missing
+        if ((!userProfile || !userProfile.picture) && route?.auth0Id) {
+            try {
+                console.log('Fetching profile for auth0Id:', route.auth0Id);
+                const encodedAuth0Id = encodeURIComponent(route.auth0Id);
+                const profileResponse = await fetch(`/api/user?id=${encodedAuth0Id}`);
+                console.log('Profile response status:', profileResponse.status);
+
+                if (profileResponse.ok) {
+                    userProfile = await profileResponse.json();
+                    console.log('Retrieved profile:', userProfile);
+                } else {
+                    const errorText = await profileResponse.text();
+                    console.log('Failed to fetch profile:', {
+                        status: profileResponse.status,
+                        error: errorText,
+                        requestedId: route.auth0Id
+                    });
+                }
+            } catch (error) {
+                console.error(`Error fetching profile for user ${route.auth0Id}:`, error);
             }
+        }
+
+        // Update modal content with creator info using userProfile variable
+        segmentTitle.innerHTML = `
+            <div class="segment-header">
+                <div class="segment-title">${title}</div>
+                <div class="creator-info">
+                    <span>By:</span>
+                    <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
+                         class="creator-avatar" 
+                         alt="Creator avatar"/>
+                    <strong>${userProfile?.bioName || 'Anonymous'}</strong>
+                    ${userProfile?.socialLinks ? `
+                        <div class="social-links">
+                            ${userProfile.socialLinks.instagram ? 
+                                `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
+                                    <i class="fa-brands fa-instagram"></i>
+                                </a>` : ''}
+                            ${userProfile.socialLinks.strava ? 
+                                `<a href="${userProfile.socialLinks.strava}" target="_blank" title="Strava">
+                                    <i class="fa-brands fa-strava"></i>
+                                </a>` : ''}
+                            ${userProfile.socialLinks.facebook ? 
+                                `<a href="${userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
+                                    <i class="fa-brands fa-facebook"></i>
+                                </a>` : ''}
+                            ${userProfile.website ? 
+                                `<a href="${userProfile.website}" target="_blank" title="Website">
+                                    <i class="fa-solid fa-globe"></i>
+                                </a>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+        // Only show delete button if user is the creator
+        if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {
+            console.log("User is the creator, showing delete button");
+            deleteButton.style.display = 'block';
+            deleteButton.onclick = () => deleteSegment(routeId);
         } else {
-            // Fallback if no creator info
-            segmentTitle.innerText = title;
+            console.log("User is not the creator, hiding delete button");
+            deleteButton.style.display = 'none';
         }
 
         // Always set the route ID
@@ -143,6 +161,7 @@ async function openSegmentModal(title, routeId) {
         if (segmentTitle) segmentTitle.innerText = title;
     }
 }
+
 
 // =========================
 // SECTION: Comments
