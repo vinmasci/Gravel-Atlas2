@@ -1,4 +1,4 @@
-const { MongoClient, ObjectId } = require('mongodb');  // Import both MongoClient and ObjectId
+const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
 const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -9,7 +9,7 @@ async function connectToMongo() {
     }
     return {
         routes: client.db('roadApp').collection('drawnRoutes'),
-        users: client.db('photoApp').collection('users')  // Use the correct database for users
+        users: client.db('photoApp').collection('users')  // Note: case sensitive!
     };
 }
 
@@ -17,18 +17,16 @@ module.exports = async (req, res) => {
     try {
         const { routes, users } = await connectToMongo();
         
-        const routeId = req.query.routeId;
-        let routesData;
+        // Debug log: Check collections
+        console.log("Checking database connections...");
+        const routeCheck = await routes.findOne();
+        const userCheck = await users.findOne();
+        console.log("Sample route auth0Id:", routeCheck?.auth0Id);
+        console.log("Sample user auth0Id:", userCheck?.auth0Id);
 
-        if (routeId) {
-            // Fetch the specific route by routeId
-            routesData = await routes.find({ _id: new ObjectId(routeId) }).toArray();
-        } else {
-            // Fetch all routes
-            routesData = await routes.find({}).toArray();
-        }
-
-        console.log(`Found ${routesData.length} route(s)`);
+        // Fetch routes
+        const routesData = await routes.find({}).toArray();
+        console.log(`Found ${routesData.length} routes`);
 
         // Get unique auth0Ids
         const uniqueAuth0Ids = [...new Set(routesData.map(route => route.auth0Id).filter(Boolean))];
@@ -44,24 +42,24 @@ module.exports = async (req, res) => {
             userProfileMap[profile.auth0Id] = profile;
         });
 
-        // Format routes with user info
-        const formattedRoutes = routesData.map(route => {
-            const userProfile = userProfileMap[route.auth0Id];
-            console.log(`Route ${route._id}: Found profile:`, userProfile ? 'yes' : 'no');
-            
-            return {
-                _id: route._id.toString(),
-                auth0Id: route.auth0Id,
-                userProfile: userProfile ? {
-                    bioName: userProfile.bioName,
-                    picture: userProfile.picture,
-                    socialLinks: userProfile.socialLinks,
-                    website: userProfile.website
-                } : null,
-                geojson: route.geojson,
-                metadata: route.metadata
-            };
-        });
+// Format routes with user info
+const formattedRoutes = routesData.map(route => {
+    const userProfile = userProfileMap[route.auth0Id];
+    console.log(`Route ${route._id}: Found profile:`, userProfile ? 'yes' : 'no');
+    
+    return {
+        _id: route._id.toString(),  // Add this line
+        auth0Id: route.auth0Id,
+        userProfile: userProfile ? {
+            bioName: userProfile.bioName,
+            picture: userProfile.picture,
+            socialLinks: userProfile.socialLinks,
+            website: userProfile.website
+        } : null,
+        geojson: route.geojson,
+        metadata: route.metadata
+    };
+});
 
         res.status(200).json({ routes: formattedRoutes });
     } catch (error) {
