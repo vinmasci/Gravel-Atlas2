@@ -75,35 +75,44 @@ async function openSegmentModal(title, routeId) {
             }
         }
 
-        // Update modal content with creator info using userProfile variable
+        // Format the creation date
+        const creationDate = route.createdAt ? new Date(route.createdAt).toLocaleDateString() : '';
+
+        // Update modal content with creator info and creation date
         segmentTitle.innerHTML = `
             <div class="segment-header">
                 <div class="segment-title">${title}</div>
-                <div class="creator-info">
-                    <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
-                         class="creator-avatar" 
-                         alt="Creator avatar"/>
-                    ${userProfile?.bioName || 'Anonymous'}
-                    ${userProfile?.socialLinks ? `
-                        <div class="social-links">
-                            ${userProfile.socialLinks.instagram ? 
-                                `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
-                                    <i class="fa-brands fa-instagram"></i>
-                                </a>` : ''}
-                            ${userProfile.socialLinks.strava ? 
-                                `<a href="${userProfile.socialLinks.strava}" target="_blank" title="Strava">
-                                    <i class="fa-brands fa-strava"></i>
-                                </a>` : ''}
-                            ${userProfile.socialLinks.facebook ? 
-                                `<a href="${userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
-                                    <i class="fa-brands fa-facebook"></i>
-                                </a>` : ''}
-                            ${userProfile.website ? 
-                                `<a href="${userProfile.website}" target="_blank" title="Website">
-                                    <i class="fa-solid fa-globe"></i>
-                                </a>` : ''}
-                        </div>
-                    ` : ''}
+                <div class="creator-info-container">
+                    <div class="creator-info">
+                        <span>By:</span>
+                        <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
+                             class="creator-avatar" 
+                             alt="Creator avatar"/>
+                        <strong>${userProfile?.bioName || 'Anonymous'}</strong>
+                        ${userProfile?.socialLinks ? `
+                            <div class="social-links">
+                                ${userProfile.socialLinks.instagram ? 
+                                    `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
+                                        <i class="fa-brands fa-instagram"></i>
+                                    </a>` : ''}
+                                ${userProfile.socialLinks.strava ? 
+                                    `<a href="${userProfile.socialLinks.strava}" target="_blank" title="Strava">
+                                        <i class="fa-brands fa-strava"></i>
+                                    </a>` : ''}
+                                ${userProfile.socialLinks.facebook ? 
+                                    `<a href="${userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
+                                        <i class="fa-brands fa-facebook"></i>
+                                    </a>` : ''}
+                                ${userProfile.website ? 
+                                    `<a href="${userProfile.website}" target="_blank" title="Website">
+                                        <i class="fa-solid fa-globe"></i>
+                                    </a>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="creation-date">
+                        ${creationDate}
+                    </div>
                 </div>
             </div>
         `;
@@ -150,7 +159,6 @@ async function openSegmentModal(title, routeId) {
         if (segmentTitle) segmentTitle.innerText = title;
     }
 }
-
 
 
 // =========================

@@ -59,7 +59,8 @@ module.exports = async (req, res) => {
                     website: userProfile.website
                 } : null,
                 geojson: route.geojson,
-                metadata: route.metadata
+                metadata: route.metadata,
+                createdAt: route.createdAt // Include the createdAt field
             };
         });
 
