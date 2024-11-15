@@ -18,8 +18,8 @@ async function openSegmentModal(title, routeId) {
         const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
         console.log("Auth state:", isAuthenticated);
-        
-        // Get current user if authenticated
+
+        // Get current user if authenticated (using same pattern as photos)
         const currentUser = isAuthenticated ? await auth0.getUser() : null;
         console.log("Current user:", currentUser);
 
@@ -35,74 +35,74 @@ async function openSegmentModal(title, routeId) {
             return;
         }
 
-        // Fetch segment data including creator info
-        try {
-            const response = await fetch(`/api/get-drawn-routes?routeId=${routeId}`);
-            console.log("Segment data response:", response.status);
-            const segmentData = await response.json();
-            console.log("Segment data:", segmentData);
+        // Get segment data with creator info
+        const response = await fetch(`/api/get-drawn-routes?routeId=${routeId}`);
+        console.log("Segment response:", response.status);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch segment data');
+        }
 
-            if (segmentData) {
-                // If we have the segment data, fetch creator's profile
-                try {
-                    const creatorResponse = await fetch(`/api/user?id=${encodeURIComponent(segmentData.auth0Id)}`);
-                    console.log("Creator profile response:", creatorResponse.status);
-                    const creatorProfile = await creatorResponse.json();
-                    console.log("Creator profile:", creatorProfile);
+        const segmentData = await response.json();
+        console.log("Segment data:", segmentData);
 
-                    // Update the segment title with creator info
-                    segmentTitle.innerHTML = `
-                        <div class="segment-header">
-                            <div class="segment-title">${title}</div>
-                            ${creatorProfile ? `
-                                <div class="creator-info">
-                                    <img src="${creatorProfile.picture || '/default-avatar.png'}" 
-                                         alt="Creator" 
-                                         class="creator-avatar"
-                                         style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;">
-                                    <span>${creatorProfile.bioName || 'Anonymous'}</span>
-                                    ${creatorProfile.socialLinks ? `
-                                        <div class="social-links">
-                                            ${creatorProfile.socialLinks.instagram ? 
-                                                `<a href="${creatorProfile.socialLinks.instagram}" target="_blank">
-                                                    <i class="fa-brands fa-instagram"></i>
-                                                </a>` : ''}
-                                            ${creatorProfile.socialLinks.strava ? 
-                                                `<a href="${creatorProfile.socialLinks.strava}" target="_blank">
-                                                    <i class="fa-brands fa-strava"></i>
-                                                </a>` : ''}
-                                            ${creatorProfile.socialLinks.facebook ? 
-                                                `<a href="${creatorProfile.socialLinks.facebook}" target="_blank">
-                                                    <i class="fa-brands fa-facebook"></i>
-                                                </a>` : ''}
-                                        </div>
-                                    ` : ''}
+        if (segmentData && segmentData.auth0Id) {
+            // Using same pattern as photo.js for user profile
+            const userProfile = await fetch(`/api/user?id=${encodeURIComponent(segmentData.auth0Id)}`)
+                .then(res => res.ok ? res.json() : null)
+                .catch(err => {
+                    console.error('Error fetching user profile:', err);
+                    return null;
+                });
+
+            console.log("Creator profile:", userProfile);
+
+            // Update modal content with creator info
+            segmentTitle.innerHTML = `
+                <div class="segment-header">
+                    <div class="segment-title">${title}</div>
+                    <div class="creator-info">
+                        <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
+                             class="creator-avatar" />
+                        <div class="name-and-social">
+                            <strong>${userProfile?.bioName || segmentData.username || 'Anonymous'}</strong>
+                            ${userProfile?.socialLinks ? `
+                                <div class="social-links">
+                                    ${userProfile.socialLinks.instagram ? 
+                                        `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
+                                            <i class="fa-brands fa-instagram"></i>
+                                        </a>` : ''}
+                                    ${userProfile.socialLinks.strava ? 
+                                        `<a href="${userProfile.socialLinks.strava}" target="_blank" title="Strava">
+                                            <i class="fa-brands fa-strava"></i>
+                                        </a>` : ''}
+                                    ${userProfile.socialLinks.facebook ? 
+                                        `<a href="${userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
+                                            <i class="fa-brands fa-facebook"></i>
+                                        </a>` : ''}
+                                    ${userProfile.website ? 
+                                        `<a href="${userProfile.website}" target="_blank" title="Website">
+                                            <i class="fa-solid fa-globe"></i>
+                                        </a>` : ''}
                                 </div>
                             ` : ''}
                         </div>
-                    `;
+                    </div>
+                </div>
+            `;
 
-                    // Only show delete button if user is the creator
-                    if (isAuthenticated && currentUser && currentUser.sub === segmentData.auth0Id) {
-                        console.log("User is the creator, showing delete button");
-                        deleteButton.style.display = 'block';
-                        deleteButton.onclick = function() {
-                            deleteSegment(routeId);
-                        };
-                    } else {
-                        console.log("User is not the creator, hiding delete button");
-                        deleteButton.style.display = 'none';
-                    }
-                } catch (profileError) {
-                    console.error("Error fetching creator profile:", profileError);
-                    segmentTitle.innerText = title; // Fallback to just title if profile fetch fails
-                }
+            // Only show delete button if user is the creator
+            if (isAuthenticated && currentUser && currentUser.sub === segmentData.auth0Id) {
+                console.log("User is the creator, showing delete button");
+                deleteButton.style.display = 'block';
+                deleteButton.onclick = () => deleteSegment(routeId);
             } else {
-                segmentTitle.innerText = title;
+                console.log("User is not the creator, hiding delete button");
+                deleteButton.style.display = 'none';
             }
-        } catch (segmentError) {
-            console.error("Error fetching segment data:", segmentError);
-            segmentTitle.innerText = title; // Fallback to just title if segment fetch fails
+        } else {
+            // Fallback if no creator info
+            segmentTitle.innerText = title;
         }
 
         routeIdElement.innerText = `Route ID: ${routeId}`;
@@ -112,7 +112,7 @@ async function openSegmentModal(title, routeId) {
         modal.classList.add('show');
         modal.style.display = 'block';
 
-        // Handle authentication-dependent elements (keeping your existing logic)
+        // Handle authentication-dependent elements
         if (isAuthenticated) {
             console.log("User is authenticated, showing auth-dependent elements");
             if (flagButton) flagButton.style.display = 'block';
@@ -127,6 +127,9 @@ async function openSegmentModal(title, routeId) {
         await renderComments(routeId);
     } catch (error) {
         console.error("Error in openSegmentModal:", error);
+        // Fallback to basic display on error
+        const segmentTitle = document.getElementById('segment-details');
+        if (segmentTitle) segmentTitle.innerText = title;
     }
 }
 
