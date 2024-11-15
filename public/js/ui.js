@@ -61,27 +61,17 @@ async function openSegmentModal(title, routeId) {
         // Initialize userProfile variable
         let userProfile = route?.userProfile;
 
-        // Fetch user profile separately if picture is missing
-        if ((!userProfile || !userProfile.picture) && route?.auth0Id) {
-            try {
-                console.log('Fetching profile for auth0Id:', route.auth0Id);
-                const encodedAuth0Id = encodeURIComponent(route.auth0Id);
-                const profileResponse = await fetch(`/api/user?id=${encodedAuth0Id}`);
-                console.log('Profile response status:', profileResponse.status);
-
-                if (profileResponse.ok) {
-                    userProfile = await profileResponse.json();
-                    console.log('Retrieved profile:', userProfile);
-                } else {
-                    const errorText = await profileResponse.text();
-                    console.log('Failed to fetch profile:', {
-                        status: profileResponse.status,
-                        error: errorText,
-                        requestedId: route.auth0Id
-                    });
-                }
-            } catch (error) {
-                console.error(`Error fetching profile for user ${route.auth0Id}:`, error);
+        // If userProfile is missing or doesn't have the picture, handle accordingly
+        if (!userProfile || !userProfile.picture) {
+            if (currentUser && currentUser.sub === route.auth0Id) {
+                // Use currentUser's picture if they are the creator
+                userProfile = userProfile || {};
+                userProfile.picture = currentUser.picture;
+                userProfile.bioName = userProfile.bioName || currentUser.name;
+                console.log("Using current user's picture for the creator.");
+            } else {
+                // Use placeholder image for other users
+                console.log("No profile picture available for the creator. Using placeholder.");
             }
         }
 
@@ -161,6 +151,7 @@ async function openSegmentModal(title, routeId) {
         if (segmentTitle) segmentTitle.innerText = title;
     }
 }
+
 
 
 // =========================
