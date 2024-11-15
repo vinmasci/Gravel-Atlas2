@@ -491,27 +491,27 @@ async function deleteComment(commentId) {
 // ============================
 async function deleteSegment() {
     const deleteButton = document.getElementById('delete-segment');
-    
-    // Retrieve routeId directly from the displayed text in the modal
     const routeIdElement = document.getElementById('route-id');
-    const routeId = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '') : null;
+    
+    // Get the route ID directly from the modal text
+    // Note: routeIdElement.innerText will be something like "Route ID: abc123"
+    const routeId = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
+    
+    console.log("Getting routeId from modal:", routeId); // Debug log
 
     if (!routeId) {
         console.error("No route ID found for deletion.");
         return;
     }
 
-    // Prompt the user for confirmation
     if (!confirm("Are you sure you want to delete this segment?")) {
         return;
     }
 
-    // Set button text to "Deleting..." and disable the button
     deleteButton.disabled = true;
     deleteButton.innerHTML = "Deleting...";
 
     try {
-        console.log(`Deleting segment with ID: ${routeId}`);
         const response = await fetch(`/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`, {
             method: 'DELETE'
         });
@@ -520,23 +520,20 @@ async function deleteSegment() {
         console.log('Delete request result:', result);
 
         if (result.success) {
-            console.log('Segment deleted successfully.');
+            console.log('Segment deleted successfully from MongoDB.');
             closeModal();
-            await loadSegments(); // Refresh to show the updated segments list
+            await loadSegments(); // Refresh the map
         } else {
-            console.error('Failed to delete segment:', result.message);
-            alert(result.message || 'Failed to delete segment');
+            throw new Error(result.message || 'Failed to delete segment');
         }
     } catch (error) {
-        console.error('Error in deleting segment:', error);
-        alert('Failed to delete segment. Please try again.');
+        console.error('Error deleting segment:', error);
+        alert(error.message || 'Failed to delete segment');
     } finally {
-        // Reset button state after attempting deletion
         deleteButton.disabled = false;
         deleteButton.innerHTML = "Delete Segment";
     }
 }
-
 // Make sure to export the function if you're using modules
 if (typeof window !== 'undefined') {
     window.deleteSegment = deleteSegment;
