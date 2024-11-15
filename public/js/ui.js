@@ -49,50 +49,43 @@ async function openSegmentModal(title, routeId) {
         const route = data.routes?.find(r => r._id === routeId);
         console.log("Found route:", route);
 
-        if (route?.auth0Id) {
-            // Using same pattern as photo.js for user profile
-            const userProfile = await fetch(`/api/user?id=${encodeURIComponent(route.auth0Id)}`)
-                .then(res => res.ok ? res.json() : null)
-                .catch(err => {
-                    console.error('Error fetching user profile:', err);
-                    return null;
-                });
-
-            console.log("Creator profile:", userProfile);
-
-            // Update modal content with creator info
-            segmentTitle.innerHTML = `
-                <div class="segment-header">
-                    <div class="segment-title">${title}</div>
-                    <div class="creator-info">
-                        <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
-                             class="creator-avatar" />
-                        <div class="name-and-social">
-                            <strong>${userProfile?.bioName || route.username || 'Anonymous'}</strong>
-                            ${userProfile?.socialLinks ? `
-                                <div class="social-links">
-                                    ${userProfile.socialLinks.instagram ? 
-                                        `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
-                                            <i class="fa-brands fa-instagram"></i>
-                                        </a>` : ''}
-                                    ${userProfile.socialLinks.strava ? 
-                                        `<a href="${userProfile.socialLinks.strava}" target="_blank" title="Strava">
-                                            <i class="fa-brands fa-strava"></i>
-                                        </a>` : ''}
-                                    ${userProfile.socialLinks.facebook ? 
-                                        `<a href="${userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
-                                            <i class="fa-brands fa-facebook"></i>
-                                        </a>` : ''}
-                                    ${userProfile.website ? 
-                                        `<a href="${userProfile.website}" target="_blank" title="Website">
-                                            <i class="fa-solid fa-globe"></i>
-                                        </a>` : ''}
-                                </div>
-                            ` : ''}
+// Inside openSegmentModal when you find the route:
+if (route?.auth0Id && route?.userProfile) {
+    console.log("Found user profile:", route.userProfile);
+    
+    // Update modal content with creator info
+    segmentTitle.innerHTML = `
+        <div class="segment-header">
+            <div class="segment-title">${title}</div>
+            <div class="creator-info">
+                <img src="${route.userProfile.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
+                     class="creator-avatar" />
+                <div class="name-and-social">
+                    <strong>${route.userProfile.bioName || 'Anonymous'}</strong>
+                    ${route.userProfile.socialLinks ? `
+                        <div class="social-links">
+                            ${route.userProfile.socialLinks.instagram ? 
+                                `<a href="${route.userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
+                                    <i class="fa-brands fa-instagram"></i>
+                                </a>` : ''}
+                            ${route.userProfile.socialLinks.strava ? 
+                                `<a href="${route.userProfile.socialLinks.strava}" target="_blank" title="Strava">
+                                    <i class="fa-brands fa-strava"></i>
+                                </a>` : ''}
+                            ${route.userProfile.socialLinks.facebook ? 
+                                `<a href="${route.userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
+                                    <i class="fa-brands fa-facebook"></i>
+                                </a>` : ''}
+                            ${route.userProfile.website ? 
+                                `<a href="${route.userProfile.website}" target="_blank" title="Website">
+                                    <i class="fa-solid fa-globe"></i>
+                                </a>` : ''}
                         </div>
-                    </div>
+                    ` : ''}
                 </div>
-            `;
+            </div>
+        </div>
+    `;
 
             // Only show delete button if user is the creator
             if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {

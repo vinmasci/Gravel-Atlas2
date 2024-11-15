@@ -6,20 +6,36 @@ async function connectToMongo() {
     if (!client.topology || !client.topology.isConnected()) {
         await client.connect();
     }
-    return client.db('roadApp').collection('drawnRoutes');
+    return {
+        routes: client.db('roadApp').collection('drawnRoutes'),
+        users: client.db('PhotoApp').collection('users')
+    };
 }
 
 module.exports = async (req, res) => {
     try {
-        const collection = await connectToMongo();
+        const { routes, users } = await connectToMongo();
+        
         // Fetch all routes from the MongoDB collection
-        const routes = await collection.find({}).toArray();
+        const routesData = await routes.find({}).toArray();
         
         // Log the raw routes before processing them
-        console.log("Raw routes from MongoDB:", JSON.stringify(routes, null, 2));
+        console.log("Raw routes from MongoDB:", JSON.stringify(routesData, null, 2));
 
-        // Simplify route formatting
-        const formattedRoutes = routes.map(route => {
+        // Get user profiles for all unique auth0Ids
+        const uniqueAuth0Ids = [...new Set(routesData.map(route => route.auth0Id))];
+        const userProfiles = await users.find({
+            auth0Id: { $in: uniqueAuth0Ids }
+        }).toArray();
+
+        // Create a map of auth0Id to user profile for quick lookup
+        const userProfileMap = Object.fromEntries(
+            userProfiles.map(profile => [profile.auth0Id, profile])
+        );
+
+        // Simplify route formatting with user info
+        const formattedRoutes = routesData.map(route => {
+            const userProfile = userProfileMap[route.auth0Id];
             const formattedFeatures = route.geojson.features.map(feature => {
                 return {
                     ...feature,
@@ -28,27 +44,31 @@ module.exports = async (req, res) => {
                         title: feature.properties.title || "Untitled Route",
                         color: feature.properties.color || "#000000",
                         lineStyle: feature.properties.lineStyle || "solid",
-                        routeId: route._id.toString(), // Include routeId in each feature's properties
-                        auth0Id: route.auth0Id // Add auth0Id to properties
+                        routeId: route._id.toString(),
+                        auth0Id: route.auth0Id
                     }
                 };
             });
 
             return {
                 routeId: route._id.toString(),
-                auth0Id: route.auth0Id, // Add auth0Id at the route level
+                auth0Id: route.auth0Id,
+                userProfile: userProfile ? {
+                    bioName: userProfile.bioName,
+                    picture: userProfile.picture,
+                    socialLinks: userProfile.socialLinks,
+                    website: userProfile.website
+                } : null,
                 geojson: {
                     type: "FeatureCollection",
                     features: formattedFeatures
                 },
-                gravelType: route.gravelType,
-                metadata: route.metadata // Include metadata for additional info
+                gravelType: route.gravelType
             };
         });
 
-        // Log the formatted routes before sending them to the client
         console.log("Formatted routes being sent:", JSON.stringify(formattedRoutes, null, 2));
-
+        
         // Send the formatted routes to the client
         res.status(200).json({ routes: formattedRoutes });
 
