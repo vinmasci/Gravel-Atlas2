@@ -30,62 +30,72 @@ async function openSegmentModal(title, routeId) {
         const flagButton = document.getElementById('flag-segment');
 
         if (!modal || !segmentTitle || !routeIdElement || !deleteButton) {
-            console.error("Modal, segment title, route ID element, or delete button not found.");
+            console.error("Modal elements not found.");
             return;
         }
 
         // Get segment data with creator info
+        console.log("Fetching route data for ID:", routeId);
         const response = await fetch(`/api/get-drawn-routes?routeId=${routeId}`);
-        console.log("Segment response:", response.status);
+        console.log("Segment response status:", response.status);
         
         if (!response.ok) {
             throw new Error('Failed to fetch segment data');
         }
 
         const data = await response.json();
-        console.log("Response data:", data);
+        console.log("Full API response data:", data);
 
-        // Get the specific route from the routes array
-        const route = data.routes?.find(r => r._id === routeId);
+        // Get the specific route from the routes array - log all IDs for debugging
+        console.log("Available route IDs:", data.routes?.map(r => r._id));
+        const route = data.routes?.find(r => {
+            console.log("Comparing:", {
+                routeId: routeId,
+                currentRouteId: r._id,
+                match: r._id === routeId
+            });
+            return r._id === routeId;
+        });
         console.log("Found route:", route);
 
-// Inside openSegmentModal when you find the route:
-if (route?.auth0Id && route?.userProfile) {
-    console.log("Found user profile:", route.userProfile);
-    
-    // Update modal content with creator info
-    segmentTitle.innerHTML = `
-        <div class="segment-header">
-            <div class="segment-title">${title}</div>
-            <div class="creator-info">
-                <img src="${route.userProfile.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
-                     class="creator-avatar" />
-                <div class="name-and-social">
-                    <strong>${route.userProfile.bioName || 'Anonymous'}</strong>
-                    ${route.userProfile.socialLinks ? `
-                        <div class="social-links">
-                            ${route.userProfile.socialLinks.instagram ? 
-                                `<a href="${route.userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
-                                    <i class="fa-brands fa-instagram"></i>
-                                </a>` : ''}
-                            ${route.userProfile.socialLinks.strava ? 
-                                `<a href="${route.userProfile.socialLinks.strava}" target="_blank" title="Strava">
-                                    <i class="fa-brands fa-strava"></i>
-                                </a>` : ''}
-                            ${route.userProfile.socialLinks.facebook ? 
-                                `<a href="${route.userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
-                                    <i class="fa-brands fa-facebook"></i>
-                                </a>` : ''}
-                            ${route.userProfile.website ? 
-                                `<a href="${route.userProfile.website}" target="_blank" title="Website">
-                                    <i class="fa-solid fa-globe"></i>
-                                </a>` : ''}
+        if (route?.auth0Id) {
+            console.log("Route auth0Id:", route.auth0Id);
+            console.log("Route userProfile:", route.userProfile);
+            
+            // Update modal content with creator info
+            segmentTitle.innerHTML = `
+                <div class="segment-header">
+                    <div class="segment-title">${title}</div>
+                    <div class="creator-info">
+                        <img src="${route.userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
+                             class="creator-avatar" 
+                             alt="Creator avatar"/>
+                        <div class="name-and-social">
+                            <strong>${route.userProfile?.bioName || 'Anonymous'}</strong>
+                            ${route.userProfile?.socialLinks ? `
+                                <div class="social-links">
+                                    ${route.userProfile.socialLinks.instagram ? 
+                                        `<a href="${route.userProfile.socialLinks.instagram}" target="_blank" title="Instagram">
+                                            <i class="fa-brands fa-instagram"></i>
+                                        </a>` : ''}
+                                    ${route.userProfile.socialLinks.strava ? 
+                                        `<a href="${route.userProfile.socialLinks.strava}" target="_blank" title="Strava">
+                                            <i class="fa-brands fa-strava"></i>
+                                        </a>` : ''}
+                                    ${route.userProfile.socialLinks.facebook ? 
+                                        `<a href="${route.userProfile.socialLinks.facebook}" target="_blank" title="Facebook">
+                                            <i class="fa-brands fa-facebook"></i>
+                                        </a>` : ''}
+                                    ${route.userProfile.website ? 
+                                        `<a href="${route.userProfile.website}" target="_blank" title="Website">
+                                            <i class="fa-solid fa-globe"></i>
+                                        </a>` : ''}
+                                </div>
+                            ` : ''}
                         </div>
-                    ` : ''}
+                    </div>
                 </div>
-            </div>
-        </div>
-    `;
+            `;
 
             // Only show delete button if user is the creator
             if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {
@@ -101,8 +111,11 @@ if (route?.auth0Id && route?.userProfile) {
             segmentTitle.innerText = title;
         }
 
-        routeIdElement.innerText = `Route ID: ${routeId}`;
-        window.currentRouteId = routeId;
+        // Always set the route ID
+        if (routeId) {
+            routeIdElement.innerText = `Route ID: ${routeId}`;
+            window.currentRouteId = routeId;
+        }
 
         // Show modal
         modal.classList.add('show');
@@ -110,11 +123,9 @@ if (route?.auth0Id && route?.userProfile) {
 
         // Handle authentication-dependent elements
         if (isAuthenticated) {
-            console.log("User is authenticated, showing auth-dependent elements");
             if (flagButton) flagButton.style.display = 'block';
             if (addCommentSection) addCommentSection.style.display = 'block';
         } else {
-            console.log("User is not authenticated, hiding auth-dependent elements");
             if (flagButton) flagButton.style.display = 'none';
             if (addCommentSection) addCommentSection.style.display = 'none';
         }
@@ -123,11 +134,16 @@ if (route?.auth0Id && route?.userProfile) {
         await renderComments(routeId);
     } catch (error) {
         console.error("Error in openSegmentModal:", error);
+        console.error("Error details:", {
+            message: error.message,
+            stack: error.stack
+        });
         // Fallback to basic display on error
         const segmentTitle = document.getElementById('segment-details');
         if (segmentTitle) segmentTitle.innerText = title;
     }
 }
+
 // =========================
 // SECTION: Comments
 // =========================
