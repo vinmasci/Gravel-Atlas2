@@ -490,12 +490,15 @@ async function deleteComment(commentId) {
 // ============================
 // SECTION: Delete Segment
 // ============================
+let deleteInProgress = false;  // Add this at the top of your file
+
 async function deleteSegment() {
+    if (deleteInProgress) {
+        console.log("Delete already in progress");
+        return;
+    }
     const deleteButton = document.getElementById('delete-segment');
     const routeIdElement = document.getElementById('route-id');
-    
-    // Get the route ID directly from the modal text
-    // Note: routeIdElement.innerText will be something like "Route ID: abc123"
     const routeId = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
     
     console.log("Getting routeId from modal:", routeId); // Debug log
@@ -508,7 +511,7 @@ async function deleteSegment() {
     if (!confirm("Are you sure you want to delete this segment?")) {
         return;
     }
-
+    deleteInProgress = true;  // Set flag
     deleteButton.disabled = true;
     deleteButton.innerHTML = "Deleting...";
 
@@ -537,6 +540,7 @@ async function deleteSegment() {
         console.error('Error deleting segment:', error);
         alert(error.message || 'Failed to delete segment');
     } finally {
+        deleteInProgress = false;  // Reset flag
         deleteButton.disabled = false;
         deleteButton.innerHTML = "Delete Segment";
     }
