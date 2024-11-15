@@ -50,7 +50,7 @@ async function setupSegmentInteraction() {
             const title = e.features[0].properties.title;
             const routeId = e.features[0].properties.id;  // Try this instead
             // OR
-            // const routeId = e.features[0]._id;  // Or maybe this
+            // const. routeId = e.features[0]._id;  // Or maybe this
             console.log('Opening modal for routeId:', routeId);
             if (typeof window.openSegmentModal === 'function') {
                 await window.openSegmentModal(title, routeId);
