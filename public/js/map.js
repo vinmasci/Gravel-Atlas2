@@ -46,10 +46,12 @@ async function setupSegmentInteraction() {
 
         map.on('click', 'drawn-segments-layer', async (e) => {
             console.log("Segment clicked");
+            console.log("Feature properties:", e.features[0].properties);  // Add this line
             const title = e.features[0].properties.title;
-            const routeId = e.features[0].properties.routeId;
+            const routeId = e.features[0].properties.id;  // Try this instead
+            // OR
+            // const routeId = e.features[0]._id;  // Or maybe this
             console.log('Opening modal for routeId:', routeId);
-
             if (typeof window.openSegmentModal === 'function') {
                 await window.openSegmentModal(title, routeId);
             } else {
