@@ -601,8 +601,23 @@ function toggleAddDropdown() {
 // Define the function to open the route name modal
 function openRouteNameModal() {
     const modal = document.getElementById('routeNameModal');
+    const routeNameInput = document.getElementById('routeNameInput');
+
     if (modal) {
-        modal.style.display = 'block'; // Make the modal visible
+        // Clear any existing input value
+        if (routeNameInput) {
+            routeNameInput.value = '';
+        }
+
+        // Clean up any existing event listeners on the confirm button
+        const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+        if (confirmSaveBtn) {
+            const newConfirmBtn = confirmSaveBtn.cloneNode(true);
+            confirmSaveBtn.parentNode.replaceChild(newConfirmBtn, confirmSaveBtn);
+        }
+
+        modal.style.display = 'block';
+        console.log('Route name modal opened with clean state');
     } else {
         console.error('routeNameModal not found in the DOM.');
     }
@@ -611,8 +626,23 @@ function openRouteNameModal() {
 // Define the function to close the route name modal
 function closeRouteNameModal() {
     const modal = document.getElementById('routeNameModal');
+    const routeNameInput = document.getElementById('routeNameInput');
+
     if (modal) {
-        modal.style.display = 'none'; // Hide the modal
+        // Clear the input when closing
+        if (routeNameInput) {
+            routeNameInput.value = '';
+        }
+
+        // Remove event listener from confirm button
+        const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+        if (confirmSaveBtn) {
+            const newConfirmBtn = confirmSaveBtn.cloneNode(true);
+            confirmSaveBtn.parentNode.replaceChild(newConfirmBtn, confirmSaveBtn);
+        }
+
+        modal.style.display = 'none';
+        console.log('Route name modal closed and cleaned up');
     } else {
         console.error('routeNameModal not found in the DOM.');
     }
