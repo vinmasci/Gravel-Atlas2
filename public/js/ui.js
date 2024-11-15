@@ -111,7 +111,7 @@ async function openSegmentModal(title, routeId) {
                         ` : ''}
                     </div>
                     <div class="creation-date">
-                        ${creationDate}
+                        &nbsp; &nbsp; &nbsp;${creationDate}
                     </div>
                 </div>
             </div>
