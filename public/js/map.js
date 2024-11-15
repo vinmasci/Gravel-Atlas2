@@ -21,47 +21,42 @@ const segmentPopup = new mapboxgl.Popup({
 // Track if the segment interaction event listeners have already been added
 let segmentInteractionInitialized = false;
 
-async function setupSegmentInteraction() {
-    try {
-        const auth0 = await window.authReady;
-        
-        if (segmentInteractionInitialized) {
-            console.log("Segment interaction already initialized. Skipping.");
-            return;
-        }
-
-        map.on('mouseenter', 'drawn-segments-layer', (e) => {
-            console.log("Segment hover detected");
-            map.getCanvas().style.cursor = 'pointer';
-            const title = e.features[0].properties.title;
-            if (title) {
-                segmentPopup.setLngLat(e.lngLat).setHTML(`<strong>${title}</strong>`).addTo(map);
-            }
-        });
-
-        map.on('mouseleave', 'drawn-segments-layer', () => {
-            map.getCanvas().style.cursor = '';
-            segmentPopup.remove();
-        });
-
-        map.on('click', 'drawn-segments-layer', async (e) => {
-            console.log("Segment clicked");
-            console.log("Feature properties:", e.features[0].properties);  // Add this line
-            const title = e.features[0].properties.title;
-            const routeId = e.features[0]._id;  // To get "6736dd767830fe1bda6ab6e9"
-            console.log('Opening modal for routeId:', routeId);
-            if (typeof window.openSegmentModal === 'function') {
-                await window.openSegmentModal(title, routeId);
-            } else {
-                console.error('openSegmentModal function not found');
-            }
-        });
-
-        segmentInteractionInitialized = true;
-        console.log("Segment interaction initialized");
-    } catch (error) {
-        console.error("Error in setupSegmentInteraction:", error);
+function setupSegmentInteraction() {
+    if (segmentInteractionInitialized) {
+        console.log("Segment interaction already initialized. Skipping.");
+        return;
     }
+
+    // Hover interaction for showing segment title
+    map.on('mouseenter', 'drawn-segments-layer', (e) => {
+        console.log("Segment hover detected");
+        map.getCanvas().style.cursor = 'pointer';
+        const title = e.features[0].properties.title;
+        if (title) {
+            segmentPopup.setLngLat(e.lngLat).setHTML(`<strong>${title}</strong>`).addTo(map);
+        }
+    });
+
+    map.on('mouseleave', 'drawn-segments-layer', () => {
+        map.getCanvas().style.cursor = '';
+        segmentPopup.remove();
+    });
+
+    map.on('click', 'drawn-segments-layer', async (e) => {
+        console.log("Segment clicked");
+        const title = e.features[0].properties.title;
+        const routeId = e.features[0].properties.routeId;
+        console.log('Opening modal for routeId:', routeId);
+
+        if (typeof window.openSegmentModal === 'function') {
+            await window.openSegmentModal(title, routeId);
+        } else {
+            console.error('openSegmentModal function not found');
+        }
+    });
+
+    segmentInteractionInitialized = true;
+    console.log("Segment interaction initialized");
 }
 
 // ===========================
