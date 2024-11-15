@@ -48,7 +48,7 @@ const formattedRoutes = routesData.map(route => {
     console.log(`Route ${route._id}: Found profile:`, userProfile ? 'yes' : 'no');
     
     return {
-        _id: route._id.toString(),  // FIXED: proper _id conversion
+        _id: route._id.toString(),  // Add this line
         auth0Id: route.auth0Id,
         userProfile: userProfile ? {
             bioName: userProfile.bioName,
