@@ -121,6 +121,7 @@ async function openSegmentModal(title, routeId) {
         if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {
             console.log("User is the creator, showing delete button");
             deleteButton.style.display = 'block';
+            deleteButton.setAttribute('data-segment-id', routeId); // Add this line
             deleteButton.onclick = () => deleteSegment(routeId);
         } else {
             console.log("User is not the creator, hiding delete button");
@@ -561,9 +562,10 @@ function closeModal() {
 // Attach Event Listener to Delete Button (No Inline Onclick)
 // ============================
 document.getElementById('delete-segment').addEventListener('click', () => {
-    // Fetch the segmentId from the delete button's data attribute
     const segmentId = document.getElementById('delete-segment').getAttribute('data-segment-id');
-    deleteSegment(segmentId); // Call deleteSegment with segmentId
+    if (segmentId) { // Only proceed if we have an ID
+        deleteSegment(segmentId);
+    }
 });
 
 
