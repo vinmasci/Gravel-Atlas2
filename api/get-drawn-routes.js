@@ -42,24 +42,24 @@ module.exports = async (req, res) => {
             userProfileMap[profile.auth0Id] = profile;
         });
 
-        // Format routes with user info
-        const formattedRoutes = routesData.map(route => {
-            const userProfile = userProfileMap[route.auth0Id];
-            console.log(`Route ${route._id}: Found profile:`, userProfile ? 'yes' : 'no');
-            
-            return {
-                _id: route._id.toString(),
-                auth0Id: route.auth0Id,
-                userProfile: userProfile ? {
-                    bioName: userProfile.bioName,
-                    picture: userProfile.picture,
-                    socialLinks: userProfile.socialLinks,
-                    website: userProfile.website
-                } : null,
-                geojson: route.geojson,
-                metadata: route.metadata
-            };
-        });
+// Format routes with user info
+const formattedRoutes = routesData.map(route => {
+    const userProfile = userProfileMap[route.auth0Id];
+    console.log(`Route ${route._id}: Found profile:`, userProfile ? 'yes' : 'no');
+    
+    return {
+        _id: route._id.toString(),  // FIXED: proper _id conversion
+        auth0Id: route.auth0Id,
+        userProfile: userProfile ? {
+            bioName: userProfile.bioName,
+            picture: userProfile.picture,
+            socialLinks: userProfile.socialLinks,
+            website: userProfile.website
+        } : null,
+        geojson: route.geojson,
+        metadata: route.metadata
+    };
+});
 
         res.status(200).json({ routes: formattedRoutes });
     } catch (error) {
