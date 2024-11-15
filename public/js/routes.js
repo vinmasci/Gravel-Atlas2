@@ -350,7 +350,7 @@ async function handleSaveConfirmation(gpxData) {
         console.log("Response data:", data);
 
         if (data.success) {
-            const drawAnother = confirm('Route saved successfully! Would you like to draw another route?\n\nClick OK to draw another route\nClick Cancel to exit drawing mode');
+            const drawAnother = confirm('Route saved successfully! Would you like to draw another route?');
             
             console.log("User choice - Draw another route:", drawAnother);
             
