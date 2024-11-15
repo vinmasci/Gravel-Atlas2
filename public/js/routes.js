@@ -280,18 +280,18 @@ async function handleSaveConfirmation(gpxData) {
     console.log("Starting save confirmation process");
     const confirmSaveBtn = document.getElementById('confirmSaveBtn');
     const routeName = document.getElementById('routeNameInput').value;
-
+ 
     if (!routeName) {
         console.log("No route name provided");
         alert('Please enter a road/path name for your route.');
         return;
     }
-
+ 
     // Change button text to "Saving..."
     confirmSaveBtn.innerText = "Saving...";
     confirmSaveBtn.disabled = true;
     console.log("Disabled save button");
-
+ 
     try {
         // Get auth0Id if user is authenticated
         let auth0Id = null;
@@ -308,22 +308,22 @@ async function handleSaveConfirmation(gpxData) {
         } catch (authError) {
             console.warn("Error getting auth0Id, continuing without it:", authError);
         }
-
+ 
         // Keep existing segmentsGeoJSON handling
         segmentsGeoJSON.features.forEach(feature => {
             feature.properties.title = routeName;
         });
-
+ 
         console.log("Prepared GeoJSON with route name:", routeName);
         console.log("Segments GeoJSON:", segmentsGeoJSON);
-
-        // Get selected gravel types (keeping existing functionality)
+ 
+        // Get selected gravel types 
         const selectedGravelTypes = Array.from(
             document.querySelectorAll('input[name="gravelType"]:checked')
         ).map(input => input.value);
         console.log("Selected gravel types:", selectedGravelTypes);
-
-        // Prepare request body (keeping all existing fields)
+ 
+        // Prepare request body
         const requestBody = {
             gpxData: gpxData,
             geojson: segmentsGeoJSON,
@@ -333,26 +333,45 @@ async function handleSaveConfirmation(gpxData) {
                 gravelType: selectedGravelTypes,
                 title: routeName
             },
-            auth0Id: auth0Id // Add auth0Id to the request
+            auth0Id: auth0Id
         };
-
+ 
         console.log("Sending request with body:", requestBody);
-
+ 
         // Send drawn route data to the backend API
         const response = await fetch('/api/save-drawn-route', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
-
+ 
         console.log("Received response:", response.status);
         const data = await response.json();
         console.log("Response data:", data);
-
+ 
         if (data.success) {
-            alert('Route saved successfully!');
+            // Replace alert with confirm dialog
+            const drawAnother = confirm('Route saved successfully! Would you like to draw another route?\n\nClick OK to draw another route\nClick Cancel to exit drawing mode');
+            
+            console.log("User choice - Draw another route:", drawAnother);
+            
+            // Always close modal and reset route data first
             closeRouteNameModal();
-            resetRouteData(); // Keep existing reset functionality
+            resetRouteData();
+            
+            if (drawAnother) {
+                console.log("Preparing to draw another route");
+                await loadSegments(); // Refresh segments
+                enableDrawingMode(); // Stay in drawing mode
+                document.getElementById('routeNameInput').value = ''; // Clear route name input
+                console.log("Drawing mode enabled for new route");
+            } else {
+                console.log("Exiting drawing mode");
+                await loadSegments(); // Refresh segments
+                disableDrawingMode(); // Exit drawing mode
+                document.getElementById('control-panel').style.display = 'none';
+                console.log("Drawing mode disabled, control panel hidden");
+            }
         } else {
             throw new Error(data.error || 'Failed to save route');
         }
@@ -365,10 +384,10 @@ async function handleSaveConfirmation(gpxData) {
         confirmSaveBtn.disabled = false;
         console.log("Reset save button state");
     }
-}
-
-// Keep existing function exports
-window.handleSaveConfirmation = handleSaveConfirmation;
+ }
+ 
+ // Keep existing function exports
+ window.handleSaveConfirmation = handleSaveConfirmation;
 
 // ============================
 // SECTION: Reset Route Data
