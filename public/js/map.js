@@ -219,8 +219,15 @@ async function loadSegments() {
             'type': 'FeatureCollection',
             'features': data.routes.flatMap(route => {
                 if (route.geojson && route.geojson.features) {
-                    return route.geojson.features.filter(feature => 
-                        feature && feature.geometry && feature.geometry.coordinates);
+                    return route.geojson.features
+                        .filter(feature => 
+                            feature && feature.geometry && feature.geometry.coordinates)
+                        .map(feature => {
+                            // Add routeId to feature properties
+                            feature.properties = feature.properties || {};
+                            feature.properties.routeId = route._id;
+                            return feature;
+                        });
                 }
                 return [];
             })
@@ -240,6 +247,7 @@ async function loadSegments() {
         console.error('Error loading drawn routes:', error);
     }
 }
+
 
 // ============================
 // SECTION: Remove Segments
