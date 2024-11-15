@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');  // Import both MongoClient and ObjectId
 require('dotenv').config();
 
 const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -9,11 +9,9 @@ async function connectToMongo() {
     }
     return {
         routes: client.db('roadApp').collection('drawnRoutes'),
-        users: client.db('photoApp').collection('users')  // Note: case sensitive!
+        users: client.db('photoApp').collection('users')  // Use the correct database for users
     };
 }
-
-const { MongoClient, ObjectId } = require('mongodb');  // Import ObjectId
 
 module.exports = async (req, res) => {
     try {
