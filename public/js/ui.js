@@ -19,7 +19,6 @@ async function openSegmentModal(title, routeId) {
         const isAuthenticated = await auth0.isAuthenticated();
         console.log("Auth state:", isAuthenticated);
 
-        // Get current user if authenticated (using same pattern as photos)
         const currentUser = isAuthenticated ? await auth0.getUser() : null;
         console.log("Current user:", currentUser);
 
@@ -43,12 +42,16 @@ async function openSegmentModal(title, routeId) {
             throw new Error('Failed to fetch segment data');
         }
 
-        const segmentData = await response.json();
-        console.log("Segment data:", segmentData);
+        const data = await response.json();
+        console.log("Response data:", data);
 
-        if (segmentData && segmentData.auth0Id) {
+        // Get the specific route from the routes array
+        const route = data.routes?.find(r => r._id === routeId);
+        console.log("Found route:", route);
+
+        if (route?.auth0Id) {
             // Using same pattern as photo.js for user profile
-            const userProfile = await fetch(`/api/user?id=${encodeURIComponent(segmentData.auth0Id)}`)
+            const userProfile = await fetch(`/api/user?id=${encodeURIComponent(route.auth0Id)}`)
                 .then(res => res.ok ? res.json() : null)
                 .catch(err => {
                     console.error('Error fetching user profile:', err);
@@ -65,7 +68,7 @@ async function openSegmentModal(title, routeId) {
                         <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
                              class="creator-avatar" />
                         <div class="name-and-social">
-                            <strong>${userProfile?.bioName || segmentData.username || 'Anonymous'}</strong>
+                            <strong>${userProfile?.bioName || route.username || 'Anonymous'}</strong>
                             ${userProfile?.socialLinks ? `
                                 <div class="social-links">
                                     ${userProfile.socialLinks.instagram ? 
@@ -92,7 +95,7 @@ async function openSegmentModal(title, routeId) {
             `;
 
             // Only show delete button if user is the creator
-            if (isAuthenticated && currentUser && currentUser.sub === segmentData.auth0Id) {
+            if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {
                 console.log("User is the creator, showing delete button");
                 deleteButton.style.display = 'block';
                 deleteButton.onclick = () => deleteSegment(routeId);
@@ -132,7 +135,6 @@ async function openSegmentModal(title, routeId) {
         if (segmentTitle) segmentTitle.innerText = title;
     }
 }
-
 // =========================
 // SECTION: Comments
 // =========================
