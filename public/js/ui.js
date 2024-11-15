@@ -486,54 +486,91 @@ async function deleteComment(commentId) {
     }
 }
 
-
 // ============================
 // SECTION: Delete Segment
 // ============================
 async function deleteSegment() {
     const deleteButton = document.getElementById('delete-segment');
-
+    
     // Retrieve routeId directly from the displayed text in the modal
     const routeIdElement = document.getElementById('route-id');
     const routeId = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '') : null;
 
     if (!routeId) {
         console.error("No route ID found for deletion.");
-        return; // Exit early if no route ID
+        alert("Error: Could not find route ID.");
+        return;
     }
 
     // Prompt the user for confirmation
     if (!confirm("Are you sure you want to delete this segment?")) {
-        return; // Exit if deletion is canceled by the user
+        return;
     }
 
-    // Set button text to "Deleting..." and disable the button only if deletion is confirmed
+    // Set button text to "Deleting..." and disable the button
     deleteButton.disabled = true;
     deleteButton.innerHTML = "Deleting...";
 
     try {
-        console.log(`Deleting segment with ID: ${routeId}`);
+        // Get Auth0 instance and verify authentication
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        
+        if (!isAuthenticated) {
+            throw new Error('User not authenticated');
+        }
+
+        // Get user information
+        const user = await auth0.getUser();
+        if (!user || !user.sub) {
+            throw new Error('User information not available');
+        }
+
+        console.log(`Attempting to delete segment with ID: ${routeId}`);
+        
+        // Make delete request with authentication
         const response = await fetch(`/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`, {
             method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Auth0-ID': user.sub
+            }
         });
 
+        // Parse response
         const result = await response.json();
         console.log('Delete request result:', result);
 
         if (result.success) {
             console.log('Segment deleted successfully.');
+            alert('Segment deleted successfully!');
             closeModal();
-            loadSegments(); // Refresh to show the updated segments list
+            await loadSegments(); // Refresh to show the updated segments list
         } else {
-            console.error('Failed to delete segment:', result.message);
+            throw new Error(result.message || 'Failed to delete segment');
         }
     } catch (error) {
         console.error('Error in deleting segment:', error);
+        alert(error.message || 'Failed to delete segment. Please try again.');
+        
+        // Log detailed error information
+        if (error.response) {
+            console.error('Error response:', {
+                status: error.response.status,
+                statusText: error.response.statusText,
+                data: await error.response.text()
+            });
+        }
     } finally {
         // Reset button state after attempting deletion
         deleteButton.disabled = false;
         deleteButton.innerHTML = "Delete Segment";
     }
+}
+
+// Make sure to export the function if you're using modules
+if (typeof window !== 'undefined') {
+    window.deleteSegment = deleteSegment;
 }
 
 // ============================
