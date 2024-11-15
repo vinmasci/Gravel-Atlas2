@@ -615,30 +615,20 @@ body {
 }
 
 /* ============================
-   SECTION: Segment Modal
-   ============================ */
-/* ============================
    SECTION: Segment Modal Creator Info
    ============================ */
    .segment-header {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 12px;
+    padding-bottom: 8px;
 }
 
-.segment-title {
-    font-size: medium;
-    font-weight: bold;
-    margin: 0;
-}
-
+/* Reuse photo popup styles but make them work for segments too */
 .creator-info {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 0;
-    font-size: 12px;
 }
 
 .creator-avatar {
@@ -646,42 +636,39 @@ body {
     height: 24px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid #ddd;
 }
 
-.creator-info .social-links {
+.name-and-social {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* These social link styles should already exist from your photo popup */
+.social-links {
     display: flex;
     gap: 8px;
-    margin-left: 8px;
 }
 
-.creator-info .social-links a {
+.social-links a {
     color: #666;
-    transition: color 0.2s ease;
+    transition: color 0.2s;
 }
 
-/* Social media hover colors */
-.creator-info .social-links a:hover .fa-instagram {
+.social-links a:hover .fa-instagram {
     color: #E4405F;
 }
 
-.creator-info .social-links a:hover .fa-strava {
+.social-links a:hover .fa-strava {
     color: #FC4C02;
 }
 
-.creator-info .social-links a:hover .fa-facebook {
+.social-links a:hover .fa-facebook {
     color: #1877F2;
 }
 
-/* Make sure icons are properly sized */
-.creator-info .social-links i {
-    font-size: 14px;
-}
-
-/* Ensure proper spacing in modal header */
-.modal-header {
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+.social-links a:hover .fa-globe {
+    color: #2196F3;
 }
 
 /* ============================
