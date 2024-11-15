@@ -18,6 +18,10 @@ async function openSegmentModal(title, routeId) {
         const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
         console.log("Auth state:", isAuthenticated);
+        
+        // Get current user if authenticated
+        const currentUser = isAuthenticated ? await auth0.getUser() : null;
+        console.log("Current user:", currentUser);
 
         const modal = document.getElementById('segment-modal');
         const segmentTitle = document.getElementById('segment-details');
@@ -31,7 +35,76 @@ async function openSegmentModal(title, routeId) {
             return;
         }
 
-        segmentTitle.innerText = title;
+        // Fetch segment data including creator info
+        try {
+            const response = await fetch(`/api/get-drawn-routes?routeId=${routeId}`);
+            console.log("Segment data response:", response.status);
+            const segmentData = await response.json();
+            console.log("Segment data:", segmentData);
+
+            if (segmentData) {
+                // If we have the segment data, fetch creator's profile
+                try {
+                    const creatorResponse = await fetch(`/api/user?id=${encodeURIComponent(segmentData.auth0Id)}`);
+                    console.log("Creator profile response:", creatorResponse.status);
+                    const creatorProfile = await creatorResponse.json();
+                    console.log("Creator profile:", creatorProfile);
+
+                    // Update the segment title with creator info
+                    segmentTitle.innerHTML = `
+                        <div class="segment-header">
+                            <div class="segment-title">${title}</div>
+                            ${creatorProfile ? `
+                                <div class="creator-info">
+                                    <img src="${creatorProfile.picture || '/default-avatar.png'}" 
+                                         alt="Creator" 
+                                         class="creator-avatar"
+                                         style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;">
+                                    <span>${creatorProfile.bioName || 'Anonymous'}</span>
+                                    ${creatorProfile.socialLinks ? `
+                                        <div class="social-links">
+                                            ${creatorProfile.socialLinks.instagram ? 
+                                                `<a href="${creatorProfile.socialLinks.instagram}" target="_blank">
+                                                    <i class="fa-brands fa-instagram"></i>
+                                                </a>` : ''}
+                                            ${creatorProfile.socialLinks.strava ? 
+                                                `<a href="${creatorProfile.socialLinks.strava}" target="_blank">
+                                                    <i class="fa-brands fa-strava"></i>
+                                                </a>` : ''}
+                                            ${creatorProfile.socialLinks.facebook ? 
+                                                `<a href="${creatorProfile.socialLinks.facebook}" target="_blank">
+                                                    <i class="fa-brands fa-facebook"></i>
+                                                </a>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    // Only show delete button if user is the creator
+                    if (isAuthenticated && currentUser && currentUser.sub === segmentData.auth0Id) {
+                        console.log("User is the creator, showing delete button");
+                        deleteButton.style.display = 'block';
+                        deleteButton.onclick = function() {
+                            deleteSegment(routeId);
+                        };
+                    } else {
+                        console.log("User is not the creator, hiding delete button");
+                        deleteButton.style.display = 'none';
+                    }
+                } catch (profileError) {
+                    console.error("Error fetching creator profile:", profileError);
+                    segmentTitle.innerText = title; // Fallback to just title if profile fetch fails
+                }
+            } else {
+                segmentTitle.innerText = title;
+            }
+        } catch (segmentError) {
+            console.error("Error fetching segment data:", segmentError);
+            segmentTitle.innerText = title; // Fallback to just title if segment fetch fails
+        }
+
         routeIdElement.innerText = `Route ID: ${routeId}`;
         window.currentRouteId = routeId;
 
@@ -39,20 +112,13 @@ async function openSegmentModal(title, routeId) {
         modal.classList.add('show');
         modal.style.display = 'block';
 
-        // Setup delete button
-        deleteButton.onclick = function() {
-            deleteSegment(routeId);
-        };
-
-        // Handle authentication-dependent elements
+        // Handle authentication-dependent elements (keeping your existing logic)
         if (isAuthenticated) {
             console.log("User is authenticated, showing auth-dependent elements");
-            if (deleteButton) deleteButton.style.display = 'block';
             if (flagButton) flagButton.style.display = 'block';
             if (addCommentSection) addCommentSection.style.display = 'block';
         } else {
             console.log("User is not authenticated, hiding auth-dependent elements");
-            if (deleteButton) deleteButton.style.display = 'none';
             if (flagButton) flagButton.style.display = 'none';
             if (addCommentSection) addCommentSection.style.display = 'none';
         }

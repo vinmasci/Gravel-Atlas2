@@ -615,6 +615,76 @@ body {
 }
 
 /* ============================
+   SECTION: Segment Modal
+   ============================ */
+/* ============================
+   SECTION: Segment Modal Creator Info
+   ============================ */
+   .segment-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.segment-title {
+    font-size: medium;
+    font-weight: bold;
+    margin: 0;
+}
+
+.creator-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+}
+
+.creator-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #ddd;
+}
+
+.creator-info .social-links {
+    display: flex;
+    gap: 8px;
+    margin-left: 8px;
+}
+
+.creator-info .social-links a {
+    color: #666;
+    transition: color 0.2s ease;
+}
+
+/* Social media hover colors */
+.creator-info .social-links a:hover .fa-instagram {
+    color: #E4405F;
+}
+
+.creator-info .social-links a:hover .fa-strava {
+    color: #FC4C02;
+}
+
+.creator-info .social-links a:hover .fa-facebook {
+    color: #1877F2;
+}
+
+/* Make sure icons are properly sized */
+.creator-info .social-links i {
+    font-size: 14px;
+}
+
+/* Ensure proper spacing in modal header */
+.modal-header {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+/* ============================
    SECTION: Photo Popup
    ============================ */
    .photo-popup {
