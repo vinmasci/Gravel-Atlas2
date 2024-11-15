@@ -80,11 +80,10 @@ async function openSegmentModal(title, routeId) {
             <div class="segment-header">
                 <div class="segment-title">${title}</div>
                 <div class="creator-info">
-                    <span>By:</span>
                     <img src="${userProfile?.picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
                          class="creator-avatar" 
                          alt="Creator avatar"/>
-                    <strong>${userProfile?.bioName || 'Anonymous'}</strong>
+                    ${userProfile?.bioName || 'Anonymous'}
                     ${userProfile?.socialLinks ? `
                         <div class="social-links">
                             ${userProfile.socialLinks.instagram ? 
