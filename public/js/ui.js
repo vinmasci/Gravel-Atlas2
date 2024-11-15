@@ -512,10 +512,16 @@ async function deleteSegment() {
     deleteButton.innerHTML = "Deleting...";
 
     try {
-        const response = await fetch(`/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`, {
+        const deleteUrl = `/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`;
+        console.log("Making delete request to:", deleteUrl);
+        
+        const response = await fetch(deleteUrl, {
             method: 'DELETE'
         });
-
+        
+        console.log("Response status:", response.status);
+        console.log("Full response:", response);
+        
         const result = await response.json();
         console.log('Delete request result:', result);
 

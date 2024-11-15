@@ -17,11 +17,19 @@ module.exports = async (req, res) => {
 
     try {
         const collection = await connectToMongo();
-        const filter = { _id: new ObjectId(routeId) }; // Match by _id with ObjectId conversion
-
-        console.log("Attempting to delete with filter:", filter);
-        const result = await collection.deleteOne(filter);
-
+        console.log("MongoDB Connected");
+        
+        // Log the exact query we're about to run
+        const objectId = new ObjectId(routeId);
+        console.log("Created ObjectId:", objectId);
+        
+        // Check if document exists first
+        const document = await collection.findOne({ _id: objectId });
+        console.log("Found document:", document);  // This will help us see if the document exists
+        
+        const result = await collection.deleteOne({ _id: objectId });
+        console.log("Delete result:", result);
+        
         if (result.deletedCount === 1) {
             res.status(200).json({ success: true, message: 'Segment deleted successfully!' });
         } else {
