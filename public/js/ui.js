@@ -498,7 +498,6 @@ async function deleteSegment() {
 
     if (!routeId) {
         console.error("No route ID found for deletion.");
-        alert("Error: Could not find route ID.");
         return;
     }
 
@@ -512,55 +511,25 @@ async function deleteSegment() {
     deleteButton.innerHTML = "Deleting...";
 
     try {
-        // Get Auth0 instance and verify authentication
-        const auth0 = await waitForAuth0();
-        const isAuthenticated = await auth0.isAuthenticated();
-        
-        if (!isAuthenticated) {
-            throw new Error('User not authenticated');
-        }
-
-        // Get user information
-        const user = await auth0.getUser();
-        if (!user || !user.sub) {
-            throw new Error('User information not available');
-        }
-
-        console.log(`Attempting to delete segment with ID: ${routeId}`);
-        
-        // Make delete request with authentication
+        console.log(`Deleting segment with ID: ${routeId}`);
         const response = await fetch(`/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Auth0-ID': user.sub
-            }
+            method: 'DELETE'
         });
 
-        // Parse response
         const result = await response.json();
         console.log('Delete request result:', result);
 
         if (result.success) {
             console.log('Segment deleted successfully.');
-            alert('Segment deleted successfully!');
             closeModal();
             await loadSegments(); // Refresh to show the updated segments list
         } else {
-            throw new Error(result.message || 'Failed to delete segment');
+            console.error('Failed to delete segment:', result.message);
+            alert(result.message || 'Failed to delete segment');
         }
     } catch (error) {
         console.error('Error in deleting segment:', error);
-        alert(error.message || 'Failed to delete segment. Please try again.');
-        
-        // Log detailed error information
-        if (error.response) {
-            console.error('Error response:', {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                data: await error.response.text()
-            });
-        }
+        alert('Failed to delete segment. Please try again.');
     } finally {
         // Reset button state after attempting deletion
         deleteButton.disabled = false;
