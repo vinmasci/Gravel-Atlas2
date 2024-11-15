@@ -558,6 +558,16 @@ function closeModal() {
 }
 
 // ============================
+// Attach Event Listener to Delete Button (No Inline Onclick)
+// ============================
+document.getElementById('delete-segment').addEventListener('click', () => {
+    // Fetch the segmentId from the delete button's data attribute
+    const segmentId = document.getElementById('delete-segment').getAttribute('data-segment-id');
+    deleteSegment(segmentId); // Call deleteSegment with segmentId
+});
+
+
+// ============================
 // SECTION: Tab Highlighting
 // ============================
 function updateTabHighlight(tabId, isActive) {
