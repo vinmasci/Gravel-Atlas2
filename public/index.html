@@ -764,6 +764,38 @@ body {
     align-items: center;
     gap: 8px;
 }
+
+/* ============================
+   SECTION: Route Name Modal
+   ============================ */
+   #routeNameModal {
+    max-height: 30vh; /* Increased from 17vh */
+    width: 400px; /* Increased width */
+}
+
+#routeNameModal .modal-content {
+    padding: 20px; /* Increased padding */
+    min-height: 200px; /* Set minimum height */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#routeNameModal h4 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+}
+
+#routeNameModal .form-control {
+    margin: 10px 0;
+    padding: 8px;
+    font-size: 16px;
+}
+
+#routeNameModal button {
+    padding: 8px 16px;
+    font-size: 14px;
+}
     </style>
     
 <!-- Map container should be empty -->
@@ -881,10 +913,10 @@ body {
 
 <!-- Modal for Route Name -->
 <div id="routeNameModal" class="modal">
-    <div class="modal-content"> <!-- Increased padding and height -->
+    <div class="modal-content route-name-content"> <!-- Added specific class -->
         <h4>Street / Track or Path Name:</h4>
         <input type="text" id="routeNameInput" placeholder="Enter road/path name" class="form-control" />
-        <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 20px;"> <!-- Align buttons side by side -->
+        <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 20px;">
             <button id="confirmSaveBtn" class="btn btn-success btn-sm">Save Route</button>
             <button onclick="closeRouteNameModal()" class="btn btn-secondary btn-sm">Cancel</button>
         </div>
