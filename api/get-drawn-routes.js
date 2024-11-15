@@ -1,6 +1,5 @@
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
-
 const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 async function connectToMongo() {
@@ -13,43 +12,44 @@ async function connectToMongo() {
 module.exports = async (req, res) => {
     try {
         const collection = await connectToMongo();
-        
-        // Fetch all routes from the MongoDB collection
-        const routes = await collection.find({}).toArray();
+        const { routeId } = req.query; // Get specific routeId if provided
 
-        // Log the raw routes before processing them
+        // If routeId is provided, fetch specific route, otherwise fetch all
+        const query = routeId ? { _id: new MongoClient.ObjectId(routeId) } : {};
+        const routes = await collection.find(query).toArray();
+        
         console.log("Raw routes from MongoDB:", JSON.stringify(routes, null, 2));
 
-// Simplify route formatting
-const formattedRoutes = routes.map(route => {
-    const formattedFeatures = route.geojson.features.map(feature => {
-        return {
-            ...feature,
-            properties: {
-                ...feature.properties,
-                title: feature.properties.title || "Untitled Route",  // Default title if not set
-                color: feature.properties.color || "#000000",  // Default color if not set
-                lineStyle: feature.properties.lineStyle || "solid",  // Default line style if not set
-                routeId: route._id.toString()  // Include routeId in each feature's properties
-            }
-        };
-    });
+        // Simplify route formatting
+        const formattedRoutes = routes.map(route => {
+            const formattedFeatures = route.geojson.features.map(feature => {
+                return {
+                    ...feature,
+                    properties: {
+                        ...feature.properties,
+                        title: feature.properties.title || "Untitled Route",
+                        color: feature.properties.color || "#000000",
+                        lineStyle: feature.properties.lineStyle || "solid",
+                        routeId: route._id.toString()
+                    }
+                };
+            });
 
-    return {
-        routeId: route._id.toString(),
-        geojson: {
-            type: "FeatureCollection",
-            features: formattedFeatures
-        },
-        gravelType: route.gravelType  // Return the gravel type
-    };
-});
+            return {
+                _id: route._id.toString(), // Include the route ID
+                auth0Id: route.auth0Id, // Include the creator's auth0Id
+                geojson: {
+                    type: "FeatureCollection",
+                    features: formattedFeatures
+                },
+                metadata: route.metadata, // Include full metadata
+                gravelType: route.gravelType,
+                createdAt: route.createdAt
+            };
+        });
 
-
-        // Log the formatted routes before sending them to the client
         console.log("Formatted routes being sent:", JSON.stringify(formattedRoutes, null, 2));
 
-        // Send the formatted routes to the client
         res.status(200).json({ routes: formattedRoutes });
     } catch (error) {
         console.error('Error retrieving routes:', error);
