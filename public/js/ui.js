@@ -602,6 +602,7 @@ function toggleAddDropdown() {
 function openRouteNameModal() {
     const modal = document.getElementById('routeNameModal');
     const routeNameInput = document.getElementById('routeNameInput');
+    const confirmSaveBtn = document.getElementById('confirmSaveBtn');
 
     if (modal) {
         // Clear any existing input value
@@ -609,9 +610,10 @@ function openRouteNameModal() {
             routeNameInput.value = '';
         }
 
-        // Clean up any existing event listeners on the confirm button
-        const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+        // Reset save button state
         if (confirmSaveBtn) {
+            confirmSaveBtn.innerText = "Save Route";
+            confirmSaveBtn.disabled = false;
             const newConfirmBtn = confirmSaveBtn.cloneNode(true);
             confirmSaveBtn.parentNode.replaceChild(newConfirmBtn, confirmSaveBtn);
         }
@@ -627,6 +629,7 @@ function openRouteNameModal() {
 function closeRouteNameModal() {
     const modal = document.getElementById('routeNameModal');
     const routeNameInput = document.getElementById('routeNameInput');
+    const confirmSaveBtn = document.getElementById('confirmSaveBtn');
 
     if (modal) {
         // Clear the input when closing
@@ -634,9 +637,10 @@ function closeRouteNameModal() {
             routeNameInput.value = '';
         }
 
-        // Remove event listener from confirm button
-        const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+        // Reset save button state
         if (confirmSaveBtn) {
+            confirmSaveBtn.innerText = "Save Route";
+            confirmSaveBtn.disabled = false;
             const newConfirmBtn = confirmSaveBtn.cloneNode(true);
             confirmSaveBtn.parentNode.replaceChild(newConfirmBtn, confirmSaveBtn);
         }
