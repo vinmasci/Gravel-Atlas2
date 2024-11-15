@@ -255,19 +255,25 @@ function saveDrawnRoute() {
         });
 
         // Convert GeoJSON to GPX
-        const gpxData = togpx ? togpx(segmentsGeoJSON) : null; // Make sure gpxData is assigned here
+        const gpxData = togpx ? togpx(segmentsGeoJSON) : null;
         if (!gpxData) {
             console.error("GPX conversion failed. 'togpx' is not defined.");
             return;
         }
 
-        // Open the modal and prepare for route name input
+        // Clear the route name input before showing the modal
+        document.getElementById('routeNameInput').value = '';
+        
+        // Open the modal
         openRouteNameModal();
 
-        // Set the event listener on confirm button once
+        // Remove any existing event listeners from the confirm button
         const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-        confirmSaveBtn.removeEventListener('click', () => handleSaveConfirmation(gpxData)); // Remove previous listener
-        confirmSaveBtn.addEventListener('click', () => handleSaveConfirmation(gpxData)); // Pass gpxData to handler
+        const oldElement = confirmSaveBtn.cloneNode(true);
+        confirmSaveBtn.parentNode.replaceChild(oldElement, confirmSaveBtn);
+        
+        // Add new event listener
+        oldElement.addEventListener('click', () => handleSaveConfirmation(gpxData), { once: true });
     } else {
         alert('No route to save.');
     }
