@@ -67,15 +67,13 @@ async function handleProfileImageChange(event) {
             });
         });
 
-        // Upload to S3
+        // Get pre-signed URL and upload to S3
         const response = await fetch(
             `/api/get-upload-url?fileType=${encodeURIComponent(compressedFile.type)}&fileName=${encodeURIComponent(compressedFile.name)}`
         );
 
         if (!response.ok) {
-            const error = await response.text();
-            console.error('Pre-signed URL error:', error);
-            throw new Error(`Failed to get upload URL: ${error}`);
+            throw new Error(`Failed to get upload URL: ${await response.text()}`);
         }
 
         const { uploadURL, fileUrl } = await response.json();
@@ -90,9 +88,7 @@ async function handleProfileImageChange(event) {
         });
 
         if (!uploadResponse.ok) {
-            const error = await uploadResponse.text();
-            console.error('Upload error:', error);
-            throw new Error(`Upload failed: ${error}`);
+            throw new Error(`Upload failed: ${await uploadResponse.text()}`);
         }
 
         console.log('Upload successful:', fileUrl);
@@ -104,21 +100,29 @@ async function handleProfileImageChange(event) {
         // Get existing profile data
         const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
-        // Update profile with new image URL while preserving other data
+        // Prepare profile data
+        const profileData = {
+            ...currentProfile,
+            auth0Id: user.sub,
+            email: user.email, // Make sure email is included as it's required
+            picture: fileUrl
+        };
+
+        console.log('Updating profile with data:', profileData);
+
+        // Update profile with new image URL
         const profileResponse = await fetch('/api/user', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                ...currentProfile,
-                auth0Id: user.sub,
-                picture: fileUrl
-            })
+            body: JSON.stringify(profileData)
         });
 
         if (!profileResponse.ok) {
-            throw new Error('Failed to update profile');
+            const errorText = await profileResponse.text();
+            console.error('Profile update error response:', errorText);
+            throw new Error(`Failed to update profile: ${errorText}`);
         }
 
         // Update UI
@@ -131,6 +135,8 @@ async function handleProfileImageChange(event) {
 
         // Update profile pictures across UI
         updateProfilePictureDisplay(fileUrl);
+
+        console.log('Profile update successful');
 
     } catch (error) {
         console.error('Error updating profile image:', error);
