@@ -28,6 +28,15 @@ async function handleProfileImageChange(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Debug logging to check file object
+    console.log('File object type check:', {
+        isFile: file instanceof File,
+        isBlob: file instanceof Blob,
+        type: file.type,
+        name: file.name,
+        size: file.size
+    });
+
     try {
         // Show loading state
         const profileImage = document.getElementById('current-profile-image');
