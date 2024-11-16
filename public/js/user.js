@@ -126,6 +126,13 @@ async function initializeProfile() {
             idDisplay.textContent = user.sub;
         }
 
+        // Set initial profile picture from Auth0
+        const profileImage = document.getElementById('current-profile-image');
+        if (profileImage && user.picture) {
+            profileImage.src = user.picture;
+            debugLog('Set initial Auth0 profile picture');
+        }
+
         try {
             // Try to get profile from MongoDB first
             const response = await fetch(`/api/user/${user.sub}`);
@@ -134,10 +141,13 @@ async function initializeProfile() {
                 debugLog('Loaded profile from MongoDB:', profile);
                 localStorage.setItem('userProfile', JSON.stringify(profile));
                 populateForm(profile);
-                
                 // Update profile image if exists
                 if (profile.picture) {
                     updateProfilePictureDisplay(profile.picture);
+                } else if (user.picture) {
+                    // If no MongoDB picture but Auth0 picture exists, use that
+                    profile.picture = user.picture;
+                    localStorage.setItem('userProfile', JSON.stringify(profile));
                 }
                 return;
             }
@@ -167,9 +177,8 @@ async function initializeProfile() {
             localStorage.setItem('userProfile', JSON.stringify(profile));
             debugLog('Initialized new profile:', profile);
         }
-        
+
         populateForm(profile);
-        
         // Update profile image if exists
         if (profile.picture) {
             updateProfilePictureDisplay(profile.picture);
@@ -196,9 +205,28 @@ function populateForm(profile) {
                 profileImage.src = profile.picture;
             }
         }
-        
         debugLog('Form populated with profile data');
     }
+}
+
+function updateProfilePictureDisplay(imageUrl) {
+    // Update main profile section
+    const profileImage = document.getElementById('current-profile-image');
+    if (profileImage) {
+        profileImage.src = imageUrl || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
+    }
+
+    // Update profile pictures in the header/nav if they exist
+    const headerProfilePics = document.querySelectorAll('.profile-pic img');
+    headerProfilePics.forEach(pic => {
+        pic.src = imageUrl;
+    });
+
+    // Update photo popups if they exist
+    const photoPopupProfilePics = document.querySelectorAll('.photo-popup .profile-pic img');
+    photoPopupProfilePics.forEach(pic => {
+        pic.src = imageUrl;
+    });
 }
 
 async function getCurrentUser() {
