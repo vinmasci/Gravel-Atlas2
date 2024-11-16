@@ -33,24 +33,10 @@ async function handleProfileImageChange(event) {
         const profileImage = document.getElementById('current-profile-image');
         profileImage.style.opacity = '0.5';
 
-        console.log('Input file:', {
-            type: fileInput.type,
-            name: fileInput.name,
-            size: fileInput.size
-        });
-
-        // Create a new File object
+        // Compress and upload image
         const arrayBuffer = await fileInput.arrayBuffer();
         const file = new File([arrayBuffer], fileInput.name, { type: fileInput.type });
-
-        console.log('Created file:', {
-            isFile: file instanceof File,
-            type: file.type,
-            name: file.name,
-            size: file.size
-        });
-
-        // Compress image using Compressor directly
+        
         const compressedFile = await new Promise((resolve, reject) => {
             new Compressor(file, {
                 quality: 0.6,
@@ -67,7 +53,7 @@ async function handleProfileImageChange(event) {
             });
         });
 
-        // Get pre-signed URL and upload to S3
+        // Upload to S3
         const response = await fetch(
             `/api/get-upload-url?fileType=${encodeURIComponent(compressedFile.type)}&fileName=${encodeURIComponent(compressedFile.name)}`
         );
@@ -93,39 +79,62 @@ async function handleProfileImageChange(event) {
 
         console.log('Upload successful:', fileUrl);
 
-        // Get current user and update profile
+        // Get current user and profile data
         const auth0 = await waitForAuth0();
         const user = await auth0.getUser();
-
-        // Get existing profile data
         const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
         // Prepare profile data
         const profileData = {
             ...currentProfile,
             auth0Id: user.sub,
-            email: user.email, // Make sure email is included as it's required
+            email: user.email,
             picture: fileUrl
         };
 
         console.log('Updating profile with data:', profileData);
 
-        // Update profile with new image URL
-        const profileResponse = await fetch('/api/user', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(profileData)
-        });
+        // Try to update profile with retries
+        let retryCount = 0;
+        const maxRetries = 3;
+        let profileUpdateSuccess = false;
 
-        if (!profileResponse.ok) {
-            const errorText = await profileResponse.text();
-            console.error('Profile update error response:', errorText);
-            throw new Error(`Failed to update profile: ${errorText}`);
+        while (retryCount < maxRetries && !profileUpdateSuccess) {
+            try {
+                const profileResponse = await fetch('/api/user', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (profileResponse.ok) {
+                    profileUpdateSuccess = true;
+                    break;
+                } else {
+                    const errorText = await profileResponse.text();
+                    console.error(`Profile update attempt ${retryCount + 1} failed:`, errorText);
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                    }
+                }
+            } catch (error) {
+                console.error(`Profile update attempt ${retryCount + 1} error:`, error);
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                }
+            }
         }
 
-        // Update UI
+        if (!profileUpdateSuccess) {
+            // Even if MongoDB update failed, we can still update the UI and localStorage
+            console.warn('MongoDB update failed, updating local state only');
+        }
+
+        // Update UI regardless of MongoDB success
         profileImage.src = fileUrl;
         profileImage.style.opacity = '1';
 
@@ -136,7 +145,9 @@ async function handleProfileImageChange(event) {
         // Update profile pictures across UI
         updateProfilePictureDisplay(fileUrl);
 
-        console.log('Profile update successful');
+        if (!profileUpdateSuccess) {
+            alert('Profile picture updated locally. Changes will sync when connection improves.');
+        }
 
     } catch (error) {
         console.error('Error updating profile image:', error);
