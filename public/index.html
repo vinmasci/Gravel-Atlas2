@@ -128,7 +128,7 @@ body {
 /* ============================
    SECTION: Profile Section
    ============================ */
-   #profile-section {
+#profile-section {
     position: absolute;
     top: 60px;
     right: 10px;
@@ -159,6 +159,27 @@ body {
     font-weight: 500;
     margin-bottom: 5px;
 }
+
+/* Enhanced Input Styles */
+.profile-form .form-control {
+    transition: border-color 0.2s ease;
+}
+
+.profile-form .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Social Media Icons in Labels */
+.profile-form .form-label i {
+    margin-right: 8px;
+    width: 16px;
+}
+
+.profile-form .fa-instagram { color: #E4405F; }
+.profile-form .fa-strava { color: #FC4C02; }
+.profile-form .fa-facebook { color: #1877F2; }
+.profile-form .fa-globe { color: #2196F3; }
 
 .form-group {
     display: flex;
@@ -196,6 +217,16 @@ body {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+.save-profile-btn i {
+    margin-right: 8px;
+}
+
+.save-profile-btn:hover {
+    background-color: #0056b3;
 }
 
 .save-profile-btn:hover {
@@ -212,6 +243,69 @@ body {
     pointer-events: none;
 }
 
+.profile-image-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.current-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+}
+
+.image-upload {
+    display: flex;
+    justify-content: center;
+}
+
+/* Image Upload Button Enhancement */
+.image-upload-label {
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.image-upload-label:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Profile Image Loading State */
+.image-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.image-loading-overlay i {
+    color: #007bff;
+    font-size: 24px;
+}
+
+.current-image {
+    position: relative;
+}
 /* ============================
    SECTION: Map Layer Options
    ============================ */
@@ -968,34 +1062,69 @@ body {
             <div class="id-display">
                 <small>ID: <span id="profile-auth0id" class="user-id"></span></small>
             </div>
+
+            <div class="profile-image-container mb-3">
+                <div class="current-image">
+                    <img id="current-profile-image" class="profile-image" 
+                         src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" 
+                         alt="Profile Image">
+                    <div id="profile-image-loading" class="image-loading-overlay" style="display: none;">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+                <div class="image-upload">
+                    <label for="profile-image-input" class="btn btn-outline-primary btn-sm image-upload-label">
+                        <i class="fa-solid fa-camera"></i> Change Photo
+                    </label>
+                    <input
+                        type="file"
+                        id="profile-image-input"
+                        accept="image/*"
+                        style="display: none;"
+                        onchange="handleProfileImageChange(event)"
+                    >
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label for="bioName" class="form-label">Bio Name</label>
                 <input type="text" class="form-control" id="bioName" name="bioName">
             </div>
             
             <div class="mb-3">
-                <label for="instagram" class="form-label">Instagram</label>
-                <input type="text" class="form-control" id="instagram" name="socialLinks.instagram">
+                <label for="instagram" class="form-label">
+                    <i class="fa-brands fa-instagram"></i> Instagram
+                </label>
+                <input type="text" class="form-control" id="instagram" name="socialLinks.instagram" 
+                       placeholder="Instagram profile URL">
             </div>
             
             <div class="mb-3">
-                <label for="strava" class="form-label">Strava</label>
-                <input type="text" class="form-control" id="strava" name="socialLinks.strava">
+                <label for="strava" class="form-label">
+                    <i class="fa-brands fa-strava"></i> Strava
+                </label>
+                <input type="text" class="form-control" id="strava" name="socialLinks.strava"
+                       placeholder="Strava profile URL">
             </div>
             
             <div class="mb-3">
-                <label for="facebook" class="form-label">Facebook</label>
-                <input type="text" class="form-control" id="facebook" name="socialLinks.facebook">
+                <label for="facebook" class="form-label">
+                    <i class="fa-brands fa-facebook"></i> Facebook
+                </label>
+                <input type="text" class="form-control" id="facebook" name="socialLinks.facebook"
+                       placeholder="Facebook profile URL">
             </div>
             
             <div class="mb-3">
-                <label for="website" class="form-label">Website</label>
-                <input type="url" class="form-control" id="website" name="website">
+                <label for="website" class="form-label">
+                    <i class="fa-solid fa-globe"></i> Website
+                </label>
+                <input type="url" class="form-control" id="website" name="website"
+                       placeholder="Your website URL">
             </div>
-            
-            <!-- Modified button -->
-            <button type="submit" class="btn btn-primary w-100">
-                Save Profile
+
+            <button type="submit" class="btn btn-primary w-100 save-profile-btn">
+                <i class="fa-solid fa-save"></i> Save Profile
             </button>
         </form>
     </div>

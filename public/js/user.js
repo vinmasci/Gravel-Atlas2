@@ -23,6 +23,88 @@ function waitForAuth0() {
     });
 }
 
+// Add new profile image handling function
+async function handleProfileImageChange(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        // Show loading state
+        const profileImage = document.getElementById('current-profile-image');
+        profileImage.style.opacity = '0.5';
+
+        // Compress image using existing compressImage function from photo.js
+        const compressedFile = await compressImage(file);
+
+        // Upload to S3 using existing uploadToS3 function from photo.js
+        const fileUrl = await uploadToS3(compressedFile);
+
+        // Get current user and update profile
+        const auth0 = await waitForAuth0();
+        const user = await auth0.getUser();
+
+        // Get existing profile data
+        const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+
+        // Update profile with new image URL while preserving other data
+        const response = await fetch('/api/user', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ...currentProfile,
+                auth0Id: user.sub,
+                picture: fileUrl
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update profile');
+        }
+
+        // Update UI
+        profileImage.src = fileUrl;
+        profileImage.style.opacity = '1';
+
+        // Update localStorage
+        currentProfile.picture = fileUrl;
+        localStorage.setItem('userProfile', JSON.stringify(currentProfile));
+
+        // Update profile pictures across UI
+        updateProfilePictureDisplay(fileUrl);
+
+    } catch (error) {
+        console.error('Error updating profile image:', error);
+        alert('Failed to update profile image. Please try again.');
+        
+        // Reset opacity
+        const profileImage = document.getElementById('current-profile-image');
+        profileImage.style.opacity = '1';
+    }
+}
+
+// Add new UI update function
+function updateProfilePictureDisplay(imageUrl) {
+    // Update main profile section
+    const profileImage = document.getElementById('current-profile-image');
+    if (profileImage) {
+        profileImage.src = imageUrl;
+    }
+
+    // Update profile pictures in the header/nav if they exist
+    const headerProfilePics = document.querySelectorAll('.profile-pic img');
+    headerProfilePics.forEach(pic => {
+        pic.src = imageUrl;
+    });
+
+    // Update photo popups if they exist
+    const photoPopupProfilePics = document.querySelectorAll('.photo-popup .profile-pic img');
+    photoPopupProfilePics.forEach(pic => {
+        pic.src = imageUrl;
+    });
+}
+
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
@@ -38,12 +120,11 @@ async function initializeProfile() {
         const user = await auth0.getUser();
         debugLog('Auth0 user data:', user);
 
-                // Display the auth0Id
-                const idDisplay = document.getElementById('profile-auth0id');
-                if (idDisplay) {
-                    idDisplay.textContent = user.sub;
-                }
-        
+        // Display the auth0Id
+        const idDisplay = document.getElementById('profile-auth0id');
+        if (idDisplay) {
+            idDisplay.textContent = user.sub;
+        }
 
         try {
             // Try to get profile from MongoDB first
@@ -53,6 +134,11 @@ async function initializeProfile() {
                 debugLog('Loaded profile from MongoDB:', profile);
                 localStorage.setItem('userProfile', JSON.stringify(profile));
                 populateForm(profile);
+                
+                // Update profile image if exists
+                if (profile.picture) {
+                    updateProfilePictureDisplay(profile.picture);
+                }
                 return;
             }
         } catch (error) {
@@ -71,6 +157,7 @@ async function initializeProfile() {
                 bioName: user.name || user.nickname || '',
                 email: user.email || '',
                 website: '',
+                picture: user.picture || '', // Add initial picture from Auth0
                 socialLinks: {
                     instagram: '',
                     strava: '',
@@ -82,6 +169,11 @@ async function initializeProfile() {
         }
         
         populateForm(profile);
+        
+        // Update profile image if exists
+        if (profile.picture) {
+            updateProfilePictureDisplay(profile.picture);
+        }
     } catch (error) {
         console.error('Error initializing profile:', error);
         debugLog('Profile initialization error:', error);
@@ -96,6 +188,15 @@ function populateForm(profile) {
         form.querySelector('#instagram').value = profile.socialLinks?.instagram || '';
         form.querySelector('#strava').value = profile.socialLinks?.strava || '';
         form.querySelector('#facebook').value = profile.socialLinks?.facebook || '';
+        
+        // Update profile image if it exists
+        if (profile.picture) {
+            const profileImage = document.getElementById('current-profile-image');
+            if (profileImage) {
+                profileImage.src = profile.picture;
+            }
+        }
+        
         debugLog('Form populated with profile data');
     }
 }
@@ -163,11 +264,15 @@ function setupProfileForm() {
                     throw new Error('Not authenticated');
                 }
                 
+                // Get existing profile to preserve picture URL
+                const existingProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                
                 const formData = new FormData(newForm);
                 const profileData = {
                     auth0Id: user.sub,
                     bioName: formData.get('bioName'),
                     website: formData.get('website'),
+                    picture: existingProfile.picture || user.picture, // Preserve existing picture
                     socialLinks: {
                         instagram: formData.get('socialLinks.instagram'),
                         strava: formData.get('socialLinks.strava'),
@@ -245,6 +350,9 @@ window.userModule = {
     initializeProfile,
     setupProfileForm
 };
+
+// Make handleProfileImageChange globally available
+window.handleProfileImageChange = handleProfileImageChange;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
