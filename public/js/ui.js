@@ -292,12 +292,6 @@ async function renderComments(routeId) {
             fetch(`/api/comments?routeId=${routeId}`)
         ]);
 
-                // Remove the spinner specifically
-                const loadingSpinner = commentsList.querySelector('.comment-loading');
-                if (loadingSpinner) {
-                    loadingSpinner.remove();
-                }
-
         console.log("Current user:", currentUser);
         console.log("Comments API response status:", response.status);
 
@@ -307,6 +301,9 @@ async function renderComments(routeId) {
 
         const comments = await response.json();
         console.log("Received comments:", comments);
+
+        // Clear spinner and comments list AFTER we have the data
+        commentsList.innerHTML = '';
 
         if (comments.length === 0) {
             const noCommentsDiv = document.createElement('div');
@@ -318,7 +315,7 @@ async function renderComments(routeId) {
             const routeIdElement = document.getElementById('route-id');
             const displayedAuth0Id = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
             console.log("Using auth0Id from display:", displayedAuth0Id);
-
+            
         // Fetch all user profiles in parallel
         const userProfiles = new Map();
         await Promise.all(comments.map(async (comment) => {
