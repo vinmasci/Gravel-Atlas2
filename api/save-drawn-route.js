@@ -32,7 +32,9 @@ async function getElevationData(coordinates) {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
             console.log(`Coordinates [${lng}, ${lat}]`);
             
-            const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+            // Construct URL with zoom level and convert coordinates to tile coordinates
+            const zoom = 14; // Higher zoom = more precise elevation data
+            const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/${lng},${lat},${zoom}/tilequery.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
             console.log('Fetching elevation from Mapbox:', url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'ACCESS_TOKEN'));
             
             try {
@@ -48,14 +50,12 @@ async function getElevationData(coordinates) {
                 const data = await response.json();
                 
                 if (data.features && data.features[0]) {
-                    const rgb = data.features[0].properties;
-                    const elevation = -10000 + ((rgb.r * 256 * 256 + rgb.g * 256 + rgb.b) * 0.1);
+                    const elevation = data.features[0].properties.ele || 0;
                     const roundedElevation = Math.round(elevation);
                     
                     console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
-                        elevation: roundedElevation,
-                        rgb: { r: rgb.r, g: rgb.g, b: rgb.b }
+                        elevation: roundedElevation
                     });
                     
                     return [lng, lat, roundedElevation];
