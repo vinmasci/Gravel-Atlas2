@@ -33,11 +33,9 @@ async function handleProfileImageChange(event) {
         const profileImage = document.getElementById('current-profile-image');
         profileImage.style.opacity = '0.5';
 
-        // Compress image using existing compressImage function from photo.js
-        const compressedFile = await compressImage(file);
-
-        // Upload to S3 using existing uploadToS3 function from photo.js
-        const fileUrl = await uploadToS3(compressedFile);
+        // Use window.compressImage and window.uploadToS3 from photo.js
+        const compressedFile = await window.compressImage(file);
+        const fileUrl = await window.uploadToS3(compressedFile);
 
         // Get current user and update profile
         const auth0 = await waitForAuth0();
