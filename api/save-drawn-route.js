@@ -32,8 +32,8 @@ async function getElevationData(coordinates) {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
             console.log(`Coordinates [${lng}, ${lat}]`);
             
-            // Use the Mapbox Terrain-DEM v1 tileset
-            const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+            // Use the correct tilequery endpoint format
+            const url = `https://api.mapbox.com/v4/mapbox.terrain-dem-v1/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&layers=contour`;
             console.log('Fetching elevation from Mapbox:', url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'ACCESS_TOKEN'));
             
             try {
@@ -49,9 +49,8 @@ async function getElevationData(coordinates) {
                 const data = await response.json();
                 
                 if (data.features && data.features[0]) {
-                    // The elevation is directly available in the 'elevation' property
-                    const elevation = data.features[0].properties.elevation || 0;
-                    const roundedElevation = Math.round(elevation);
+                    const elevation = data.features[0].properties.ele;
+                    const roundedElevation = Math.round(elevation || 0);
                     
                     console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
