@@ -267,18 +267,25 @@ function createCommentElement(comment, currentUser, userProfile = null) {
 // Updated renderComments function
 async function renderComments(routeId) {
     console.log("Rendering comments for routeId:", routeId);
+    const commentsList = document.getElementById('comments-list');
+    
     try {
+        // Show loading spinner
+        commentsList.innerHTML = `
+            <div class="comment-loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>Loading comments...</span>
+            </div>
+        `;
+
         const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
         console.log("Authentication status:", isAuthenticated);
 
-        const commentsList = document.getElementById('comments-list');
         if (!commentsList) {
             console.error("Comments list element not found");
             return;
         }
-
-        commentsList.innerHTML = '';
 
         const [currentUser, response] = await Promise.all([
             getCurrentUser(),
@@ -367,6 +374,8 @@ async function renderComments(routeId) {
 
 async function addComment() {
     console.log('Adding new comment');
+    const submitButton = document.getElementById('submit-comment');
+    
     try {
         const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
@@ -382,12 +391,14 @@ async function addComment() {
         const routeIdElement = document.getElementById('route-id');
         const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
 
-        console.log('Adding comment with routeId:', routeId);
-
         if (!commentText) {
             alert('Please enter a comment.');
             return;
         }
+
+        // Disable button and change text
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
 
         const user = await getCurrentUser();
         if (!user) {
@@ -404,7 +415,7 @@ async function addComment() {
                 routeId: routeId,
                 username: user.name || user.email,
                 text: commentText,
-                auth0Id: user.sub // Include auth0Id for profile linking
+                auth0Id: user.sub
             })
         });
 
@@ -421,6 +432,10 @@ async function addComment() {
     } catch (error) {
         console.error('Error saving comment:', error);
         alert('Error saving comment. Please try again.');
+    } finally {
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Submit';
     }
 }
 
