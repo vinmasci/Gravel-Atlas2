@@ -292,6 +292,12 @@ async function renderComments(routeId) {
             fetch(`/api/comments?routeId=${routeId}`)
         ]);
 
+                // Remove the spinner specifically
+                const loadingSpinner = commentsList.querySelector('.comment-loading');
+                if (loadingSpinner) {
+                    loadingSpinner.remove();
+                }
+
         console.log("Current user:", currentUser);
         console.log("Comments API response status:", response.status);
 
