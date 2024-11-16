@@ -1,69 +1,198 @@
 const { MongoClient } = require('mongodb');
+const fetch = require('node-fetch');
 require('dotenv').config();
-const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+const client = new MongoClient(process.env.MONGODB_URI, { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true 
+});
 
 async function connectToMongo() {
-    if (!client.topology || !client.topology.isConnected()) {
-        await client.connect();
+    console.log('Attempting MongoDB connection...');
+    try {
+        if (!client.topology || !client.topology.isConnected()) {
+            await client.connect();
+            console.log('MongoDB connection established successfully');
+        } else {
+            console.log('Using existing MongoDB connection');
+        }
+        return client.db('roadApp').collection('drawnRoutes');
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        throw error;
     }
-    return client.db('roadApp').collection('drawnRoutes');
+}
+
+async function getElevationData(coordinates) {
+    console.log('\n=== Starting Elevation Data Fetch ===');
+    console.log(`Processing ${coordinates.length} coordinates for elevation data`);
+    
+    try {
+        const promises = coordinates.map(async ([lng, lat], index) => {
+            console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
+            console.log(`Coordinates [${lng}, ${lat}]`);
+            
+            const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+            console.log('Fetching elevation from Mapbox:', url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'ACCESS_TOKEN'));
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error(`❌ Elevation API error for coordinate ${index + 1}:`, {
+                        status: response.status,
+                        statusText: response.statusText
+                    });
+                    return [lng, lat, 0];
+                }
+                
+                const data = await response.json();
+                
+                if (data.features && data.features[0]) {
+                    const rgb = data.features[0].properties;
+                    const elevation = -10000 + ((rgb.r * 256 * 256 + rgb.g * 256 + rgb.b) * 0.1);
+                    const roundedElevation = Math.round(elevation);
+                    
+                    console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
+                        coordinate: [lng, lat],
+                        elevation: roundedElevation,
+                        rgb: { r: rgb.r, g: rgb.g, b: rgb.b }
+                    });
+                    
+                    return [lng, lat, roundedElevation];
+                }
+                
+                console.warn(`⚠️ No elevation data found for coordinate ${index + 1}, using 0`);
+                return [lng, lat, 0];
+                
+            } catch (error) {
+                console.error(`❌ Error processing coordinate ${index + 1}:`, error);
+                return [lng, lat, 0];
+            }
+        });
+
+        const results = await Promise.all(promises);
+        console.log('\n=== Elevation Data Fetch Complete ===');
+        console.log('Summary:', {
+            totalCoordinates: coordinates.length,
+            coordinatesWithElevation: results.filter(coord => coord[2] !== 0).length
+        });
+        
+        return results;
+    } catch (error) {
+        console.error('\n❌ Fatal error in elevation data fetch:', error);
+        return coordinates.map(([lng, lat]) => [lng, lat, 0]);
+    }
 }
 
 module.exports = async (req, res) => {
+    console.log('\n========== Starting Route Save Process ==========');
+    console.log('Timestamp:', new Date().toISOString());
+    
     try {
-        // Destructure the incoming data from the frontend
         const { gpxData, geojson, metadata, auth0Id } = req.body;
 
-        // Keep all existing debug logs
-        console.log("Received GPX Data:", gpxData);
-        console.log("Received GeoJSON Data:", geojson);
-        console.log("Received Metadata:", metadata);
-        console.log("Received Auth0 ID:", auth0Id); // Add auth0Id to logging
+        // Log incoming data structure
+        console.log('\n=== Received Data Structure ===');
+        console.log('GPX Data Present:', !!gpxData);
+        console.log('GeoJSON Features Count:', geojson?.features?.length || 0);
+        console.log('Metadata:', {
+            title: metadata?.title,
+            otherFields: Object.keys(metadata || {}).filter(k => k !== 'title')
+        });
+        console.log('Auth0 ID Present:', !!auth0Id);
 
-        // Check if required data is missing (keeping original checks and adding auth0Id)
+        // Validation
         if (!gpxData || !geojson || !metadata) {
-            console.log("Missing required data:", { gpxData: !!gpxData, geojson: !!geojson, metadata: !!metadata });
-            return res.status(400).json({ error: 'Missing required data (gpxData, geojson, or metadata)' });
+            console.error('\n❌ Validation Error - Missing Required Data:', {
+                gpxData: !!gpxData,
+                geojson: !!geojson,
+                metadata: !!metadata
+            });
+            return res.status(400).json({
+                error: 'Missing required data (gpxData, geojson, or metadata)'
+            });
         }
 
-        const collection = await connectToMongo();
-
-        // Add title to each feature in the geojson data (keeping original functionality)
-        if (metadata.title) {
-            console.log("Adding title to features:", metadata.title);
-            geojson.features = geojson.features.map(feature => ({
-                ...feature,
-                properties: {
-                    ...feature.properties,
-                    title: metadata.title,
-                    auth0Id: auth0Id || null // Add auth0Id but don't break if missing
+        // Process features with elevation data
+        console.log('\n=== Processing Features ===');
+        const enrichedFeatures = await Promise.all(
+            geojson.features.map(async (feature, index) => {
+                console.log(`\nProcessing feature ${index + 1}/${geojson.features.length}`);
+                
+                if (feature.geometry && feature.geometry.coordinates) {
+                    console.log(`Feature ${index + 1} coordinates count:`, feature.geometry.coordinates.length);
+                    
+                    const coordinatesWithElevation = await getElevationData(
+                        feature.geometry.coordinates
+                    );
+                    
+                    console.log(`✅ Feature ${index + 1} processing complete`);
+                    return {
+                        ...feature,
+                        geometry: {
+                            ...feature.geometry,
+                            coordinates: coordinatesWithElevation
+                        }
+                    };
                 }
-            }));
+                
+                console.warn(`⚠️ Feature ${index + 1} has no valid geometry`);
+                return feature;
+            })
+        );
+
+        // Create enriched GeoJSON
+        const enrichedGeoJson = {
+            ...geojson,
+            features: enrichedFeatures
+        };
+
+        // Add properties to features
+        if (metadata.title) {
+            console.log('\n=== Adding Metadata to Features ===');
+            console.log('Title:', metadata.title);
+            
+            enrichedGeoJson.features = enrichedGeoJson.features.map((feature, index) => {
+                console.log(`Enriching feature ${index + 1} with metadata`);
+                return {
+                    ...feature,
+                    properties: {
+                        ...feature.properties,
+                        title: metadata.title,
+                        auth0Id: auth0Id || null
+                    }
+                };
+            });
         }
 
-        // Prepare the document to insert (keeping all original fields)
+        // Prepare MongoDB document
         const documentToInsert = {
-            gpxData: gpxData,
-            geojson: geojson,
-            metadata: metadata,
-            auth0Id: auth0Id || null, // Add auth0Id but don't break if missing
+            gpxData,
+            geojson: enrichedGeoJson,
+            metadata,
+            auth0Id: auth0Id || null,
             createdAt: new Date()
         };
 
-        console.log("Inserting document:", documentToInsert);
-
-        // Insert the route data into MongoDB
+        console.log('\n=== Saving to MongoDB ===');
+        const collection = await connectToMongo();
         const result = await collection.insertOne(documentToInsert);
+        console.log('✅ Route saved successfully');
+        console.log('MongoDB Document ID:', result.insertedId);
 
-        // Keep original success logging
-        console.log('Route saved with ID:', result.insertedId);
-
-        // Respond with the same success format
-        res.status(200).json({ success: true, routeId: result.insertedId });
+        // Final success response
+        console.log('\n========== Route Save Process Complete ==========\n');
+        res.status(200).json({
+            success: true,
+            routeId: result.insertedId
+        });
 
     } catch (error) {
-        // Keep original error logging
-        console.error('Error saving route:', error);
+        console.error('\n❌ Error in save-drawn-route:', {
+            message: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
         res.status(500).json({ error: 'Failed to save route' });
     }
 };
