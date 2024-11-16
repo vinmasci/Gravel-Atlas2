@@ -28,19 +28,40 @@ async function handleProfileImageChange(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Debug logging to check file object
-    console.log('File object type check:', {
-        isFile: file instanceof File,
-        isBlob: file instanceof Blob,
-        type: file.type,
-        name: file.name,
-        size: file.size
+    // Debug logging to check original file
+    console.log('Original file:', {
+        isFile: originalFile instanceof File,
+        isBlob: originalFile instanceof Blob,
+        type: originalFile.type,
+        name: originalFile.name,
+        size: originalFile.size
     });
 
     try {
         // Show loading state
         const profileImage = document.getElementById('current-profile-image');
         profileImage.style.opacity = '0.5';
+
+                // Read the file data and create a new proper File object
+                const reader = new FileReader();
+                const file = await new Promise((resolve, reject) => {
+                    reader.onload = () => {
+                        const blob = new Blob([reader.result], { type: originalFile.type });
+                        const file = new File([blob], originalFile.name, { type: originalFile.type });
+                        resolve(file);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(originalFile);
+                });
+        
+                // Debug log the new file object
+                console.log('New file object:', {
+                    isFile: file instanceof File,
+                    isBlob: file instanceof Blob,
+                    type: file.type,
+                    name: file.name,
+                    size: file.size
+                });
 
         // Compress image using Compressor directly
         const compressedFile = await new Promise((resolve, reject) => {
