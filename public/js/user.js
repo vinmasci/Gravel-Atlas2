@@ -33,9 +33,52 @@ async function handleProfileImageChange(event) {
         const profileImage = document.getElementById('current-profile-image');
         profileImage.style.opacity = '0.5';
 
-        // Use window.compressImage and window.uploadToS3 from photo.js
-        const compressedFile = await window.compressImage(file);
-        const fileUrl = await window.uploadToS3(compressedFile);
+        // Compress image using Compressor directly
+        const compressedFile = await new Promise((resolve, reject) => {
+            new Compressor(file, {
+                quality: 0.6,
+                maxWidth: 1600,
+                maxHeight: 1200,
+                success(result) {
+                    console.log(`Compressed ${file.name} from ${file.size/1024}KB to ${result.size/1024}KB`);
+                    resolve(result);
+                },
+                error(err) {
+                    console.error(`Compression error for ${file.name}:`, err);
+                    reject(err);
+                }
+            });
+        });
+
+        // Upload to S3
+        const response = await fetch(
+            `/api/get-upload-url?fileType=${encodeURIComponent(compressedFile.type)}&fileName=${encodeURIComponent(compressedFile.name)}`
+        );
+
+        if (!response.ok) {
+            const error = await response.text();
+            console.error('Pre-signed URL error:', error);
+            throw new Error(`Failed to get upload URL: ${error}`);
+        }
+
+        const { uploadURL, fileUrl } = await response.json();
+        console.log('Got pre-signed URL, attempting upload...');
+
+        const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: compressedFile,
+            headers: {
+                'Content-Type': compressedFile.type
+            }
+        });
+
+        if (!uploadResponse.ok) {
+            const error = await uploadResponse.text();
+            console.error('Upload error:', error);
+            throw new Error(`Upload failed: ${error}`);
+        }
+
+        console.log('Upload successful:', fileUrl);
 
         // Get current user and update profile
         const auth0 = await waitForAuth0();
@@ -45,7 +88,7 @@ async function handleProfileImageChange(event) {
         const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
         // Update profile with new image URL while preserving other data
-        const response = await fetch('/api/user', {
+        const profileResponse = await fetch('/api/user', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -57,7 +100,7 @@ async function handleProfileImageChange(event) {
             })
         });
 
-        if (!response.ok) {
+        if (!profileResponse.ok) {
             throw new Error('Failed to update profile');
         }
 
