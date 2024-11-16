@@ -8,7 +8,7 @@ const connectDB = async () => {
         await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            dbName: 'photoApp' // Explicitly specify the database name
+            dbName: 'photoApp'
         });
         console.log('MongoDB connected successfully to photoApp database');
     } catch (error) {
@@ -26,7 +26,6 @@ export default async function handler(req, res) {
             case 'GET':
                 // Get auth0Id from query parameter only
                 const auth0Id = req.query.id;
-
                 console.log('GET request details:', {
                     receivedAuth0Id: auth0Id,
                     url: req.url,
@@ -51,8 +50,49 @@ export default async function handler(req, res) {
                 return res.json(userProfile);
 
             case 'PUT':
-                // Your existing PUT code...
-                break;
+                const profileData = req.body;
+                console.log('PUT request body:', profileData);
+
+                if (!profileData.auth0Id) {
+                    return res.status(400).json({ error: 'No auth0Id provided in request body' });
+                }
+
+                try {
+                    // Find and update or create if doesn't exist
+                    const updatedProfile = await User.findOneAndUpdate(
+                        { auth0Id: profileData.auth0Id },
+                        {
+                            $set: {
+                                bioName: profileData.bioName,
+                                email: profileData.email,
+                                picture: profileData.picture,
+                                website: profileData.website,
+                                socialLinks: profileData.socialLinks,
+                                updatedAt: new Date()
+                            }
+                        },
+                        {
+                            new: true, // Return updated document
+                            upsert: true, // Create if doesn't exist
+                            runValidators: true,
+                            setDefaultsOnInsert: true
+                        }
+                    );
+
+                    console.log('Profile updated successfully:', updatedProfile);
+                    return res.json(updatedProfile);
+
+                } catch (updateError) {
+                    console.error('Error updating profile:', updateError);
+                    return res.status(500).json({
+                        error: 'Failed to update profile',
+                        details: updateError.message
+                    });
+                }
+
+            default:
+                res.setHeader('Allow', ['GET', 'PUT']);
+                return res.status(405).json({ error: `Method ${method} Not Allowed` });
         }
     } catch (error) {
         console.error('Error in user API:', error);
