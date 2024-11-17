@@ -12,6 +12,10 @@ async function waitForAuth0() {
     });
 }
 
+// =========================
+// SECTION: Open segment modal
+// =========================
+
 async function openSegmentModal(title, routeId) {
     console.log("Opening segment modal with title:", title, "and routeId:", routeId);
     try {
@@ -165,6 +169,10 @@ async function openSegmentModal(title, routeId) {
     }
 }
 
+// =========================
+// SECTION: Render elevation profile
+// =========================
+
 function renderElevationProfile(route) {
     console.log("Rendering elevation profile for route:", route);
     const elevationDiv = document.getElementById('elevation-profile');
@@ -254,7 +262,7 @@ elevationDiv.innerHTML = `
                     data: chartData.map(d => d.elevation),
                     borderColor: '#4285F4',
                     borderWidth: 2,
-                    backgroundColor: 'rgba(66, 133, 244, 0.3)', // Simple transparent blue fill
+                    backgroundColor: 'rgba(66, 133, 244, 0.9)', // Simple transparent blue fill
                     fill: true,           // Enable fill
                     tension: 0.4,
                     pointRadius: 3,
