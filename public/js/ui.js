@@ -218,27 +218,29 @@ function renderElevationProfile(route) {
     });
 
     // Create the profile HTML
-    elevationDiv.innerHTML = `
-        <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-            <div class="stat-box" style="text-align: center;">
-                <div style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
-                <div style="font-size: 12px; color: #666;">Distance</div>
-            </div>
-            <div class="stat-box" style="text-align: center;">
-                <div style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
-                <div style="font-size: 12px; color: #666;">Gain</div>
-            </div>
-            <div class="stat-box" style="text-align: center;">
-                <div style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
-                <div style="font-size: 12px; color: #666;">Loss</div>
-            </div>
-            <div class="stat-box" style="text-align: center;">
-                <div style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
-                <div style="font-size: 12px; color: #666;">Max</div>
-            </div>
+elevationDiv.innerHTML = `
+    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+        <div class="stat-box" style="text-align: center;">
+            <div style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
+            <div style="font-size: 12px; color: #666;">Distance</div>
         </div>
-        <canvas id="elevation-chart" style="width: 100%; height: 200px;"></canvas>
-    `;
+        <div class="stat-box" style="text-align: center;">
+            <div style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
+            <div style="font-size: 12px; color: #666;">Gain</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
+            <div style="font-size: 12px; color: #666;">Loss</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
+            <div style="font-size: 12px; color: #666;">Max</div>
+        </div>
+    </div>
+    <div style="height: 200px; position: relative;">
+        <canvas id="elevation-chart"></canvas>
+    </div>
+`;
 
     try {
         // Create the chart using Chart.js
@@ -250,15 +252,15 @@ function renderElevationProfile(route) {
                 datasets: [{
                     label: 'Elevation',
                     data: chartData.map(d => d.elevation),
-                    borderColor: '#4285F4', // Google blue color
+                    borderColor: '#4285F4',
                     borderWidth: 2,
                     fill: {
                         target: 'origin',
-                        above: 'rgba(66, 133, 244, 0.1)',  // Very light blue fill
+                        above: 'rgba(66, 133, 244, 0.1)',
                     },
-                    tension: 0.4,          // Makes the line smoother
-                    pointRadius: 3,        // Smaller points
-                    pointHoverRadius: 5,   // Slightly larger on hover
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
                     pointBackgroundColor: '#4285F4',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 1
@@ -266,7 +268,8 @@ function renderElevationProfile(route) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,  // Add this to control aspect ratio
                 plugins: {
                     tooltip: {
                         callbacks: {
@@ -275,13 +278,13 @@ function renderElevationProfile(route) {
                         }
                     },
                     legend: {
-                        display: false  // Hide the legend
+                        display: false
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            color: '#E5E5E5',  // Lighter grid lines
+                            color: '#E5E5E5',
                             drawBorder: false
                         },
                         title: {
@@ -299,7 +302,7 @@ function renderElevationProfile(route) {
                     },
                     y: {
                         grid: {
-                            color: '#E5E5E5',  // Lighter grid lines
+                            color: '#E5E5E5',
                             drawBorder: false
                         },
                         title: {
@@ -318,11 +321,12 @@ function renderElevationProfile(route) {
                 },
                 elements: {
                     line: {
-                        tension: 0.4  // Makes the line smoother
+                        tension: 0.4
                     }
                 }
             }
         });
+
         console.log("Elevation chart created successfully");
     } catch (error) {
         console.error("Error creating elevation chart:", error);
