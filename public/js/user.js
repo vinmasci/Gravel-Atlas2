@@ -180,6 +180,10 @@ function updateProfilePictureDisplay(imageUrl) {
     });
 }
 
+
+// =========================
+// SECTION: Initialise Profile
+// =========================
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
@@ -210,7 +214,7 @@ async function initializeProfile() {
 
         try {
             // Try to get profile from MongoDB first
-            const response = await fetch(`/api/user/${user.sub}`);
+            const response = await fetch(`/api/user?id=${encodeURIComponent(user.sub)}`);
             if (response.ok) {
                 const profile = await response.json();
                 debugLog('Loaded profile from MongoDB:', profile);
@@ -264,6 +268,10 @@ async function initializeProfile() {
     }
 }
 
+// =========================
+// SECTION: Populate Form 
+// =========================
+
 function populateForm(profile) {
     const form = document.getElementById('profile-form');
     if (form) {
@@ -304,6 +312,10 @@ function updateProfilePictureDisplay(imageUrl) {
     });
 }
 
+// =========================
+// SECTION: Get Current User 
+// =========================
+
 async function getCurrentUser() {
     debugLog('Getting current user');
     try {
@@ -313,7 +325,7 @@ async function getCurrentUser() {
 
         try {
             // Try to get profile from MongoDB first
-            const response = await fetch(`/api/user/${auth0User.sub}`);
+            const response = await fetch(`/api/user?id=${encodeURIComponent(user.sub)}`);
             if (response.ok) {
                 const userData = await response.json();
                 debugLog('Profile data from MongoDB:', userData);
@@ -341,6 +353,10 @@ async function getCurrentUser() {
         return null;
     }
 }
+
+// =========================
+// SECTION: Setup Profile Form 
+// =========================
 
 function setupProfileForm() {
     debugLog('Setting up profile form - START');
@@ -375,7 +391,8 @@ function setupProfileForm() {
                     auth0Id: user.sub,
                     bioName: formData.get('bioName'),
                     website: formData.get('website'),
-                    picture: existingProfile.picture || user.picture, // Preserve existing picture
+                    picture: existingProfile.picture || user.picture,
+                    email: user.email, // Add this line
                     socialLinks: {
                         instagram: formData.get('socialLinks.instagram'),
                         strava: formData.get('socialLinks.strava'),

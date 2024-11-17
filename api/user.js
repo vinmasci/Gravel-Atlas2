@@ -57,6 +57,11 @@ export default async function handler(req, res) {
                     return res.status(400).json({ error: 'No auth0Id provided in request body' });
                 }
 
+                if (!profileData.email) {
+                    return res.status(400).json({ error: 'Email is required' });
+                }
+                
+
                 try {
                     // Find and update or create if doesn't exist
                     const updatedProfile = await User.findOneAndUpdate(
