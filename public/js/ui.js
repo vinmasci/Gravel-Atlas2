@@ -58,6 +58,10 @@ async function openSegmentModal(title, routeId) {
         });
         console.log("Found route:", route);
 
+        if (route) {
+            renderElevationProfile(route);
+        }
+
         // Initialize userProfile variable
         let userProfile = route?.userProfile;
 
@@ -121,7 +125,7 @@ async function openSegmentModal(title, routeId) {
         if (isAuthenticated && currentUser && currentUser.sub === route.auth0Id) {
             console.log("User is the creator, showing delete button");
             deleteButton.style.display = 'block';
-            deleteButton.setAttribute('data-segment-id', routeId); // Add this line
+            deleteButton.setAttribute('data-segment-id', routeId);
             deleteButton.onclick = () => deleteSegment(routeId);
         } else {
             console.log("User is not the creator, hiding delete button");
@@ -161,6 +165,146 @@ async function openSegmentModal(title, routeId) {
     }
 }
 
+function renderElevationProfile(route) {
+    console.log("Rendering elevation profile for route:", route);
+    const elevationDiv = document.getElementById('elevation-profile');
+    
+    if (!route?.geojson?.features?.length) {
+        console.warn('No route features found for elevation profile');
+        return;
+    }
+
+    // Get coordinates from all features
+    const allCoordinates = route.geojson.features.flatMap(f => f.geometry.coordinates);
+    console.log("Processing coordinates for elevation profile:", allCoordinates.length);
+    
+    // Calculate statistics
+    let totalDistance = 0;
+    let elevationGain = 0;
+    let elevationLoss = 0;
+    let minElevation = Infinity;
+    let maxElevation = -Infinity;
+    
+    const chartData = allCoordinates.map((coord, index) => {
+        const elevation = coord[2];
+        minElevation = Math.min(minElevation, elevation);
+        maxElevation = Math.max(maxElevation, elevation);
+        
+        if (index > 0) {
+            const prevCoord = allCoordinates[index - 1];
+            const elevDiff = elevation - prevCoord[2];
+            if (elevDiff > 0) elevationGain += elevDiff;
+            if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
+            
+            // Calculate distance from previous point
+            totalDistance += calculateDistance(
+                prevCoord[1], prevCoord[0],  // prev lat, lng
+                coord[1], coord[0]           // current lat, lng
+            );
+        }
+        
+        return {
+            distance: totalDistance,
+            elevation: elevation
+        };
+    });
+
+    console.log("Elevation statistics calculated:", {
+        totalDistance,
+        elevationGain,
+        elevationLoss,
+        minElevation,
+        maxElevation
+    });
+
+    // Create the profile HTML
+    elevationDiv.innerHTML = `
+        <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
+                <div style="font-size: 12px; color: #666;">Distance</div>
+            </div>
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
+                <div style="font-size: 12px; color: #666;">Gain</div>
+            </div>
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
+                <div style="font-size: 12px; color: #666;">Loss</div>
+            </div>
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
+                <div style="font-size: 12px; color: #666;">Max</div>
+            </div>
+        </div>
+        <canvas id="elevation-chart" style="width: 100%; height: 200px;"></canvas>
+    `;
+
+    try {
+        // Create the chart using Chart.js
+        const ctx = document.getElementById('elevation-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(d => d.distance.toFixed(1)),
+                datasets: [{
+                    label: 'Elevation',
+                    data: chartData.map(d => d.elevation),
+                    borderColor: '#2563eb',
+                    borderWidth: 2,
+                    fill: true,
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `Elevation: ${context.parsed.y}m`,
+                            title: (context) => `Distance: ${context[0].label}km`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Distance (km)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Elevation (m)'
+                        }
+                    }
+                }
+            }
+        });
+        console.log("Elevation chart created successfully");
+    } catch (error) {
+        console.error("Error creating elevation chart:", error);
+    }
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+function toRad(degrees) {
+    return degrees * Math.PI / 180;
+}
 
 // =========================
 // SECTION: Comments
@@ -315,7 +459,7 @@ async function renderComments(routeId) {
             const routeIdElement = document.getElementById('route-id');
             const displayedAuth0Id = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
             console.log("Using auth0Id from display:", displayedAuth0Id);
-            
+
         // Fetch all user profiles in parallel
         const userProfiles = new Map();
         await Promise.all(comments.map(async (comment) => {

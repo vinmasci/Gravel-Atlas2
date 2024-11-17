@@ -18,6 +18,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
     <script src="https://kit.fontawesome.com/b02e210188.js" crossorigin="anonymous"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/1.22.5/auth0-spa-js.production.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -933,7 +934,6 @@ body {
     </select>
 </div>
 
-<!-- Segment Info Modal -->
 <div id="segment-modal" class="modal">
     <div class="modal-content">
         <!-- Header with Segment Title -->
@@ -941,7 +941,12 @@ body {
             <p id="segment-details" style="font-size: medium; font-weight: bold; margin: 0;">Segment Title</p>
             <span class="close" onclick="closeModal()">&times;</span>
         </div>
-        
+
+        <!-- Add Elevation Profile Section Here -->
+        <div id="elevation-profile" style="margin: 15px 0;">
+            <!-- Elevation profile will be dynamically added here -->
+        </div>
+
         <!-- Body with Comments Section -->
         <div class="modal-body">
             <div id="comments-section">
@@ -955,17 +960,7 @@ body {
                 </div>
             </div>
         </div>
-        
-        <!-- Footer with Buttons and Route ID -->
-        <div class="modal-footer" style="display: flex; flex-direction: column; align-items: flex-end;">
-            <!-- Buttons with smaller size -->
-            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                <button id="flag-segment" class="btn btn-warning" style="font-size: 12px; padding: 4px 8px;">Flag</button>
-                <button id="delete-segment" class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;">Delete</button>
-            </div>
-            <!-- Route ID positioned below the buttons -->
-            <p id="route-id" style="font-size: x-small; color: gray; margin: 0;">Route ID: </p>
-        </div>
+        <!-- Rest of your modal content -->
     </div>
 </div>
 
