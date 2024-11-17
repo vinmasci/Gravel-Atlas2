@@ -250,11 +250,18 @@ function renderElevationProfile(route) {
                 datasets: [{
                     label: 'Elevation',
                     data: chartData.map(d => d.elevation),
-                    borderColor: '#2563eb',
+                    borderColor: '#4285F4', // Google blue color
                     borderWidth: 2,
-                    fill: true,
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    tension: 0.4
+                    fill: {
+                        target: 'origin',
+                        above: 'rgba(66, 133, 244, 0.1)',  // Very light blue fill
+                    },
+                    tension: 0.4,          // Makes the line smoother
+                    pointRadius: 3,        // Smaller points
+                    pointHoverRadius: 5,   // Slightly larger on hover
+                    pointBackgroundColor: '#4285F4',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1
                 }]
             },
             options: {
@@ -266,20 +273,52 @@ function renderElevationProfile(route) {
                             label: (context) => `Elevation: ${context.parsed.y}m`,
                             title: (context) => `Distance: ${context[0].label}km`
                         }
+                    },
+                    legend: {
+                        display: false  // Hide the legend
                     }
                 },
                 scales: {
                     x: {
+                        grid: {
+                            color: '#E5E5E5',  // Lighter grid lines
+                            drawBorder: false
+                        },
                         title: {
                             display: true,
-                            text: 'Distance (km)'
+                            text: 'Distance (km)',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
                         }
                     },
                     y: {
+                        grid: {
+                            color: '#E5E5E5',  // Lighter grid lines
+                            drawBorder: false
+                        },
                         title: {
                             display: true,
-                            text: 'Elevation (m)'
+                            text: 'Elevation (m)',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
                         }
+                    }
+                },
+                elements: {
+                    line: {
+                        tension: 0.4  // Makes the line smoother
                     }
                 }
             }
