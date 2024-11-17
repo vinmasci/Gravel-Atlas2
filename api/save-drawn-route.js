@@ -31,7 +31,8 @@ async function getElevationData(coordinates) {
         const promises = coordinates.map(async ([lng, lat], index) => {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
             
-            const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json?layers=contour&access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+            // Use Terrain-RGB endpoint
+            const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
             
             try {
                 const response = await fetch(url);
@@ -45,33 +46,23 @@ async function getElevationData(coordinates) {
                 
                 const data = await response.json();
                 
-                if (data.features && data.features.length > 0) {
-                    // Get all elevation values with their distances from the point
-                    const elevationsWithDistances = data.features
-                        .filter(f => typeof f.properties.ele === 'number')
-                        .map(f => ({
-                            elevation: f.properties.ele,
-                            // Mapbox returns distance in meters from the query point
-                            distance: f.properties.tilequery.distance || 0
-                        }))
-                        .sort((a, b) => a.distance - b.distance); // Sort by distance
-
-                    // Take the elevation of the closest contour line
-                    const closestElevation = elevationsWithDistances[0].elevation;
+                if (data.features && data.features[0] && data.features[0].properties) {
+                    const rgb = data.features[0].properties;
                     
-                    console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
+                    // Apply the elevation formula from documentation
+                    const elevation = -10000 + ((rgb.r * 256 * 256 + rgb.g * 256 + rgb.b) * 0.1);
+                    const roundedElevation = Math.round(elevation);
+                    
+                    console.log(`✅ Successfully calculated elevation for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
-                        selectedElevation: closestElevation,
-                        allElevations: elevationsWithDistances.map(e => ({
-                            ele: e.elevation,
-                            dist: Math.round(e.distance)
-                        }))
+                        rgbValues: { r: rgb.r, g: rgb.g, b: rgb.b },
+                        calculatedElevation: roundedElevation
                     });
                     
-                    return [lng, lat, closestElevation];
+                    return [lng, lat, roundedElevation];
                 }
                 
-                console.warn(`⚠️ No elevation data found for coordinate ${index + 1}, using 0`);
+                console.warn(`⚠️ No RGB data found for coordinate ${index + 1}, using 0`);
                 return [lng, lat, 0];
                 
             } catch (error) {
@@ -92,7 +83,7 @@ async function getElevationData(coordinates) {
         
         return results;
     } catch (error) {
-        console.error('\n❌ Fatal error in elevation data fetch:', error);
+        console.error('\n❌ Fatal error in elevation fetch:', error);
         return coordinates.map(([lng, lat]) => [lng, lat, 0]);
     }
 }
