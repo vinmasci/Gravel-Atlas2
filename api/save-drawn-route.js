@@ -31,38 +31,44 @@ async function getElevationData(coordinates) {
         const promises = coordinates.map(async ([lng, lat], index) => {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
             
-            // Use Terrain-RGB endpoint
-            const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+            // Correct format for Terrain-RGB tiles
+            const zoom = 14; // Zoom level for appropriate resolution
+            const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/${lng},${lat},${zoom}/${lng},${lat}.pngraw?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
             
             try {
                 const response = await fetch(url);
                 if (!response.ok) {
                     console.error(`❌ Elevation API error for coordinate ${index + 1}:`, {
                         status: response.status,
-                        statusText: response.statusText
+                        statusText: response.statusText,
+                        url: url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'TOKEN')
                     });
                     return [lng, lat, 0];
                 }
                 
-                const data = await response.json();
+                // Get the raw pixel data
+                const buffer = await response.arrayBuffer();
+                const data = new Uint8Array(buffer);
                 
-                if (data.features && data.features[0] && data.features[0].properties) {
-                    const rgb = data.features[0].properties;
+                if (data.length >= 3) {
+                    const r = data[0];
+                    const g = data[1];
+                    const b = data[2];
                     
-                    // Apply the elevation formula from documentation
-                    const elevation = -10000 + ((rgb.r * 256 * 256 + rgb.g * 256 + rgb.b) * 0.1);
+                    // Calculate elevation using the formula from docs
+                    const elevation = -10000 + ((r * 256 * 256 + g * 256 + b) * 0.1);
                     const roundedElevation = Math.round(elevation);
                     
                     console.log(`✅ Successfully calculated elevation for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
-                        rgbValues: { r: rgb.r, g: rgb.g, b: rgb.b },
-                        calculatedElevation: roundedElevation
+                        rgbValues: { r, g, b },
+                        elevation: roundedElevation
                     });
                     
                     return [lng, lat, roundedElevation];
                 }
                 
-                console.warn(`⚠️ No RGB data found for coordinate ${index + 1}, using 0`);
+                console.warn(`⚠️ Invalid RGB data for coordinate ${index + 1}, using 0`);
                 return [lng, lat, 0];
                 
             } catch (error) {
