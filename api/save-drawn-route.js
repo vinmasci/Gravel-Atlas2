@@ -30,44 +30,47 @@ async function getElevationData(coordinates) {
     try {
         const promises = coordinates.map(async ([lng, lat], index) => {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
-            console.log(`Coordinates [${lng}, ${lat}]`);
             
-            // Use the correct tilequery endpoint format
             const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
-            console.log('Fetching elevation from Mapbox:', url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'ACCESS_TOKEN'));
             
             try {
                 const response = await fetch(url);
-                if (!response.ok) {
-                    console.error(`❌ Elevation API error for coordinate ${index + 1}:`, {
-                        status: response.status,
-                        statusText: response.statusText
-                    });
-                    return [lng, lat, 0];
-                }
-                
                 const data = await response.json();
+
+                // Debug log the entire response
+                console.log(`Full response data for coordinate ${index + 1}:`, JSON.stringify(data, null, 2));
                 
-                if (data.features && data.features[0]) {
+                if (data.features && data.features.length > 0) {
+                    // Log the first feature's properties to see what we're getting
+                    console.log('First feature properties:', data.features[0].properties);
+                    
                     const elevation = data.features[0].properties.ele;
                     const roundedElevation = Math.round(elevation || 0);
                     
-                    console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
-                        coordinate: [lng, lat],
-                        elevation: roundedElevation
+                    console.log(`✅ Got elevation for [${lng}, ${lat}]:`, {
+                        elevation: roundedElevation,
+                        rawElevation: elevation,
+                        properties: data.features[0].properties
                     });
                     
                     return [lng, lat, roundedElevation];
                 }
                 
-                console.warn(`⚠️ No elevation data found for coordinate ${index + 1}, using 0`);
+                console.warn(`⚠️ No elevation data for [${lng}, ${lat}], using 0`);
                 return [lng, lat, 0];
-                
             } catch (error) {
-                console.error(`❌ Error processing coordinate ${index + 1}:`, error);
+                console.error(`❌ Error for coordinate [${lng}, ${lat}]:`, error);
                 return [lng, lat, 0];
             }
         });
+
+        const results = await Promise.all(promises);
+        return results;
+    } catch (error) {
+        console.error('\n❌ Fatal error in elevation fetch:', error);
+        return coordinates.map(([lng, lat]) => [lng, lat, 0]);
+    }
+}
 
         const results = await Promise.all(promises);
         console.log('\n=== Elevation Data Fetch Complete ===');
