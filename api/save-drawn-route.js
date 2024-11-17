@@ -31,7 +31,6 @@ async function getElevationData(coordinates) {
         const promises = coordinates.map(async ([lng, lat], index) => {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
             
-            // Add 'layers=contour' to specify we want contour data
             const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json?layers=contour&access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
             
             try {
@@ -47,18 +46,34 @@ async function getElevationData(coordinates) {
                 const data = await response.json();
                 
                 if (data.features && data.features.length > 0) {
-                    // Get highest elevation from all returned features
-                    const maxElevation = Math.max(...data.features.map(f => f.properties.ele || 0));
-                    const roundedElevation = Math.round(maxElevation);
+                    // Log raw feature data for debugging
+                    console.log(`Raw features for coordinate ${index + 1}:`, 
+                        JSON.stringify(data.features.map(f => ({
+                            ele: f.properties.ele,
+                            layer: f.layer
+                        })), null, 2)
+                    );
+
+                    // Get all elevation values
+                    const elevations = data.features
+                        .filter(f => typeof f.properties.ele === 'number')
+                        .map(f => f.properties.ele);
                     
-                    console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
+                    if (elevations.length === 0) {
+                        console.warn(`⚠️ No valid elevation values found for coordinate ${index + 1}`);
+                        return [lng, lat, 0];
+                    }
+
+                    const maxElevation = Math.max(...elevations);
+                    
+                    console.log(`✅ Elevation data for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
-                        elevation: roundedElevation,
-                        featuresCount: data.features.length,
-                        allElevations: data.features.map(f => f.properties.ele)
+                        allElevations: elevations,
+                        selectedElevation: maxElevation,
+                        numberOfReadings: elevations.length
                     });
                     
-                    return [lng, lat, roundedElevation];
+                    return [lng, lat, maxElevation];
                 }
                 
                 console.warn(`⚠️ No elevation data found for coordinate ${index + 1}, using 0`);
@@ -71,19 +86,19 @@ async function getElevationData(coordinates) {
         });
 
         const results = await Promise.all(promises);
-        console.log('\n=== Elevation Data Fetch Complete ===');
-        console.log('Summary:', {
-            totalCoordinates: coordinates.length,
-            coordinatesWithElevation: results.filter(coord => coord[2] !== 0).length
+        
+        // Log final results before returning
+        console.log('\n=== Final Elevation Profile ===');
+        results.forEach((coord, index) => {
+            console.log(`Point ${index + 1}: [${coord[0]}, ${coord[1]}] -> ${coord[2]}m`);
         });
         
         return results;
     } catch (error) {
-        console.error('\n❌ Fatal error in elevation data fetch:', error);
+        console.error('\n❌ Fatal error in elevation fetch:', error);
         return coordinates.map(([lng, lat]) => [lng, lat, 0]);
     }
 }
-
 module.exports = async (req, res) => {
     console.log('\n========== Starting Route Save Process ==========');
     console.log('Timestamp:', new Date().toISOString());
