@@ -46,24 +46,29 @@ async function getElevationData(coordinates) {
                 const data = await response.json();
                 
                 if (data.features && data.features.length > 0) {
-                    // Get all elevation values
-                    const elevations = data.features
+                    // Get all elevation values with their distances from the point
+                    const elevationsWithDistances = data.features
                         .filter(f => typeof f.properties.ele === 'number')
-                        .map(f => f.properties.ele)
-                        .sort((a, b) => a - b); // Sort elevations
+                        .map(f => ({
+                            elevation: f.properties.ele,
+                            // Mapbox returns distance in meters from the query point
+                            distance: f.properties.tilequery.distance || 0
+                        }))
+                        .sort((a, b) => a.distance - b.distance); // Sort by distance
 
-                    // Take the middle elevation value
-                    const middleIndex = Math.floor(elevations.length / 2);
-                    const selectedElevation = elevations[middleIndex];
+                    // Take the elevation of the closest contour line
+                    const closestElevation = elevationsWithDistances[0].elevation;
                     
                     console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
-                        selectedElevation,
-                        allElevations: elevations,
-                        chosenIndex: middleIndex
+                        selectedElevation: closestElevation,
+                        allElevations: elevationsWithDistances.map(e => ({
+                            ele: e.elevation,
+                            dist: Math.round(e.distance)
+                        }))
                     });
                     
-                    return [lng, lat, selectedElevation];
+                    return [lng, lat, closestElevation];
                 }
                 
                 console.warn(`⚠️ No elevation data found for coordinate ${index + 1}, using 0`);
@@ -74,23 +79,6 @@ async function getElevationData(coordinates) {
                 return [lng, lat, 0];
             }
         });
-
-        const results = await Promise.all(promises);
-        console.log('\n=== Elevation Data Fetch Complete ===');
-        console.log('Summary:', {
-            totalCoordinates: coordinates.length,
-            elevationRange: {
-                min: Math.min(...results.map(r => r[2])),
-                max: Math.max(...results.map(r => r[2]))
-            }
-        });
-        
-        return results;
-    } catch (error) {
-        console.error('\n❌ Fatal error in elevation data fetch:', error);
-        return coordinates.map(([lng, lat]) => [lng, lat, 0]);
-    }
-}
 
         const results = await Promise.all(promises);
         console.log('\n=== Elevation Data Fetch Complete ===');
