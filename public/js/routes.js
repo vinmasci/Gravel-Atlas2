@@ -15,10 +15,10 @@ let lastSnappedPoint = null; // Track the last successfully snapped point
 // Gravel type color mapping
 const gravelColors = {
     0: '#01bf11', // Easiest // Green
-    1: '#0050c1', // Intermediate // Blue
+    1: '#ffa801', // Intermediate // Yellow
     2: '#c0392b', // Hard // Red
     3: '#751203', // Expert // Moroon
-    4: '#ffa801', // Rail trail // Orange
+    4: '#0050c1', // Rail trail // Blue
     5: '#2f3542'  // Closed or Private // Midnight Blue
 };
 
