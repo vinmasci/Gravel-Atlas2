@@ -254,10 +254,8 @@ elevationDiv.innerHTML = `
                     data: chartData.map(d => d.elevation),
                     borderColor: '#4285F4',
                     borderWidth: 2,
-                    fill: {
-                        target: 'origin',
-                        above: 'rgba(66, 133, 244, 0.1)',
-                    },
+                    backgroundColor: 'rgba(66, 133, 244, 0.3)', // Simple transparent blue fill
+                    fill: true,           // Enable fill
                     tension: 0.4,
                     pointRadius: 3,
                     pointHoverRadius: 5,
