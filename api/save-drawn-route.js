@@ -30,11 +30,9 @@ async function getElevationData(coordinates) {
     try {
         const promises = coordinates.map(async ([lng, lat], index) => {
             console.log(`\nProcessing coordinate ${index + 1}/${coordinates.length}`);
-            console.log(`Coordinates [${lng}, ${lat}]`);
             
-            // Use the correct tilequery endpoint format
-            const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
-            console.log('Fetching elevation from Mapbox:', url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'ACCESS_TOKEN'));
+            // Add 'layers=contour' to specify we want contour data
+            const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json?layers=contour&access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
             
             try {
                 const response = await fetch(url);
@@ -48,13 +46,16 @@ async function getElevationData(coordinates) {
                 
                 const data = await response.json();
                 
-                if (data.features && data.features[0]) {
-                    const elevation = data.features[0].properties.elevation;
-                    const roundedElevation = Math.round(elevation || 0);
+                if (data.features && data.features.length > 0) {
+                    // Get highest elevation from all returned features
+                    const maxElevation = Math.max(...data.features.map(f => f.properties.ele || 0));
+                    const roundedElevation = Math.round(maxElevation);
                     
                     console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
                         coordinate: [lng, lat],
-                        elevation: roundedElevation
+                        elevation: roundedElevation,
+                        featuresCount: data.features.length,
+                        allElevations: data.features.map(f => f.properties.ele)
                     });
                     
                     return [lng, lat, roundedElevation];
