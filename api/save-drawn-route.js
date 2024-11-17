@@ -33,7 +33,7 @@ async function getElevationData(coordinates) {
             console.log(`Coordinates [${lng}, ${lat}]`);
             
             // Use the correct tilequery endpoint format
-            const url = `https://api.mapbox.com/v4/mapbox.terrain-dem-v1/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&layers=contour`;
+            const url = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
             console.log('Fetching elevation from Mapbox:', url.replace(process.env.MAPBOX_ACCESS_TOKEN, 'ACCESS_TOKEN'));
             
             try {
