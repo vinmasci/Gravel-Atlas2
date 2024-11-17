@@ -49,7 +49,7 @@ async function getElevationData(coordinates) {
                 const data = await response.json();
                 
                 if (data.features && data.features[0]) {
-                    const elevation = data.features[0].properties.ele;
+                    const elevation = data.features[0].properties.elevation;
                     const roundedElevation = Math.round(elevation || 0);
                     
                     console.log(`✅ Successfully got elevation for coordinate ${index + 1}:`, {
