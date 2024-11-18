@@ -203,7 +203,7 @@ function renderElevationProfile(route) {
                      
         return {
             line: color,
-            fill: `${color}99`  // Increased opacity to 25% (40 in hex)
+            fill: color  // Solid color, no opacity
         };
     }
 
@@ -295,6 +295,15 @@ function renderElevationProfile(route) {
         }
     });
 
+    // Ensure the last point is included
+    if (currentSegment && allCoordinates.length > 0) {
+        const lastCoord = allCoordinates[allCoordinates.length - 1];
+        currentSegment.data.push({
+            x: totalDistance,
+            y: lastCoord[2]
+        });
+    }
+
     console.log("Elevation statistics calculated:", {
         totalDistance,
         elevationGain,
@@ -376,6 +385,8 @@ function renderElevationProfile(route) {
                         }
                     },
                     y: {
+                        min: Math.floor(minElevation - (maxElevation - minElevation) * 0.1),
+                        max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.2),
                         grid: {
                             color: '#E5E5E5',
                             drawBorder: false
