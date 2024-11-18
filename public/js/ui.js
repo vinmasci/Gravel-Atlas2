@@ -391,8 +391,8 @@ function renderElevationProfile(route) {
                         }
                     },
                     y: {
-                        min: Math.floor(minElevation - (maxElevation - minElevation) * 0.1),
-                        max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.2),
+                        min: Math.floor(minElevation - (maxElevation - minElevation) * 0.15),
+                        max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.3),
                         grid: {
                             color: '#E5E5E5',
                             drawBorder: false
