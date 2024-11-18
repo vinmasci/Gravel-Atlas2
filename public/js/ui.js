@@ -169,6 +169,10 @@ async function openSegmentModal(title, routeId) {
     }
 }
 
+// =========================
+// SECTION: Render elevation profile 
+// =========================
+
 function renderElevationProfile(route) {
     console.log("Rendering elevation profile for route:", route);
     const elevationDiv = document.getElementById('elevation-profile');
@@ -192,87 +196,100 @@ function renderElevationProfile(route) {
 
     function getGradientColor(gradient) {
         const absGradient = Math.abs(gradient);
-        if (absGradient <= 3) return gradientColors.easy;
-        if (absGradient <= 8) return gradientColors.moderate;
-        if (absGradient <= 11) return gradientColors.hard;
-        return gradientColors.extreme;
+        const color = absGradient <= 3 ? gradientColors.easy :
+                     absGradient <= 8 ? gradientColors.moderate :
+                     absGradient <= 11 ? gradientColors.hard :
+                     gradientColors.extreme;
+                     
+        return {
+            line: color,
+            fill: `${color}40`  // Increased opacity to 25% (40 in hex)
+        };
     }
 
-    // Calculate statistics
     let totalDistance = 0;
     let elevationGain = 0;
     let elevationLoss = 0;
     let minElevation = Infinity;
     let maxElevation = -Infinity;
-    
-    // Prepare segments for colored sections
-    const segments = [];
+
+    // Initialize for gradient sampling
+    let lastSamplePoint = allCoordinates[0];
+    let distanceAccumulator = 0;
+    const minDistance = 0.05; // 50 meters in kilometers
     let currentSegment = null;
+    const segments = [];
 
     allCoordinates.forEach((coord, index) => {
         const elevation = coord[2];
         minElevation = Math.min(minElevation, elevation);
         maxElevation = Math.max(maxElevation, elevation);
-        
+
         if (index > 0) {
-            const prevCoord = allCoordinates[index - 1];
-            const elevDiff = elevation - prevCoord[2];
-            if (elevDiff > 0) elevationGain += elevDiff;
-            if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
-            
-            // Calculate distance and gradient
             const distance = calculateDistance(
-                prevCoord[1], prevCoord[0],
+                lastSamplePoint[1], lastSamplePoint[0],
                 coord[1], coord[0]
             );
             totalDistance += distance;
+            distanceAccumulator += distance;
 
-            // Calculate gradient percentage
-            const gradient = (elevDiff / (distance * 1000)) * 100;
-            const color = getGradientColor(gradient);
+            const elevDiff = elevation - lastSamplePoint[2];
+            if (elevDiff > 0) elevationGain += elevDiff;
+            if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
 
-            // Create new segment if color changes or first point
-            if (!currentSegment || currentSegment.borderColor !== color) {
-                currentSegment = {
-                    label: `Gradient: ${gradient.toFixed(1)}%`,
-                    data: [],
-                    borderColor: color,
-                    backgroundColor: `${color}1A`, // 10% opacity
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    pointHoverRadius: 4,
-                    pointBackgroundColor: color,
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1
-                };
-                segments.push(currentSegment);
+            // Process gradient when we've accumulated enough distance
+            if (distanceAccumulator >= minDistance) {
+                const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
+                const color = getGradientColor(gradient);
+
+                if (!currentSegment || currentSegment.borderColor !== color.line) {
+                    currentSegment = {
+                        label: `Gradient: ${gradient.toFixed(1)}%`,
+                        data: [],
+                        borderColor: color.line,
+                        backgroundColor: color.fill,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: color.line,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1
+                    };
+                    segments.push(currentSegment);
+                }
+
+                lastSamplePoint = coord;
+                distanceAccumulator = 0;
+            }
+
+            // Always add point to current segment
+            if (currentSegment) {
+                currentSegment.data.push({
+                    x: totalDistance,
+                    y: elevation
+                });
             }
         } else {
             // First point - start with easy gradient
+            const color = getGradientColor(0);
             currentSegment = {
                 label: 'Gradient: 0%',
-                data: [],
-                borderColor: gradientColors.easy,
-                backgroundColor: `${gradientColors.easy}1A`,
+                data: [{x: 0, y: elevation}],
+                borderColor: color.line,
+                backgroundColor: color.fill,
                 borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 2,
+                pointRadius: 0,
                 pointHoverRadius: 4,
-                pointBackgroundColor: gradientColors.easy,
+                pointBackgroundColor: color.line,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 1
             };
             segments.push(currentSegment);
         }
-
-        // Add point to current segment
-        currentSegment.data.push({
-            x: totalDistance,
-            y: elevation
-        });
     });
 
     console.log("Elevation statistics calculated:", {
@@ -383,7 +400,6 @@ function renderElevationProfile(route) {
     }
 }
 
-// Keep your existing helper functions
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = toRad(lat2 - lat1);
