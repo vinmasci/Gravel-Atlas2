@@ -253,7 +253,7 @@ function renderElevationProfile(route) {
                         backgroundColor: color.fill,
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.4,
+                        tension: 0.2,
                         pointRadius: 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: color.line,
@@ -302,6 +302,12 @@ function renderElevationProfile(route) {
             x: totalDistance,
             y: lastCoord[2]
         });
+
+        currentSegment.data.push({
+            x: totalDistance + 0.001, // Tiny bit extra
+            y: lastCoord[2]
+        });
+
     }
 
     console.log("Elevation statistics calculated:", {
