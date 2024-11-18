@@ -981,18 +981,17 @@ body {
 }
     </style>
     
-<!-- Map Container -->
+<!-- Map container should be empty -->
 <div id="map"></div>
 
-<!-- Auth Container -->
 <div id="auth-container">
     <button id="loginBtn" class="map-button">Log In</button>
     <button id="logoutBtn" class="map-button" style="display: none;">Log Out</button>
     <span id="userInfo" style="display: none; margin-left: 10px;"></span>
 </div>
 
-<!-- Map Controls -->
-<div id="dropArea"></div>
+<div id="dropArea"></div> <!-- Maake sure this is present in your HTML -->
+
 <div class="map-layer-options">
     <label for="tileLayerSelect">Select Map Layer:</label>
     <select id="tileLayerSelect" class="form-control">
@@ -1004,39 +1003,78 @@ body {
     </select>
 </div>
 
-<!-- Control Panels -->
-<div id="control-panel">
-    <!-- Draw Route Control Panel -->
-    <div id="draw-route-control-panel" class="control-panel" style="display: none;">
-        <div id="gravel-style" class="control-panel-content">
-            <div class="drawing-options">
-                <h5>Gravel Type:</h5>
-                <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
-                <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #ffa801"></i> Intermediate</label>
-                <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
-                <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
-                <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> Rail Trail</label>
-                <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
-            </div>
-            <div class="btn-group">
-                <button id="undo-btn" class="btn btn-primary">Undo</button>
-                <button id="reset-btn" class="btn btn-warning">Reset</button>
-                <button id="save-btn" class="btn btn-success">Save</button>
+<!-- Segment Info Modal -->
+<div id="segment-modal" class="modal">
+    <div class="modal-content">
+        <!-- Header with Segment Title -->
+        <div class="modal-header" style="margin: 0;">
+            <p id="segment-details" style="font-size: medium; font-weight: bold; margin: 0;">Segment Title</p>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+
+        <!-- Add Elevation Profile Section Here -->
+        <div id="elevation-profile" style="padding: 15px;"></div>
+
+        <!-- Body with Comments Section -->
+        <div class="modal-body">
+            <div id="comments-section">
+                <h5>Comments</h5>
+                <div id="comments-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
+                    <!-- Existing comments will be dynamically added here -->
+                </div>
+                <div id="add-comment">
+                    <textarea id="comment-input" placeholder="Add a comment..." class="form-control" rows="2"></textarea>
+                    <button id="submit-comment" class="btn btn-primary mt-2" onclick="addComment()">Submit</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Photo Upload Control Panel -->
-    <div id="photo-upload-control-panel" class="control-panel" style="display: none;">
-        <div class="control-panel-content">
-            <h5>Upload Photos</h5>
-            <input type="file" id="photoFilesInput" multiple accept="image/*" class="form-control" />
-            <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
+        <!-- Footer with Buttons and Route ID -->
+        <div class="modal-footer" style="display: flex; flex-direction: column; align-items: flex-end;">
+            <!-- Buttons with smaller size -->
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <button id="flag-segment" class="btn btn-warning" style="font-size: 12px; padding: 4px 8px;">Flag</button>
+                <button id="delete-segment" class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;">Delete</button>
+            </div>
+            <!-- Route ID positioned below the buttons -->
+            <p id="route-id" style="font-size: x-small; color: gray; margin: 0;">Route ID: </p>
         </div>
     </div>
 </div>
 
-<!-- Navigation -->
+
+<!-- Control Panel -->
+<div id="control-panel" class="btn-group">
+    
+<!-- Draw Route Control Panel -->
+<div id="draw-route-control-panel" class="control-panel" style="display: none;">
+    <div id="gravel-style" style="width: 100%; margin-top: 0px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+        <div class="drawing-options">
+            <h5>Gravel Type:</h5>
+            <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+            <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #ffa801"></i> Intermediate</label>
+            <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+            <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+            <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> Rail Trail</label>
+            <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+        </div>
+        <div class="btn-group">
+            <button id="undo-btn" class="btn btn-primary" style="border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-size: 10px;">Undo</button>
+            <button id="reset-btn" class="btn btn-warning" style="font-size: 10px;">Reset</button>
+            <div><button id="save-btn" class="btn btn-success" style="font-size: 10px;  border-top-right-radius: 8px; border-bottom-right-radius: 8px; border-top-left-radius: 0px; border-bottom-left-radius: 0px;">Save</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Upload Control Panel -->
+<div id="photo-upload-control-panel" class="control-panel" style="display: none;">
+    <div style="width: 100%; margin-top: 10px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+        <h5>Upload Photos</h5>
+        <input type="file" id="photoFilesInput" multiple accept="image/*" class="form-control" style="width: 190px; margin-bottom: 10px; font-size: 10px;" />
+        <button id="uploadPhotosBtn" class="btn btn-primary" style="padding: 5px 10px; font-size: 14px;">Upload</button>
+    </div>
+</div></div>
+
 <div class="tabs">
     <div class="tab draw-route-tab" id="draw-route-tab">
         <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
@@ -1053,70 +1091,40 @@ body {
     </div>
 </div>
 
-<!-- Contribute Dropdown -->
-<div id="contribute-dropdown" class="btn-group" role="group">
+<div id="contribute-dropdown" class="btn-group" role="group" style="display: flex;">
     <button type="button" class="btn btn-outline-secondary" onclick="showControlPanel()" id="draw-route-dropdown">Draw Route</button>
     <button type="button" class="btn btn-outline-secondary" onclick="showPhotoUploadPanel()" id="photo-upload-dropdown">Upload Photo</button>
     <button type="button" class="btn btn-outline-secondary" onclick="showTempOverlay()" id="gpx-overlay-dropdown">GPX Overlay</button>
 </div>
 
-<!-- Modals -->
-<div class="modals-container">
-    <!-- Segment Modal -->
-    <div id="segment-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <p id="segment-details">Segment Title</p>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <div id="elevation-profile"></div>
-            <div class="modal-body">
-                <div id="comments-section">
-                    <h5>Comments</h5>
-                    <div id="comments-list"></div>
-                    <div id="add-comment">
-                        <textarea id="comment-input" placeholder="Add a comment..." class="form-control" rows="2"></textarea>
-                        <button id="submit-comment" class="btn btn-primary mt-2" onclick="addComment()">Submit</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <div class="button-group">
-                    <button id="flag-segment" class="btn btn-warning">Flag</button>
-                    <button id="delete-segment" class="btn btn-danger">Delete</button>
-                </div>
-                <p id="route-id">Route ID: </p>
-            </div>
+<!-- Modal for Route Name -->
+<div id="routeNameModal" class="modal">
+    <div class="modal-content route-name-content"> <!-- Added specific class -->
+        <h4>Street / Track or Path Name:</h4>
+        <input type="text" id="routeNameInput" placeholder="Enter road/path name" class="form-control" />
+        <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 20px;">
+            <button id="confirmSaveBtn" class="btn btn-success btn-sm">Save Route</button>
+            <button onclick="closeRouteNameModal()" class="btn btn-secondary btn-sm">Cancel</button>
         </div>
     </div>
+</div>
 
-    <!-- Route Name Modal -->
-    <div id="routeNameModal" class="modal">
-        <div class="modal-content route-name-content">
-            <h4>Street / Track or Path Name:</h4>
-            <input type="text" id="routeNameInput" placeholder="Enter road/path name" class="form-control" />
-            <div class="button-group">
-                <button id="confirmSaveBtn" class="btn btn-success btn-sm">Save Route</button>
-                <button onclick="closeRouteNameModal()" class="btn btn-secondary btn-sm">Cancel</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Drawing Options Modal -->
-    <div id="drawingOptionsModal" class="modal">
-        <div class="modal-content small-modal">
-            <h4>Select Road Type and Color</h4>
-            <div>
-                <h5>Gravel Type (Color):</h5>
-                <label><input type="radio" name="gravelType" value="0"> Blue (Bad or rough asphalt)</label>
-                <label><input type="radio" name="gravelType" value="1"> Green (Non-technical)</label>
-                <label><input type="radio" name="gravelType" value="2"> Yellow (Slightly technical)</label>
-                <label><input type="radio" name="gravelType" value="3"> Red (Technical)</label>
-                <label><input type="radio" name="gravelType" value="4"> Dark Red (Very technical)</label>
-                <label><input type="radio" name="gravelType" value="5"> Black Red (Hike-a-bike)</label>
-            </div>
-            <button id="applyDrawingOptionsButton">Apply</button>
-        </div>
+<!-- Drawing Options Modal -->
+<div id="drawingOptionsModal" class="modal">
+    <div class="modal-content small-modal"> <!-- Add class 'small-modal' for smaller size -->
+      <h4>Select Road Type and Color</h4>
+      <div>
+        <h5>Gravel Type (Color):</h5>
+        <label><input type="radio" name="gravelType" value="0"> Blue (Bad or rough asphalt)</label>
+        <label><input type="radio" name="gravelType" value="1"> Green (Non-technical)</label>
+        <label><input type="radio" name="gravelType" value="2"> Yellow (Slightly technical)</label>
+        <label><input type="radio" name="gravelType" value="3"> Red (Technical)</label>
+        <label><input type="radio" name="gravelType" value="4"> Dark Red (Very technical)</label>
+        <label><input type="radio" name="gravelType" value="5"> Black Red (Hike-a-bike)</label>
+      </div>
+      
+      <button id="applyDrawingOptionsButton">Apply</button>
     </div>
 </div>
 
@@ -1127,10 +1135,13 @@ body {
             <div class="id-display">
                 <small>ID: <span id="profile-auth0id" class="user-id"></span></small>
             </div>
-            
+
+            <!-- Profile Image -->
             <div class="profile-image-container mb-3">
                 <div class="current-image">
-                    <img id="current-profile-image" class="profile-image" src="" alt="Profile Image">
+                    <img id="current-profile-image" class="profile-image" 
+                         src="" 
+                         alt="Profile Image">
                     <div id="profile-image-loading" class="image-loading-overlay" style="display: none;">
                         <i class="fa-solid fa-spinner fa-spin"></i>
                     </div>
@@ -1139,43 +1150,52 @@ body {
                     <label for="profile-image-input" class="btn btn-outline-primary btn-sm image-upload-label">
                         <i class="fa-solid fa-camera"></i> Change Photo
                     </label>
-                    <input type="file" id="profile-image-input" accept="image/*" style="display: none;" onchange="handleProfileImageChange(event)">
+                    <input
+                        type="file"
+                        id="profile-image-input"
+                        accept="image/*"
+                        style="display: none;"
+                        onchange="handleProfileImageChange(event)"
+                    >
                 </div>
             </div>
 
-            <div class="profile-form-fields">
-                <div class="mb-3">
-                    <label for="bioName" class="form-label">Bio Name</label>
-                    <input type="text" class="form-control" id="bioName" name="bioName">
-                </div>
-                
-                <div class="mb-3">
-                    <label for="instagram" class="form-label">
-                        <i class="fa-brands fa-instagram"></i> Instagram
-                    </label>
-                    <input type="text" class="form-control" id="instagram" name="socialLinks.instagram" placeholder="Instagram profile URL">
-                </div>
-                
-                <div class="mb-3">
-                    <label for="strava" class="form-label">
-                        <i class="fa-brands fa-strava"></i> Strava
-                    </label>
-                    <input type="text" class="form-control" id="strava" name="socialLinks.strava" placeholder="Strava profile URL">
-                </div>
-                
-                <div class="mb-3">
-                    <label for="facebook" class="form-label">
-                        <i class="fa-brands fa-facebook"></i> Facebook
-                    </label>
-                    <input type="text" class="form-control" id="facebook" name="socialLinks.facebook" placeholder="Facebook profile URL">
-                </div>
-                
-                <div class="mb-3">
-                    <label for="website" class="form-label">
-                        <i class="fa-solid fa-globe"></i> Website
-                    </label>
-                    <input type="url" class="form-control" id="website" name="website" placeholder="Your website URL">
-                </div>
+            <!-- The Rest -->
+            <div class="mb-3">
+                <label for="bioName" class="form-label">Bio Name</label>
+                <input type="text" class="form-control" id="bioName" name="bioName">
+            </div>
+            
+            <div class="mb-3">
+                <label for="instagram" class="form-label">
+                    <i class="fa-brands fa-instagram"></i> Instagram
+                </label>
+                <input type="text" class="form-control" id="instagram" name="socialLinks.instagram" 
+                       placeholder="Instagram profile URL">
+            </div>
+            
+            <div class="mb-3">
+                <label for="strava" class="form-label">
+                    <i class="fa-brands fa-strava"></i> Strava
+                </label>
+                <input type="text" class="form-control" id="strava" name="socialLinks.strava"
+                       placeholder="Strava profile URL">
+            </div>
+            
+            <div class="mb-3">
+                <label for="facebook" class="form-label">
+                    <i class="fa-brands fa-facebook"></i> Facebook
+                </label>
+                <input type="text" class="form-control" id="facebook" name="socialLinks.facebook"
+                       placeholder="Facebook profile URL">
+            </div>
+            
+            <div class="mb-3">
+                <label for="website" class="form-label">
+                    <i class="fa-solid fa-globe"></i> Website
+                </label>
+                <input type="url" class="form-control" id="website" name="website"
+                       placeholder="Your website URL">
             </div>
 
             <button type="submit" class="btn btn-primary w-100 save-profile-btn">
