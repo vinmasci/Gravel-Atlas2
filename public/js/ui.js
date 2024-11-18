@@ -203,7 +203,7 @@ function renderElevationProfile(route) {
                      
         return {
             line: color,
-            fill: `${color}40`  // Increased opacity to 25% (40 in hex)
+            fill: `${color}120`  // Increased opacity to 25% (40 in hex)
         };
     }
 
@@ -243,9 +243,12 @@ function renderElevationProfile(route) {
                 const color = getGradientColor(gradient);
 
                 if (!currentSegment || currentSegment.borderColor !== color.line) {
+                    // Keep the last point from previous segment to ensure continuity
+                    const lastPoint = currentSegment?.data[currentSegment.data.length - 1];
+                    
                     currentSegment = {
                         label: `Gradient: ${gradient.toFixed(1)}%`,
-                        data: [],
+                        data: lastPoint ? [lastPoint] : [], // Start with last point if it exists
                         borderColor: color.line,
                         backgroundColor: color.fill,
                         borderWidth: 2,
