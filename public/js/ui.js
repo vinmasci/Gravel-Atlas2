@@ -359,12 +359,19 @@ function renderElevationProfile(route) {
                 plugins: {
                     tooltip: {
                         callbacks: {
-                            label: (context) => [
-                                `Elevation: ${context.parsed.y}m`,
-                                context.dataset.label
-                            ],
+                            label: (context) => {
+                                const gradient = context.dataset.label.split(': ')[1];
+                                return [
+                                    `Elevation: ${context.parsed.y}m`,
+                                    `Gradient: ${gradient}`,
+                                    gradient.includes('-') ? 'Descending' : 'Ascending'
+                                ].filter(Boolean);
+                            },
                             title: (context) => `Distance: ${context.parsed.x.toFixed(2)}km`
-                        }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        displayColors: false
                     },
                     legend: {
                         display: false
