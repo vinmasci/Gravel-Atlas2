@@ -169,10 +169,6 @@ async function openSegmentModal(title, routeId) {
     }
 }
 
-// =========================
-// SECTION: Render elevation profile
-// =========================
-
 function renderElevationProfile(route) {
     console.log("Rendering elevation profile for route:", route);
     const elevationDiv = document.getElementById('elevation-profile');
@@ -186,6 +182,22 @@ function renderElevationProfile(route) {
     const allCoordinates = route.geojson.features.flatMap(f => f.geometry.coordinates);
     console.log("Processing coordinates for elevation profile:", allCoordinates.length);
     
+    // Define gradient colors and thresholds
+    const gradientColors = {
+        easy: '#01bf11',      // Green (0-3%)
+        moderate: '#ffa801',  // Yellow (3.1-8%)
+        hard: '#c0392b',      // Red (8.1-11%)
+        extreme: '#751203'    // Maroon (11.1%+)
+    };
+
+    function getGradientColor(gradient) {
+        const absGradient = Math.abs(gradient);
+        if (absGradient <= 3) return gradientColors.easy;
+        if (absGradient <= 8) return gradientColors.moderate;
+        if (absGradient <= 11) return gradientColors.hard;
+        return gradientColors.extreme;
+    }
+
     // Calculate statistics
     let totalDistance = 0;
     let elevationGain = 0;
@@ -193,7 +205,11 @@ function renderElevationProfile(route) {
     let minElevation = Infinity;
     let maxElevation = -Infinity;
     
-    const chartData = allCoordinates.map((coord, index) => {
+    // Prepare segments for colored sections
+    const segments = [];
+    let currentSegment = null;
+
+    allCoordinates.forEach((coord, index) => {
         const elevation = coord[2];
         minElevation = Math.min(minElevation, elevation);
         maxElevation = Math.max(maxElevation, elevation);
@@ -204,17 +220,59 @@ function renderElevationProfile(route) {
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
             
-            // Calculate distance from previous point
-            totalDistance += calculateDistance(
-                prevCoord[1], prevCoord[0],  // prev lat, lng
-                coord[1], coord[0]           // current lat, lng
+            // Calculate distance and gradient
+            const distance = calculateDistance(
+                prevCoord[1], prevCoord[0],
+                coord[1], coord[0]
             );
+            totalDistance += distance;
+
+            // Calculate gradient percentage
+            const gradient = (elevDiff / (distance * 1000)) * 100;
+            const color = getGradientColor(gradient);
+
+            // Create new segment if color changes or first point
+            if (!currentSegment || currentSegment.borderColor !== color) {
+                currentSegment = {
+                    label: `Gradient: ${gradient.toFixed(1)}%`,
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: `${color}1A`, // 10% opacity
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: color,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1
+                };
+                segments.push(currentSegment);
+            }
+        } else {
+            // First point - start with easy gradient
+            currentSegment = {
+                label: 'Gradient: 0%',
+                data: [],
+                borderColor: gradientColors.easy,
+                backgroundColor: `${gradientColors.easy}1A`,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                pointBackgroundColor: gradientColors.easy,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1
+            };
+            segments.push(currentSegment);
         }
-        
-        return {
-            distance: totalDistance,
-            elevation: elevation
-        };
+
+        // Add point to current segment
+        currentSegment.data.push({
+            x: totalDistance,
+            y: elevation
+        });
     });
 
     console.log("Elevation statistics calculated:", {
@@ -222,33 +280,34 @@ function renderElevationProfile(route) {
         elevationGain,
         elevationLoss,
         minElevation,
-        maxElevation
+        maxElevation,
+        segments: segments.length
     });
 
     // Create the profile HTML
-elevationDiv.innerHTML = `
-    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-        <div class="stat-box" style="text-align: center;">
-            <div style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
-            <div style="font-size: 12px; color: #666;">Distance</div>
+    elevationDiv.innerHTML = `
+        <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
+                <div style="font-size: 12px; color: #666;">Distance</div>
+            </div>
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
+                <div style="font-size: 12px; color: #666;">Gain</div>
+            </div>
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
+                <div style="font-size: 12px; color: #666;">Loss</div>
+            </div>
+            <div class="stat-box" style="text-align: center;">
+                <div style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
+                <div style="font-size: 12px; color: #666;">Max</div>
+            </div>
         </div>
-        <div class="stat-box" style="text-align: center;">
-            <div style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
-            <div style="font-size: 12px; color: #666;">Gain</div>
+        <div style="height: 200px; position: relative;">
+            <canvas id="elevation-chart"></canvas>
         </div>
-        <div class="stat-box" style="text-align: center;">
-            <div style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
-            <div style="font-size: 12px; color: #666;">Loss</div>
-        </div>
-        <div class="stat-box" style="text-align: center;">
-            <div style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
-            <div style="font-size: 12px; color: #666;">Max</div>
-        </div>
-    </div>
-    <div style="height: 200px; position: relative;">
-        <canvas id="elevation-chart"></canvas>
-    </div>
-`;
+    `;
 
     try {
         // Create the chart using Chart.js
@@ -256,31 +315,20 @@ elevationDiv.innerHTML = `
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: chartData.map(d => d.distance.toFixed(1)),
-                datasets: [{
-                    label: 'Elevation',
-                    data: chartData.map(d => d.elevation),
-                    borderColor: '#4285F4',
-                    borderWidth: 2,
-                    backgroundColor: 'rgba(66, 133, 244, 0.9)', // Simple transparent blue fill
-                    fill: true,           // Enable fill
-                    tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: '#4285F4',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1
-                }]
+                datasets: segments
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                aspectRatio: 2,  // Add this to control aspect ratio
+                aspectRatio: 2,
                 plugins: {
                     tooltip: {
                         callbacks: {
-                            label: (context) => `Elevation: ${context.parsed.y}m`,
-                            title: (context) => `Distance: ${context[0].label}km`
+                            label: (context) => [
+                                `Elevation: ${context.parsed.y}m`,
+                                context.dataset.label
+                            ],
+                            title: (context) => `Distance: ${context.parsed.x.toFixed(2)}km`
                         }
                     },
                     legend: {
@@ -289,6 +337,7 @@ elevationDiv.innerHTML = `
                 },
                 scales: {
                     x: {
+                        type: 'linear',
                         grid: {
                             color: '#E5E5E5',
                             drawBorder: false
@@ -324,11 +373,6 @@ elevationDiv.innerHTML = `
                             }
                         }
                     }
-                },
-                elements: {
-                    line: {
-                        tension: 0.4
-                    }
                 }
             }
         });
@@ -339,8 +383,9 @@ elevationDiv.innerHTML = `
     }
 }
 
+// Keep your existing helper functions
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in kilometers
+    const R = 6371;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a = 
