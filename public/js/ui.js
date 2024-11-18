@@ -203,7 +203,7 @@ function renderElevationProfile(route) {
                      
         return {
             line: color,
-            fill: `${color}120`  // Increased opacity to 25% (40 in hex)
+            fill: `${color}80`  // Increased opacity to 25% (40 in hex)
         };
     }
 
@@ -216,7 +216,7 @@ function renderElevationProfile(route) {
     // Initialize for gradient sampling
     let lastSamplePoint = allCoordinates[0];
     let distanceAccumulator = 0;
-    const minDistance = 0.05; // 50 meters in kilometers
+    const minDistance = 0.1; // 100 meters in kilometers
     let currentSegment = null;
     const segments = [];
 
