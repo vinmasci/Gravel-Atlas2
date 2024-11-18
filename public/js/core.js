@@ -19,8 +19,8 @@ window.waitForAuth0 = waitForAuth0;
 // Your existing core.js code
 let map;
 let layerVisibility = {
-    segments: false,
-    photos: false,
+    segments: true,  // Changed to true
+    photos: true,   // Changed to true
     pois: false
 };
 
@@ -313,90 +313,116 @@ const handlers = {
 async function initCore() {
     console.log('Initializing core...');
     
-    // Wait for map to be fully loaded
-    await new Promise(resolve => {
-        if (map.loaded()) {
-            resolve();
-        } else {
-            map.on('load', resolve);
+    try {
+        // Wait for map to be fully loaded
+        await new Promise(resolve => {
+            if (map.loaded()) {
+                resolve();
+            } else {
+                map.on('load', resolve);
+            }
+        });
+
+        // Wait for auth0 to be initialized
+        const auth0 = await waitForAuth0();
+
+        // Create and insert profile button next to login button
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn && !document.getElementById(config.profileButton.id)) {
+            const buttonContainer = loginBtn.parentElement;
+            const profileBtn = document.createElement('button');
+            profileBtn.id = config.profileButton.id;
+            profileBtn.textContent = config.profileButton.text;
+            profileBtn.className = 'hidden map-button';
+            buttonContainer.insertBefore(profileBtn, loginBtn);
+            profileBtn.addEventListener('click', handlers.handleProfileClick);
         }
-    });
 
-    // Wait for auth0 to be initialized
-    const auth0 = await waitForAuth0();
-
-    // Create and insert profile button next to login button
-    const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn && !document.getElementById(config.profileButton.id)) {
-        const buttonContainer = loginBtn.parentElement;
-        const profileBtn = document.createElement('button');
-        profileBtn.id = config.profileButton.id;
-        profileBtn.textContent = config.profileButton.text;
-        profileBtn.className = 'hidden map-button';
-        buttonContainer.insertBefore(profileBtn, loginBtn);
-        profileBtn.addEventListener('click', handlers.handleProfileClick);
-    }
-
-    // Add click outside handler to hide profile section
-    document.addEventListener('click', (event) => {
-        const profileSection = document.getElementById('profile-section');
-        const profileBtn = document.getElementById(config.profileButton.id);
-        
-        if (profileSection && !profileSection.contains(event.target) && 
-            profileBtn && !profileBtn.contains(event.target)) {
-            utils.hideProfileSection();
-        }
-    });
-
-    // Attach existing event listeners
-    document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
-    document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
-    document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
-    document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
-
-    initEventListeners();
-
-// core.js
-
-if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
-    document.getElementById(config.profileButton.id)?.classList.remove('hidden');
-    if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
-        await window.userModule.initializeProfile();
-    }
-}
-
-
-    // Auth state change handler
-    if (typeof auth0 !== 'undefined') {
-        auth0.checkSession({}, function(err, result) {
-            if (err || !result) {
+        // Add click outside handler to hide profile section
+        document.addEventListener('click', (event) => {
+            const profileSection = document.getElementById('profile-section');
+            const profileBtn = document.getElementById(config.profileButton.id);
+            
+            if (profileSection && !profileSection.contains(event.target) && 
+                profileBtn && !profileBtn.contains(event.target)) {
                 utils.hideProfileSection();
             }
         });
-    }
 
-    // Verify module exports with retry (your existing code)
-    let attempts = 0;
-    while (attempts < 3) {
-        console.log('Verifying module exports... Attempt', attempts + 1);
-        const functionChecks = {
-            loadSegments: typeof window.loadSegments === 'function',
-            removeSegments: typeof window.removeSegments === 'function',
-            loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
-            removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
-        };
-        
-        if (Object.values(functionChecks).every(Boolean)) {
-            console.log('All required functions are available');
-            break;
+        // Initialize event listeners
+        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
+        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
+        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
+        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
+
+        initEventListeners();
+
+        // Verify module exports with retry
+        let attempts = 0;
+        while (attempts < 3) {
+            console.log('Verifying module exports... Attempt', attempts + 1);
+            const functionChecks = {
+                loadSegments: typeof window.loadSegments === 'function',
+                removeSegments: typeof window.removeSegments === 'function',
+                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+                removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+            };
+            
+            if (Object.values(functionChecks).every(Boolean)) {
+                console.log('All required functions are available');
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
         }
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-    }
 
-    console.log('Core initialized successfully');
-    return { map, layerVisibility };
+        // Load segments and photos by default
+        try {
+            console.log('Loading initial layers...');
+            
+            // Load segments
+            if (typeof window.loadSegments === 'function') {
+                await window.loadSegments();
+                layerVisibility.segments = true;
+                utils.updateTabHighlight('segments-tab', true);
+                console.log('Segments loaded successfully');
+            }
+
+            // Load photos
+            if (typeof window.loadPhotoMarkers === 'function') {
+                await window.loadPhotoMarkers();
+                layerVisibility.photos = true;
+                utils.updateTabHighlight('photos-tab', true);
+                console.log('Photos loaded successfully');
+            }
+        } catch (layerError) {
+            console.error('Error loading initial layers:', layerError);
+        }
+
+        // Handle authentication status
+        if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
+            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
+            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
+                await window.userModule.initializeProfile();
+            }
+        }
+
+        // Auth state change handler
+        if (typeof auth0 !== 'undefined') {
+            auth0.checkSession({}, function(err, result) {
+                if (err || !result) {
+                    utils.hideProfileSection();
+                }
+            });
+        }
+
+        console.log('Core initialized successfully');
+        return { map, layerVisibility };
+    } catch (error) {
+        console.error('Error in core initialization:', error);
+        throw error;
+    }
 }
 
 // Export globally
