@@ -23,91 +23,23 @@
 <body>
 
     <style>
-/* ============================
-   TABLE OF CONTENTS
-   ============================
-   1. Reset & Base Styles
-   2. Map Styles
-   3. Navigation & Tabs
-   4. Authentication & User
-   5. Control Panels
-   6. Modals
-   7. Profile Section
-   8. Comments Section
-   9. Photo Elements
-   10. Utility Classes
-   11. Loading & Animations
-   ============================ */
 
 /* ============================
-   1. Reset & Base Styles
+   SECTION: Bottom Navigation Tabs
    ============================ */
-   body {
-    margin: 0;
-    padding: 0;
-}
-
-/* ============================
-   2. Map Styles
-   ============================ */
-#map {
-    position: absolute;
-    top: 0;
-    bottom: 50px;
-    width: 100%;
-    z-index: 0;
-}
-
-/* Map Layer Options */
-.map-layer-options {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 8px;
-    border-radius: 5px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.map-layer-options label {
-    font-size: 12px;
-    margin-bottom: 2px;
-    display: block;
-}
-
-.map-layer-options select {
-    font-size: 11px;
-    padding: 4px 6px;
-    height: auto;
-    width: auto;
-    min-width: 120px;
-}
-
-.map-layer-options button {
-    display: block;
-    margin: 5px 0;
-    padding: 8px 12px;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-/* ============================
-   3. Navigation & Tabs
-   ============================ */
-.tabs {
+   .tabs {
     position: fixed;
     bottom: 0;
     width: 100%;
     height: 50px;
     display: flex;
-    background-color: #2c3e50;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #2c3e50;  /* Dark blue base color */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);  /* Subtle top border */
 }
 
 .draw-route-tab,
 .tab {
-    flex: 1;
+    flex: 1;  /* Equal width distribution */
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -116,10 +48,10 @@
     font-size: 14px;
     padding: 0 15px;
     transition: all 0.3s ease;
-    position: relative;
+    position: relative;  /* For divider positioning */
 }
 
-/* Tab Icons */
+/* Icon styling */
 .tab i,
 .draw-route-tab i {
     margin-right: 8px;
@@ -127,7 +59,7 @@
     transition: color 0.3s ease;
 }
 
-/* Tab Dividers */
+/* Dividers between tabs */
 .tab:not(:last-child)::after,
 .draw-route-tab::after {
     content: '';
@@ -139,22 +71,23 @@
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Tab Hover & Active States */
+/* Hover effects */
 .draw-route-tab:hover,
 .tab:hover {
-    background-color: rgba(255, 101, 47, 0.1);
-    color: #FF652F;
+    background-color: rgba(255, 101, 47, 0.1);  /* Slight background tint */
+    color: #FF652F;  /* Your requested hover color */
 }
 
 .draw-route-tab:hover i,
 .tab:hover i {
-    color: #FF652F !important;
+    color: #FF652F !important;  /* Icon color change on hover */
 }
 
+/* Active state */
 .draw-route-tab.active,
 .tab.active {
-    background-color: #1a252f;
-    color: #FF652F;
+    background-color: #1a252f;  /* Darker background when active */
+    color: #FF652F;  /* Keep the orange color for active state */
 }
 
 .draw-route-tab.active i,
@@ -162,8 +95,68 @@
     color: #FF652F !important;
 }
 
+/* Login required text styling */
+.login-required {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+/* Ensure visibility */
+.tab.hidden:not(.active),
+.draw-route-tab.hidden:not(.active) {
+    display: flex !important;
+}
+
 /* ============================
-   4. Authentication & User
+   SECTION: Loading CSS
+   ============================ */
+   .loading-spinner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    text-align: center;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 4px solid #3498db;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ============================
+   SECTION: Basic Reset & Layout
+   ============================ */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 50px;
+    width: 100%;
+    z-index: 0;
+}
+
+/* ============================
+   SECTION: Auth & Profile Container
    ============================ */
 #auth-container {
     position: absolute;
@@ -218,178 +211,9 @@
 }
 
 /* ============================
-   5. Control Panels
+   SECTION: Profile Section
    ============================ */
-#control-panel {
-    display: none;
-    position: fixed;
-    bottom: 100px;
-    left: 5px;
-    background-color: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 1001;
-}
-
-/* Drawing Options */
-.drawing-options {
-    margin-top: 10px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-}
-
-.drawing-options h5 {
-    margin: 8px 0;
-    font-size: 14px;
-}
-
-.drawing-options label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 13px;
-}
-
-/* Contribute Dropdown */
-#contribute-dropdown {
-    display: none;
-    position: absolute;
-    bottom: 60px;
-    left: 4px;
-    background-color: #f9f9f9;
-    border-radius: 5px;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 5px;
-    text-align: center;
-    max-width: 250px;
-    z-index: 999;
-}
-
-#contribute-dropdown .btn {
-    color: #333;
-    cursor: pointer;
-    padding: 4px 6px;
-    font-size: 10px;
-    transition: background-color 0.3s ease;
-    border-radius: 3px;
-    border: none;
-    margin: 0 2px;
-}
-
-#contribute-dropdown .btn:hover {
-    background-color: #1d1096;
-    color: white;
-}
-
-#contribute-dropdown .btn.active {
-    background-color: #1d1096;
-    color: #ffffff;
-}
-
-/* Control Panel Content */
-.control-panel-content {
-    width: 100%;
-    margin-top: 0;
-    background-color: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-/* ============================
-   6. Modals
-   ============================ */
-   .modal {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 300px;
-    background-color: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
-    padding: 0;
-    max-height: 17vh;
-    overflow-y: auto;
-}
-
-.modal.show {
-    display: block;
-}
-
-.modal-content {
-    padding: 10px;
-    background-color: white;
-    border-radius: 5px;
-    margin: 0;
-}
-
-/* Segment Modal */
-#segment-modal {
-    width: 400px;
-    max-height: 80vh;
-    background-color: rgba(255, 255, 255, 0.95);
-}
-
-#segment-modal .modal-content {
-    padding: 15px;
-}
-
-#segment-modal h4 {
-    font-size: 16px;
-    margin: 0 0 10px;
-}
-
-#segment-modal .close {
-    display: block;
-    text-align: right;
-    padding: 5px;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-#segment-modal .btn-danger:hover {
-    background-color: rgb(123, 11, 11) !important;
-}
-
-/* Route Name Modal */
-#routeNameModal {
-    max-height: 25vh;
-    width: 370px;
-}
-
-#routeNameModal .modal-content {
-    padding: 20px;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-#routeNameModal h4 {
-    margin: 0 0 15px 0;
-    font-size: 18px;
-}
-
-#routeNameModal .form-control {
-    margin: 10px 0;
-    padding: 8px;
-    font-size: 16px;
-}
-
-#routeNameModal button {
-    padding: 8px 16px;
-    font-size: 14px;
-}
-
-/* ============================
-   7. Profile Section
-   ============================ */
-#profile-section {
+   #profile-section {
     position: absolute;
     top: 60px;
     right: 10px;
@@ -413,7 +237,7 @@
     scrollbar-width: thin;
 }
 
-/* Profile Image */
+/* Profile Image Section */
 .profile-image-container {
     display: flex;
     align-items: center;
@@ -447,7 +271,7 @@
     align-items: center;
 }
 
-/* Form Elements */
+/* Form Groups */
 .form-group {
     margin-bottom: 8px;
 }
@@ -477,7 +301,7 @@
     box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
 
-/* Profile Social Icons */
+/* Social Media Icons */
 .form-group i {
     width: 14px;
     font-size: 14px;
@@ -488,7 +312,7 @@
 .fa-facebook { color: #1877F2; }
 .fa-globe { color: #2196F3; }
 
-/* Profile Image Upload */
+/* Image Upload */
 .image-upload-label {
     font-size: 12px;
     padding: 4px 8px;
@@ -503,7 +327,7 @@
     color: white;
 }
 
-/* Profile Save Button */
+/* Save Button */
 .save-profile-btn {
     padding: 8px;
     font-size: 14px;
@@ -525,9 +349,201 @@
     background-color: #0056b3;
 }
 
+/* ID Display */
+.id-display {
+    font-size: 8px;
+    color: #999;
+    margin-top: 8px;
+    text-align: right;
+}
+
+/* Scrollbar Styling */
+.profile-form::-webkit-scrollbar {
+    width: 6px;
+}
+
+.profile-form::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.profile-form::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.profile-form::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Hidden State */
+#profile-section.hidden {
+    display: none;
+}
+
+/* Loading Spinner */
+.fa-spinner {
+    color: #007bff;
+}
+
 /* ============================
-   8. Comments Section
+   SECTION: Map Layer Options
    ============================ */
+.map-layer-options {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 8px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.map-layer-options label {
+    font-size: 12px;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.map-layer-options select {
+    font-size: 11px;
+    padding: 4px 6px;
+    height: auto;
+    width: auto;
+    min-width: 120px;
+}
+
+.map-layer-options button {
+    display: block;
+    margin: 5px 0;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* ============================
+   SECTION: Bottom Navigation Tabs
+   ============================ */
+.tabs {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    background-color: #333;
+}
+
+.draw-route-tab,
+.tab {
+    width: 25%;
+    text-align: center;
+    line-height: 50px;
+    color: white;
+    cursor: pointer;
+    display: block !important;
+}
+
+/* ============================
+   SECTION: Contribute Dropdown
+   ============================ */
+#contribute-dropdown {
+    display: none;
+    position: absolute;
+    bottom: 60px;
+    left: 4px;
+    transform: none;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 5px;
+    text-align: center;
+    max-width: 250px;
+    z-index: 999;
+}
+
+#contribute-dropdown .btn {
+    color: #333;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 10px;
+    transition: background-color 0.3s ease;
+    border-radius: 3px;
+    border: none;
+    margin: 0 2px;
+}
+
+#contribute-dropdown .btn:hover {
+    background-color: #1d1096;
+    color: white;
+}
+
+#contribute-dropdown .btn.active {
+    background-color: #1d1096;
+    color: #ffffff;
+}
+
+/* ============================
+   SECTION: Modal Styles
+   ============================ */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    padding: 0;
+    max-height: 17vh;
+    overflow-y: auto;
+}
+
+.modal.show {
+    display: block;
+}
+
+.modal-content {
+    padding: 10px;
+    background-color: white;
+    border-radius: 5px;
+    margin: 0;
+}
+
+/* Segment Modal Specific */
+#segment-modal {
+    width: 400px;
+    max-height: 80vh;
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+#segment-modal .modal-content {
+    padding: 15px;
+}
+
+#segment-modal h4 {
+    font-size: 16px;
+    margin: 0 0 10px;
+}
+
+#segment-modal .close {
+    display: block;
+    text-align: right;
+    padding: 5px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#segment-modal .btn-danger:hover {
+    background-color: rgb(123, 11, 11) !important;
+}
+
+/* ============================
+   SECTION: Comments Styling
+   ============================ */
+/* Container Styling */
 #comments-section {
     margin-top: 10px;
 }
@@ -542,6 +558,7 @@
     overflow-y: visible !important;
 }
 
+/* Comment Layout */
 .comment {
     padding: 8px;
     border-bottom: 1px solid #eee;
@@ -567,6 +584,7 @@
     margin-top: 4px;
 }
 
+/* Comment Meta Information */
 .comment-meta {
     display: flex;
     align-items: center;
@@ -579,6 +597,63 @@
     font-size: 6px;
 }
 
+.comment-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    color: #666;
+}
+
+.comment-loading i {
+    font-size: 20px;
+    color: #3498db;
+}
+
+.submit-comment:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Social Links */
+.social-links {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.social-links a {
+    color: #666;
+    transition: color 0.2s;
+}
+
+.social-links i {
+    font-size: 12px; /* Made slightly smaller to match text */
+}
+
+/* Social Links Hover States */
+.social-links a:hover {
+    color: #333;
+}
+
+.social-links .fa-instagram:hover {
+    color: #E4405F;
+}
+
+.social-links .fa-strava:hover {
+    color: #FC4C02;
+}
+
+.social-links .fa-facebook:hover {
+    color: #1877F2;
+}
+
+.social-links .fa-globe:hover {
+    color: #2196F3;
+}
+
+/* Comment Actions */
 .comment-actions {
     display: flex;
     gap: 4px;
@@ -609,7 +684,7 @@
     color: #ffc107;
 }
 
-/* Comment Input */
+/* Input Elements */
 #comment-input {
     font-size: 12px;
     width: 100%;
@@ -621,10 +696,186 @@
     padding: 4px 8px;
 }
 
+/* ID Display */
+#route-id,
+.id-display {
+    font-size: 6px;
+    color: #cccccc;
+    text-align: right;
+    margin-top: 10px;
+    position: relative;
+    bottom: 0;
+}
+
+.user-id {
+    font-family: monospace;
+    user-select: all;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.profile-pic {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.profile-pic img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.name-and-social {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* ============================
-   9. Photo Elements
+   SECTION: Control Panel & Drawing Options
    ============================ */
-.photo-popup {
+#control-panel {
+    display: none;
+    position: absolute;
+    bottom: 100px;
+    left: 5px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.drawing-options {
+    margin-top: 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+}
+
+.drawing-options h5 {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.drawing-options label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+/* ============================
+   SECTION: Utility Classes
+   ============================ */
+.hidden {
+    display: none !important;
+}
+
+.small-modal {
+    width: 250px;
+    padding: 10px;
+}
+
+/* Hidden class specifics */
+#profile-section.hidden,
+#profileBtn.hidden,
+.modal.hidden,
+#contribute-dropdown.hidden {
+    display: none !important;
+}
+
+/* Tab visibility specifics */
+.tab.hidden:not(.active),
+.draw-route-tab.hidden:not(.active) {
+    display: block !important;
+}
+
+/* ============================
+   SECTION: Segment Modal Creator Info
+   ============================ */
+
+   .segment-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+}
+
+.creator-info-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Space between creator info and creation date */
+    width: 100%;
+}
+
+.creator-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em; /* Smaller than the title */
+}
+
+.creation-date {
+    font-size: 0.7em;
+    color: #666; /* Lighter color to distinguish it */
+    /* Ensure text is not bold */
+    font-weight: normal;
+}
+
+/* Adjust avatar size */
+.creator-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Align name and social links horizontally */
+.name-and-social {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Adjust social links styling */
+.social-links {
+    display: flex;
+    gap: 8px;
+}
+
+.social-links a {
+    color: #666;
+    transition: color 0.2s;
+}
+
+.social-links a:hover .fa-instagram {
+    color: #E4405F;
+}
+
+.social-links a:hover .fa-strava {
+    color: #FC4C02;
+}
+
+.social-links a:hover .fa-facebook {
+    color: #1877F2;
+}
+
+.social-links a:hover .fa-globe {
+    color: #2196F3;
+}
+
+
+/* ============================
+   SECTION: Photo Popup
+   ============================ */
+   .photo-popup {
     max-width: 300px;
 }
 
@@ -635,13 +886,32 @@
     margin-bottom: 8px;
 }
 
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-pic {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.name-and-social {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .photo-date {
-    font-size: 10px;
-    color: #666;
-    text-align: left;
-    margin: 8px 0;
-    padding-left: 4px;
-    font-weight: bold;
+   font-size: 10px;
+   color: #666;
+   text-align: left;
+   margin: 8px 0;
+   padding-left: 4px;
+   font-weight: bold;
 }
 
 .photo-content {
@@ -672,81 +942,43 @@
     font-size: 12px;
 }
 
-/* ============================
-   10. Utility Classes
-   ============================ */
-.hidden {
-    display: none !important;
-}
-
-.small-modal {
-    width: 250px;
-    padding: 10px;
-}
-
-/* Profile & Modal Visibility */
-#profile-section.hidden,
-#profileBtn.hidden,
-.modal.hidden,
-#contribute-dropdown.hidden {
-    display: none !important;
-}
-
-/* Tab Visibility */
-.tab.hidden:not(.active),
-.draw-route-tab.hidden:not(.active) {
-    display: block !important;
+.name-social-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* ============================
-   11. Loading & Animations
+   SECTION: Route Name Modal
    ============================ */
-.loading-spinner {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    text-align: center;
+   #routeNameModal {
+    max-height: 25vh; /* Increased from 17vh */
+    width: 370px; /* Increased width */
 }
 
-.spinner {
-    border: 4px solid #f3f3f3;
-    border-radius: 50%;
-    border-top: 4px solid #3498db;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 10px auto;
+#routeNameModal .modal-content {
+    padding: 20px; /* Increased padding */
+    min-height: 200px; /* Set minimum height */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+#routeNameModal h4 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
 }
 
-/* Scrollbar Styling */
-.profile-form::-webkit-scrollbar {
-    width: 6px;
+#routeNameModal .form-control {
+    margin: 10px 0;
+    padding: 8px;
+    font-size: 16px;
 }
 
-.profile-form::-webkit-scrollbar-track {
-    background: #f1f1f1;
+#routeNameModal button {
+    padding: 8px 16px;
+    font-size: 14px;
 }
-
-.profile-form::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
-}
-
-.profile-form::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
     </style>
     
 <!-- Map Container -->
