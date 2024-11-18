@@ -203,7 +203,7 @@ function renderElevationProfile(route) {
                      
         return {
             line: color,
-            fill: `${color}100`  // Increased opacity to 25% (40 in hex)
+            fill: `${color}99`  // Increased opacity to 25% (40 in hex)
         };
     }
 
