@@ -351,23 +351,14 @@ function renderElevationProfile(route) {
                 plugins: {
                     tooltip: {
                         enabled: true,
-                        mode: 'nearest',
+                        mode: 'point',  // Changed to point mode
                         intersect: true,
                         callbacks: {
                             label: (context) => {
                                 const gradient = context.dataset.label.split(': ')[1];
-                                const absGradient = parseFloat(gradient);
-                                
-                                let gradientCategory = '';
-                                if (absGradient <= 3) gradientCategory = 'Easy';
-                                else if (absGradient <= 8) gradientCategory = 'Moderate';
-                                else if (absGradient <= 11) gradientCategory = 'Hard';
-                                else gradientCategory = 'Extreme';
-        
                                 return [
                                     `Elevation: ${Math.round(context.parsed.y)}m`,
                                     `Gradient: ${gradient}`,
-                                    `Category: ${gradientCategory}`,
                                     gradient.includes('-') ? 'Descending' : 'Ascending'
                                 ];
                             },
@@ -393,7 +384,7 @@ function renderElevationProfile(route) {
                     }
                 },
                 interaction: {
-                    mode: 'nearest',
+                    mode: 'point',  // Changed to point mode
                     intersect: true
                 },
                 scales: {
