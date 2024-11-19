@@ -280,7 +280,7 @@ function renderElevationProfile(route) {
                 backgroundColor: color.fill,
                 borderWidth: 2,
                 fill: true,
-                tension: 0.2,
+                tension: 0.1,
                 // Update point styling
                 pointRadius: 0,  // Hide points by default
                 pointHoverRadius: 6,  // Larger hover radius
