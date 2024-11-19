@@ -351,8 +351,8 @@ function renderElevationProfile(route) {
                 plugins: {
                     tooltip: {
                         enabled: true,
-                        mode: 'index',
-                        intersect: false,
+                        mode: 'nearest',
+                        intersect: true,
                         callbacks: {
                             label: (context) => {
                                 const gradient = context.dataset.label.split(': ')[1];
@@ -393,8 +393,8 @@ function renderElevationProfile(route) {
                     }
                 },
                 interaction: {
-                    mode: 'index',
-                    intersect: false
+                    mode: 'nearest',
+                    intersect: true
                 },
                 scales: {
                     x: {
