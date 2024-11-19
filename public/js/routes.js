@@ -252,15 +252,20 @@ async function snapToRoads(points) {
 // ============================
 // SECTION: Draw Point with Improved Snapping
 // ============================
-// Draw point with live elevation preview
 async function drawPoint(e) {
+    // Reset data if this is the first point
+    if (originalPins.length === 0) {
+        liveElevationData = [];
+        totalDistance = 0;
+    }
+
     const coords = [e.lngLat.lng, e.lngLat.lat];
     console.log("Point drawn at:", coords);
     originalPins.push(coords);
 
     if (originalPins.length > 1) {
         let snappedSegment = await snapToRoads([originalPins[originalPins.length - 2], coords]);
-
+        
         if (!snappedSegment && lastSnappedPoint) {
             snappedSegment = [lastSnappedPoint, coords];
         } else {
@@ -268,7 +273,6 @@ async function drawPoint(e) {
         }
 
         try {
-            // Fetch elevation data for the segment
             const response = await fetch('/api/get-elevation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -277,11 +281,10 @@ async function drawPoint(e) {
 
             if (response.ok) {
                 const elevationData = await response.json();
-                
-                // Update the preview if we're on desktop
                 if (window.innerWidth > 768) {
+                    const preview = document.getElementById('elevation-preview');
+                    if (preview) preview.style.display = 'block';
                     updateLiveElevationProfile(elevationData.coordinates);
-                    document.getElementById('elevation-preview').style.display = 'block';
                 }
             }
         } catch (error) {
@@ -378,22 +381,19 @@ function undoLastSegment() {
 // ============================
 // SECTION: Reset Route
 // ============================
-// Reset route with elevation preview cleanup
 function resetRoute() {
     console.log("Resetting route...");
     
-    // Clear existing route data
+    // Clear route data
     segmentsGeoJSON.features = [];
     drawSegmentsOnMap();
     markers.forEach(marker => marker.remove());
     markers = [];
     originalPins = [];
-    
-    // Reset elevation preview
     liveElevationData = [];
     totalDistance = 0;
     
-    // Update elevation preview display
+    // Reset elevation preview
     const preview = document.getElementById('elevation-preview');
     if (preview) {
         preview.style.display = 'none';
@@ -405,9 +405,9 @@ function resetRoute() {
         document.getElementById('max-elevation').textContent = '0m';
         
         // Clear chart
-        const chart = Chart.getChart('elevation-chart');
-        if (chart) {
-            chart.destroy();
+        const existingChart = Chart.getChart('elevation-chart');
+        if (existingChart) {
+            existingChart.destroy();
         }
     }
     
