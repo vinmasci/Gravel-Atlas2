@@ -510,13 +510,12 @@ body {
     z-index: 1000;
 }
 
-/* Unified pointer styling */
 .tabs [data-tooltip]::after {
     content: '';
     position: absolute;
     bottom: calc(100% + 2px);
-    left: 50%;
-    transform: translateX(-50%);
+    left: 50%; /* Center the pointer for all tabs */
+    transform: translateX(-50%); /* Center the pointer for all tabs */
     width: 0;
     height: 0;
     border-style: solid;
@@ -534,16 +533,15 @@ body {
     opacity: 1;
 }
 
-/* Edge case handling - ensure pointer stays with tooltip */
+/* Edge case handling - only adjust the tooltip box, keep pointer centered */
 .tabs [data-tooltip]:first-child::before {
     left: 20px;
     transform: none;
 }
 
 .tabs [data-tooltip]:first-child::after {
-    left: 20px;
-    transform: none;
-    margin-left: 15px; /* Center the pointer under the tooltip */
+    left: 50%; /* Keep pointer centered */
+    transform: translateX(-50%); /* Keep pointer centered */
 }
 
 .tabs [data-tooltip]:last-child::before {
@@ -553,9 +551,8 @@ body {
 }
 
 .tabs [data-tooltip]:last-child::after {
-    left: auto;
-    right: 35px; /* Center the pointer under the tooltip */
-    transform: none;
+    left: 50%; /* Keep pointer centered */
+    transform: translateX(-50%); /* Keep pointer centered */
 }
 
 /* Hide tooltips on mobile */
@@ -565,7 +562,6 @@ body {
         display: none;
     }
 }
-
 /* ============================
    SECTION: Modal Styles
    ============================ */
