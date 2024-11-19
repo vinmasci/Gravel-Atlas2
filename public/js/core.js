@@ -61,8 +61,13 @@ const utils = {
             if (!tab.getAttribute('data-original-content')) {
                 tab.setAttribute('data-original-content', currentContent);
             }
-            // Replace with loading indicator
-            tab.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> Loading...`;
+            // Set loading message based on tab type
+            const loadingMessage = tabId === 'segments-tab' ? 'Segments Loading...' :
+                                 tabId === 'photos-tab' ? 'Photos Loading...' :
+                                 tabId === 'pois-tab' ? 'POIs Loading...' :
+                                 'Loading...';
+            // Replace with loading indicator and specific message
+            tab.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> ${loadingMessage}`;
         }
     },
 
