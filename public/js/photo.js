@@ -389,7 +389,6 @@ async function loadPhotoMarkers() {
 
         console.log(`Total photos: ${photos.length}`);
         
-        // Filter photos with valid coordinates first
         const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
         console.log(`Photos with valid coordinates: ${validPhotos.length}`);
         console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
@@ -399,10 +398,8 @@ async function loadPhotoMarkers() {
             return;
         }
 
-        // Remove existing layers and handlers
         removePhotoMarkers();
 
-        // Convert valid photos into GeoJSON with all user properties
         const photoGeoJSON = {
             type: 'FeatureCollection',
             features: validPhotos.map(photo => ({
@@ -424,13 +421,9 @@ async function loadPhotoMarkers() {
             }))
         };
 
-        // Load marker images
-        await Promise.all([
-            loadMapImage('camera-icon-cluster'),
-            loadMapImage('camera-icon')
-        ]);
+        // Only load cluster icon
+        await loadMapImage('camera-icon-cluster');
 
-        // Add source
         map.addSource('photoMarkers', {
             type: 'geojson',
             data: photoGeoJSON,
@@ -452,6 +445,57 @@ async function loadPhotoMarkers() {
             }
         });
 
+        // Add circular border layer
+        map.addLayer({
+            id: 'photo-border',
+            type: 'circle',
+            source: 'photoMarkers',
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+                'circle-radius': 15,
+                'circle-color': '#ffffff',
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 2,
+                'circle-opacity': 1
+            }
+        });
+
+        // Load and process actual photos
+        validPhotos.forEach(photo => {
+            if (!map.hasImage(photo.url)) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const size = 100;
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Create circular clipping path
+                    ctx.beginPath();
+                    ctx.arc(size/2, size/2, size/2 - 2, 0, Math.PI * 2, true);
+                    ctx.closePath();
+                    ctx.clip();
+                    
+                    // Draw the image maintaining aspect ratio
+                    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                    const x = (size - img.width * scale) / 2;
+                    const y = (size - img.height * scale) / 2;
+                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    
+                    if (!map.hasImage(photo.url)) {
+                        map.addImage(photo.url, { 
+                            width: size, 
+                            height: size, 
+                            data: ctx.getImageData(0, 0, size, size).data 
+                        });
+                    }
+                };
+                img.src = photo.url;
+            }
+        });
+
         // Add unclustered photo layer
         map.addLayer({
             id: 'unclustered-photo',
@@ -459,29 +503,37 @@ async function loadPhotoMarkers() {
             source: 'photoMarkers',
             filter: ['!', ['has', 'point_count']],
             layout: {
-                'icon-image': 'camera-icon',
-                'icon-size': 0.3,
-                'icon-allow-overlap': true
+                'icon-image': ['get', 'url'],
+                'icon-size': 0.2,
+                'icon-allow-overlap': true,
+                'icon-anchor': 'center'
             }
+        });
+
+        // Add hover effects
+        map.on('mouseenter', 'unclustered-photo', () => {
+            map.setPaintProperty('photo-border', 'circle-color', '#0066ff');
+            map.setPaintProperty('photo-border', 'circle-stroke-color', '#0066ff');
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'unclustered-photo', () => {
+            map.setPaintProperty('photo-border', 'circle-color', '#ffffff');
+            map.setPaintProperty('photo-border', 'circle-stroke-color', '#ffffff');
+            map.getCanvas().style.cursor = '';
+        });
+
+        map.on('mouseenter', 'clusters', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'clusters', () => {
+            map.getCanvas().style.cursor = '';
         });
 
         // Add click handlers
         map.on('click', 'clusters', handleClusterClick);
         map.on('click', 'unclustered-photo', handlePhotoClick);
-
-        // Change cursor on hover
-        map.on('mouseenter', 'clusters', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'clusters', () => {
-            map.getCanvas().style.cursor = '';
-        });
-        map.on('mouseenter', 'unclustered-photo', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'unclustered-photo', () => {
-            map.getCanvas().style.cursor = '';
-        });
 
     } catch (error) {
         console.error('Error loading photo markers:', error);
@@ -518,6 +570,9 @@ function removePhotoMarkers() {
         map.off('mouseleave', 'clusters');
         map.removeLayer('clusters');
     }
+    if (map.getLayer('photo-border')) {
+        map.removeLayer('photo-border');
+    }
     if (map.getLayer('unclustered-photo')) {
         map.off('click', 'unclustered-photo', handlePhotoClick);
         map.off('mouseenter', 'unclustered-photo');
@@ -529,12 +584,12 @@ function removePhotoMarkers() {
     }
 }
 
-// Add the event listener when the DOM is ready
+// Add event listener when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
 });
 
-// At the bottom of photo.js, make functions globally available
+// Make functions globally available
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.removePhotoMarkers = removePhotoMarkers;
 window.togglePhotoLayer = togglePhotoLayer;
