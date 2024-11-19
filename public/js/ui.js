@@ -274,18 +274,20 @@ function renderElevationProfile(route) {
         } else {
             const color = getGradientColor(0);
             currentSegment = {
-                label: 'Gradient: 0%',
-                data: [{x: 0, y: elevation}],
+                label: `Gradient: ${gradient.toFixed(1)}%`,
+                data: lastPoint ? [lastPoint] : [],
                 borderColor: color.line,
                 backgroundColor: color.fill,
                 borderWidth: 2,
                 fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 4,
+                tension: 0.2,
+                // Update point styling
+                pointRadius: 0,  // Hide points by default
+                pointHoverRadius: 6,  // Larger hover radius
                 pointBackgroundColor: color.line,
                 pointBorderColor: '#fff',
-                pointBorderWidth: 1
+                pointBorderWidth: 2,
+                pointHitRadius: 10,  // Larger hit area for better hover detection
             };
             segments.push(currentSegment);
         }
@@ -342,19 +344,25 @@ function renderElevationProfile(route) {
                         enabled: true,
                         mode: 'nearest',
                         intersect: true,
+                        axis: 'x',
+                        itemSort: (a, b) => b.raw.y - a.raw.y, // Show highest elevation first if multiple points
+                        filter: (tooltipItem, index) => {
+                            // Only show the tooltip item with the highest elevation at this x coordinate
+                            const items = tooltipItem.chart.tooltip.dataPoints;
+                            if (!items) return true;
+                            return tooltipItem === items[0];
+                        },
                         callbacks: {
                             label: (context) => {
-                                // Get gradient value from dataset label
                                 const gradient = context.dataset.label.split(': ')[1];
                                 const absGradient = parseFloat(gradient);
                                 
-                                // Determine gradient category
                                 let gradientCategory = '';
                                 if (absGradient <= 3) gradientCategory = 'Easy';
                                 else if (absGradient <= 8) gradientCategory = 'Moderate';
                                 else if (absGradient <= 11) gradientCategory = 'Hard';
                                 else gradientCategory = 'Extreme';
-    
+        
                                 return [
                                     `Elevation: ${Math.round(context.parsed.y)}m`,
                                     `Gradient: ${gradient}`,
@@ -383,7 +391,7 @@ function renderElevationProfile(route) {
                         display: false
                     }
                 },
-                interaction: {
+                hover: {
                     mode: 'nearest',
                     intersect: true,
                     axis: 'x'
