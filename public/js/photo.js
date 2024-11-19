@@ -382,112 +382,6 @@ function togglePhotoLayer() {
 window.togglePhotoLayer = togglePhotoLayer;
 
 // Photo markers management
-async function loadPhotoMarkers() {
-    try {
-        const response = await fetch('/api/get-photos');
-        const photos = await response.json();
-
-        console.log(`Total photos: ${photos.length}`);
-        
-        // Filter photos with valid coordinates first
-        const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
-        console.log(`Photos with valid coordinates: ${validPhotos.length}`);
-        console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
-
-        if (validPhotos.length === 0) {
-            console.warn('No photos with valid coordinates found');
-            return;
-        }
-
-        // Remove existing layers and handlers
-        removePhotoMarkers();
-
-        // Convert valid photos into GeoJSON with all user properties
-        const photoGeoJSON = {
-            type: 'FeatureCollection',
-            features: validPhotos.map(photo => ({
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: [photo.longitude, photo.latitude]
-                },
-                properties: {
-                    originalName: photo.originalName,
-                    url: photo.url,
-                    _id: photo._id,
-                    auth0Id: photo.auth0Id,
-                    username: photo.username,
-                    picture: photo.picture,
-                    uploadedAt: photo.uploadedAt,
-                    caption: photo.caption || ''
-                }
-            }))
-        };
-
-        // Load marker images
-        await Promise.all([
-            loadMapImage('camera-icon-cluster'),
-            loadMapImage('camera-icon')
-        ]);
-
-        // Add source
-        map.addSource('photoMarkers', {
-            type: 'geojson',
-            data: photoGeoJSON,
-            cluster: true,
-            clusterMaxZoom: 14,
-            clusterRadius: 50
-        });
-
-        // Add cluster layer
-        map.addLayer({
-            id: 'clusters',
-            type: 'symbol',
-            source: 'photoMarkers',
-            filter: ['has', 'point_count'],
-            layout: {
-                'icon-image': 'camera-icon-cluster',
-                'icon-size': 0.4,
-                'icon-allow-overlap': true
-            }
-        });
-
-        // Add unclustered photo layer
-        map.addLayer({
-            id: 'unclustered-photo',
-            type: 'symbol',
-            source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-                'icon-image': 'camera-icon',
-                'icon-size': 0.3,
-                'icon-allow-overlap': true
-            }
-        });
-
-        // Add click handlers
-        map.on('click', 'clusters', handleClusterClick);
-        map.on('click', 'unclustered-photo', handlePhotoClick);
-
-        // Change cursor on hover
-        map.on('mouseenter', 'clusters', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'clusters', () => {
-            map.getCanvas().style.cursor = '';
-        });
-        map.on('mouseenter', 'unclustered-photo', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'unclustered-photo', () => {
-            map.getCanvas().style.cursor = '';
-        });
-
-    } catch (error) {
-        console.error('Error loading photo markers:', error);
-    }
-}
-
 function loadMapImage(name) {
     const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
     
@@ -511,12 +405,194 @@ function loadMapImage(name) {
     });
 }
 
+async function loadPhotoMarkers() {
+    try {
+        const response = await fetch('/api/get-photos');
+        const photos = await response.json();
+
+        console.log(`Total photos: ${photos.length}`);
+        const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
+        console.log(`Photos with valid coordinates: ${validPhotos.length}`);
+
+        if (validPhotos.length === 0) {
+            console.warn('No photos with valid coordinates found');
+            return;
+        }
+
+        removePhotoMarkers();
+
+        const photoGeoJSON = {
+            type: 'FeatureCollection',
+            features: validPhotos.map(photo => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [photo.longitude, photo.latitude]
+                },
+                properties: {
+                    originalName: photo.originalName,
+                    url: photo.url,
+                    _id: photo._id,
+                    auth0Id: photo.auth0Id,
+                    username: photo.username,
+                    picture: photo.picture,
+                    uploadedAt: photo.uploadedAt,
+                    caption: photo.caption || ''
+                }
+            }))
+        };
+
+        // Load marker images
+        await Promise.all([
+            loadMapImage('camera-icon-cluster')
+        ]);
+
+        map.addSource('photoMarkers', {
+            type: 'geojson',
+            data: photoGeoJSON,
+            cluster: true,
+            clusterMaxZoom: 14,
+            clusterRadius: 50
+        });
+
+        // Add cluster layer
+        map.addLayer({
+            id: 'clusters',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['has', 'point_count'],
+            layout: {
+                'icon-image': 'camera-icon-cluster',
+                'icon-size': 0.4,
+                'icon-allow-overlap': true
+            }
+        });
+
+        // Add circular border layer
+        map.addLayer({
+            id: 'photo-border',
+            type: 'circle',
+            source: 'photoMarkers',
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+                'circle-radius': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    10, 15,
+                    15, 20,
+                    20, 30
+                ],
+                'circle-color': '#ffffff',
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 1,
+                'circle-opacity': 1
+            }
+        });
+
+        // Load and process photos
+        const loadImagePromises = validPhotos.map(photo => {
+            return new Promise((resolve, reject) => {
+                if (map.hasImage(photo.url)) {
+                    resolve();
+                    return;
+                }
+
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const size = 100;
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.beginPath();
+                    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2, true);
+                    ctx.closePath();
+                    ctx.clip();
+                    
+                    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                    const x = (size - img.width * scale) / 2;
+                    const y = (size - img.height * scale) / 2;
+                    
+                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    
+                    map.addImage(photo.url, { 
+                        width: size, 
+                        height: size, 
+                        data: ctx.getImageData(0, 0, size, size).data 
+                    });
+                    resolve();
+                };
+
+                img.onerror = reject;
+                img.src = photo.url;
+            });
+        });
+
+        // Wait for all images to load
+        await Promise.all(loadImagePromises);
+
+        // Add unclustered photo layer
+        map.addLayer({
+            id: 'unclustered-photo',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+                'icon-image': ['get', 'url'],
+                'icon-size': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    10, 0.15,
+                    15, 0.2,
+                    20, 0.25
+                ],
+                'icon-allow-overlap': true,
+                'icon-anchor': 'center'
+            }
+        });
+
+        // Add hover effects
+        map.on('mouseenter', 'unclustered-photo', () => {
+            map.setPaintProperty('photo-border', 'circle-stroke-color', '#0066ff');
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'unclustered-photo', () => {
+            map.setPaintProperty('photo-border', 'circle-stroke-color', '#ffffff');
+            map.getCanvas().style.cursor = '';
+        });
+
+        map.on('mouseenter', 'clusters', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'clusters', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+        // Add click handlers
+        map.on('click', 'clusters', handleClusterClick);
+        map.on('click', 'unclustered-photo', handlePhotoClick);
+
+    } catch (error) {
+        console.error('Error loading photo markers:', error);
+    }
+}
+
 function removePhotoMarkers() {
     if (map.getLayer('clusters')) {
         map.off('click', 'clusters', handleClusterClick);
         map.off('mouseenter', 'clusters');
         map.off('mouseleave', 'clusters');
         map.removeLayer('clusters');
+    }
+    if (map.getLayer('photo-border')) {
+        map.removeLayer('photo-border');
     }
     if (map.getLayer('unclustered-photo')) {
         map.off('click', 'unclustered-photo', handlePhotoClick);
@@ -529,12 +605,12 @@ function removePhotoMarkers() {
     }
 }
 
-// Add the event listener when the DOM is ready
+// Add event listener when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
 });
 
-// At the bottom of photo.js, make functions globally available
+// Make functions globally available
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.removePhotoMarkers = removePhotoMarkers;
 window.togglePhotoLayer = togglePhotoLayer;
