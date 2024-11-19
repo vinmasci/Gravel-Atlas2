@@ -360,8 +360,7 @@ function renderElevationProfile(route) {
                                     const gradient = context.dataset.label.split(': ')[1];
                                     return [
                                         `Elevation: ${Math.round(context.parsed.y)}m`,
-                                        `Gradient: ${gradient}`,
-                                        gradient.includes('-') ? 'Descending' : 'Ascending'
+                                        `Gradient: ${gradient}`
                                     ];
                                 }
                                 return [];
