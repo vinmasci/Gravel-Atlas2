@@ -11,6 +11,9 @@ let selectedColor = '#FFFFFF'; // Default color
 let selectedLineStyle = 'solid'; // Default to solid line
 let originalPins = []; // Store user-added pins
 let lastSnappedPoint = null; // Track the last successfully snapped point
+// Add to your routes.js
+let liveElevationData = [];
+let totalDistance = 0;
 
 // Gravel type color mapping
 const gravelColors = {
@@ -128,6 +131,7 @@ async function snapToRoads(points) {
 // ============================
 // SECTION: Draw Point with Improved Snapping
 // ============================
+// Draw point with live elevation preview
 async function drawPoint(e) {
     const coords = [e.lngLat.lng, e.lngLat.lat];
     console.log("Point drawn at:", coords);
@@ -136,11 +140,31 @@ async function drawPoint(e) {
     if (originalPins.length > 1) {
         let snappedSegment = await snapToRoads([originalPins[originalPins.length - 2], coords]);
 
-        // Use lastSnappedPoint if Directions API fails
         if (!snappedSegment && lastSnappedPoint) {
             snappedSegment = [lastSnappedPoint, coords];
         } else {
             lastSnappedPoint = snappedSegment ? snappedSegment[snappedSegment.length - 1] : coords;
+        }
+
+        try {
+            // Fetch elevation data for the segment
+            const response = await fetch('/api/get-elevation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ coordinates: snappedSegment })
+            });
+
+            if (response.ok) {
+                const elevationData = await response.json();
+                
+                // Update the preview if we're on desktop
+                if (window.innerWidth > 768) {
+                    updateLiveElevationProfile(elevationData.coordinates);
+                    document.getElementById('elevation-preview').style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching elevation data:', error);
         }
 
         addSegment(snappedSegment);
@@ -233,14 +257,40 @@ function undoLastSegment() {
 // ============================
 // SECTION: Reset Route
 // ============================
+// Reset route with elevation preview cleanup
 function resetRoute() {
     console.log("Resetting route...");
+    
+    // Clear existing route data
     segmentsGeoJSON.features = [];
     drawSegmentsOnMap();
     markers.forEach(marker => marker.remove());
     markers = [];
     originalPins = [];
-    console.log("Route reset.");
+    
+    // Reset elevation preview
+    liveElevationData = [];
+    totalDistance = 0;
+    
+    // Update elevation preview display
+    const preview = document.getElementById('elevation-preview');
+    if (preview) {
+        preview.style.display = 'none';
+        
+        // Reset stats
+        document.getElementById('total-distance').textContent = '0.00 km';
+        document.getElementById('elevation-gain').textContent = '↑ 0m';
+        document.getElementById('elevation-loss').textContent = '↓ 0m';
+        document.getElementById('max-elevation').textContent = '0m';
+        
+        // Clear chart
+        const chart = Chart.getChart('elevation-chart');
+        if (chart) {
+            chart.destroy();
+        }
+    }
+    
+    console.log("Route and elevation preview reset.");
 }
 
 // ============================
@@ -456,3 +506,4 @@ window.drawSegmentsOnMap = drawSegmentsOnMap;
 window.enableDrawingMode = enableDrawingMode;
 window.disableDrawingMode = disableDrawingMode;
 window.handleSaveConfirmation = handleSaveConfirmation;
+window.addEventListener('resize', updateElevationPreviewVisibility);
