@@ -382,6 +382,112 @@ function togglePhotoLayer() {
 window.togglePhotoLayer = togglePhotoLayer;
 
 // Photo markers management
+async function loadPhotoMarkers() {
+    try {
+        const response = await fetch('/api/get-photos');
+        const photos = await response.json();
+
+        console.log(`Total photos: ${photos.length}`);
+        
+        // Filter photos with valid coordinates first
+        const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
+        console.log(`Photos with valid coordinates: ${validPhotos.length}`);
+        console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
+
+        if (validPhotos.length === 0) {
+            console.warn('No photos with valid coordinates found');
+            return;
+        }
+
+        // Remove existing layers and handlers
+        removePhotoMarkers();
+
+        // Convert valid photos into GeoJSON with all user properties
+        const photoGeoJSON = {
+            type: 'FeatureCollection',
+            features: validPhotos.map(photo => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [photo.longitude, photo.latitude]
+                },
+                properties: {
+                    originalName: photo.originalName,
+                    url: photo.url,
+                    _id: photo._id,
+                    auth0Id: photo.auth0Id,
+                    username: photo.username,
+                    picture: photo.picture,
+                    uploadedAt: photo.uploadedAt,
+                    caption: photo.caption || ''
+                }
+            }))
+        };
+
+        // Load marker images
+        await Promise.all([
+            loadMapImage('camera-icon-cluster'),
+            loadMapImage('camera-icon')
+        ]);
+
+        // Add source
+        map.addSource('photoMarkers', {
+            type: 'geojson',
+            data: photoGeoJSON,
+            cluster: true,
+            clusterMaxZoom: 14,
+            clusterRadius: 50
+        });
+
+        // Add cluster layer
+        map.addLayer({
+            id: 'clusters',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['has', 'point_count'],
+            layout: {
+                'icon-image': 'camera-icon-cluster',
+                'icon-size': 0.4,
+                'icon-allow-overlap': true
+            }
+        });
+
+        // Add unclustered photo layer
+        map.addLayer({
+            id: 'unclustered-photo',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+                'icon-image': 'camera-icon',
+                'icon-size': 0.3,
+                'icon-allow-overlap': true
+            }
+        });
+
+        // Add click handlers
+        map.on('click', 'clusters', handleClusterClick);
+        map.on('click', 'unclustered-photo', handlePhotoClick);
+
+        // Change cursor on hover
+        map.on('mouseenter', 'clusters', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'clusters', () => {
+            map.getCanvas().style.cursor = '';
+        });
+        map.on('mouseenter', 'unclustered-photo', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'unclustered-photo', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+    } catch (error) {
+        console.error('Error loading photo markers:', error);
+    }
+}
+
 function loadMapImage(name) {
     const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
     
@@ -405,297 +511,12 @@ function loadMapImage(name) {
     });
 }
 
-async function loadPhotoMarkers() {
-    try {
-        const response = await fetch('/api/get-photos');
-        const photos = await response.json();
-
-        console.log(`Total photos: ${photos.length}`);
-        const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
-        console.log(`Photos with valid coordinates: ${validPhotos.length}`);
-        console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
-
-        if (validPhotos.length === 0) {
-            console.warn('No photos with valid coordinates found');
-            return;
-        }
-
-        removePhotoMarkers();
-
-        const photoGeoJSON = {
-            type: 'FeatureCollection',
-            features: validPhotos.map(photo => ({
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: [photo.longitude, photo.latitude]
-                },
-                properties: {
-                    originalName: photo.originalName,
-                    url: photo.url,
-                    _id: photo._id,
-                    auth0Id: photo.auth0Id,
-                    username: photo.username,
-                    picture: photo.picture,
-                    uploadedAt: photo.uploadedAt,
-                    caption: photo.caption || ''
-                }
-            }))
-        };
-
-        // Load cluster icon
-        await loadMapImage('camera-icon-cluster');
-
-        map.addSource('photoMarkers', {
-            type: 'geojson',
-            data: photoGeoJSON,
-            cluster: true,
-            clusterMaxZoom: 14,
-            clusterRadius: 50
-        });
-
-        // Add cluster layer
-        map.addLayer({
-            id: 'clusters',
-            type: 'symbol',
-            source: 'photoMarkers',
-            filter: ['has', 'point_count'],
-            layout: {
-                'icon-image': 'camera-icon-cluster',
-                'icon-size': 0.4,
-                'icon-allow-overlap': true
-            }
-        });
-
-        // Add circular border layer
-        map.addLayer({
-            id: 'photo-border',
-            type: 'circle',
-            source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            paint: {
-                'circle-radius': 25,
-                'circle-color': '#ffffff',
-                'circle-stroke-color': '#ffffff',
-                'circle-stroke-width': 2,
-                'circle-opacity': 1
-            }
-        });
-
-        // Add unclustered photo layer
-        map.addLayer({
-            id: 'unclustered-photo',
-            type: 'symbol',
-            source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-                'icon-image': ['get', 'url'],
-                'icon-size': 0.15,
-                'icon-allow-overlap': true,
-                'icon-anchor': 'center'
-            }
-        });
-
-        // Load individual photos as circular images
-        validPhotos.forEach(photo => {
-            if (!map.hasImage(photo.url)) {
-                const img = new Image();
-                img.crossOrigin = "Anonymous";
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const size = 200;
-                    canvas.width = size;
-                    canvas.height = size;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Create circular clipping path
-                    ctx.beginPath();
-                    ctx.arc(size/2, size/2, size/2 - 4, 0, Math.PI * 2, true);
-                    ctx.closePath();
-                    ctx.clip();
-                    
-                    // Calculate dimensions to maintain aspect ratio
-                    const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-                    const x = (canvas.width - img.width * scale) / 2;
-                    const y = (canvas.height - img.height * scale) / 2;
-                    
-                    // Draw the image
-                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-                    
-                    if (!map.hasImage(photo.url)) {
-                        map.addImage(photo.url, canvas);
-                    }
-                };
-                img.src = photo.url;
-            }
-        });
-
-        // Add click handlers and hover effects
-        map.on('click', 'clusters', handleClusterClick);
-        map.on('click', 'unclustered-photo', handlePhotoClick);
-
-        map.on('mouseenter', 'unclustered-photo', () => {
-            map.setPaintProperty('photo-border', 'circle-color', '#0066ff');
-            map.setPaintProperty('photo-border', 'circle-stroke-color', '#0066ff');
-            map.getCanvas().style.cursor = 'pointer';
-        });
-
-        map.on('mouseleave', 'unclustered-photo', () => {
-            map.setPaintProperty('photo-border', 'circle-color', '#ffffff');
-            map.setPaintProperty('photo-border', 'circle-stroke-color', '#ffffff');
-            map.getCanvas().style.cursor = '';
-        });
-
-        map.on('mouseenter', 'clusters', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'clusters', () => {
-            map.getCanvas().style.cursor = '';
-        });
-
-    } catch (error) {
-        console.error('Error loading photo markers:', error);
-    }
-}
-
-function handleClusterClick(e) {
-    const features = map.queryRenderedFeatures(e.point, {
-        layers: ['clusters']
-    });
-    const clusterId = features[0].properties.cluster_id;
-    
-    map.getSource('photoMarkers').getClusterExpansionZoom(
-        clusterId,
-        (err, zoom) => {
-            if (err) return;
-
-            map.easeTo({
-                center: features[0].geometry.coordinates,
-                zoom: zoom
-            });
-        }
-    );
-}
-
-async function handlePhotoClick(e) {
-    try {
-        const coordinates = e.features[0].geometry.coordinates.slice();
-        const { 
-            originalName, 
-            url, 
-            _id: photoId, 
-            auth0Id,
-            username,
-            picture,
-            uploadedAt 
-        } = e.features[0].properties;
-
-        let socialLinksHtml = '';
-        let popupContent = `
-        <div class="photo-popup">
-            <div class="photo-header">
-                <div class="user-info">
-                    <img src="${picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" class="profile-pic" />
-                    <div class="name-social-line">
-                        <strong>${username}</strong>
-                        <div id="socialLinks-${photoId}"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="photo-content">
-                <img src="${url}" alt="${originalName}" class="photo-image">
-                <div class="photo-date">
-                    ${new Date(uploadedAt).toLocaleDateString()}
-                </div>
-            </div>
-            <div class="photo-footer">
-                <span class="photo-id">Photo ID: ${photoId}</span>
-                ${auth0Id === (await getCurrentUser())?.sub ? 
-                    `<span id="deletePhotoText" data-photo-id="${photoId}" 
-                        class="delete-photo"><i class="fa-solid fa-trash"></i></span>` : ''}
-            </div>
-        </div>`;
-
-        const popup = new mapboxgl.Popup()
-            .setLngLat(coordinates)
-            .setHTML(popupContent)
-            .addTo(map);
-
-        try {
-            const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
-            if (profileResponse.ok) {
-                const userProfile = await profileResponse.json();
-                
-                const nameElement = popup.getElement().querySelector('.name-social-line strong');
-                if (nameElement && userProfile.bioName) {
-                    nameElement.textContent = userProfile.bioName;
-                }
-
-                if (userProfile?.socialLinks) {
-                    const { instagram, strava, facebook } = userProfile.socialLinks;
-                    socialLinksHtml = `
-                        <div class="social-links">
-                            ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
-                            ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
-                            ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
-                            ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
-                        </div>
-                    `;
-                    
-                    const socialLinksDiv = document.getElementById(`socialLinks-${photoId}`);
-                    if (socialLinksDiv) {
-                        socialLinksDiv.innerHTML = socialLinksHtml;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('Could not load social links:', error);
-        }
-
-        setTimeout(() => {
-            const deleteText = document.getElementById('deletePhotoText');
-            if (deleteText) {
-                deleteText.addEventListener('click', async () => {
-                    if (confirm('Are you sure you want to delete this photo?')) {
-                        await deletePhoto(photoId);
-                        popup.remove();
-                        loadPhotoMarkers();
-                    }
-                });
-            }
-        }, 0);
-
-    } catch (error) {
-        console.error('Error creating photo popup:', error);
-    }
-}
-
-async function deletePhoto(photoId) {
-    try {
-        const response = await fetch(`/api/delete-photo?photoId=${photoId}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to delete photo');
-        }
-        
-        return response.json();
-    } catch (error) {
-        console.error('Error deleting photo:', error);
-        throw error;
-    }
-}
-
 function removePhotoMarkers() {
     if (map.getLayer('clusters')) {
         map.off('click', 'clusters', handleClusterClick);
         map.off('mouseenter', 'clusters');
         map.off('mouseleave', 'clusters');
         map.removeLayer('clusters');
-    }
-    if (map.getLayer('photo-border')) {
-        map.removeLayer('photo-border');
     }
     if (map.getLayer('unclustered-photo')) {
         map.off('click', 'unclustered-photo', handlePhotoClick);
@@ -708,12 +529,12 @@ function removePhotoMarkers() {
     }
 }
 
-// Add event listener when DOM is ready
+// Add the event listener when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
 });
 
-// Make functions globally available
+// At the bottom of photo.js, make functions globally available
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.removePhotoMarkers = removePhotoMarkers;
 window.togglePhotoLayer = togglePhotoLayer;
