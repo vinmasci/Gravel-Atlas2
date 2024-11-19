@@ -338,56 +338,58 @@ try {
             responsive: true,
             maintainAspectRatio: true,
             aspectRatio: 2,
-            plugins: {
-                tooltip: {
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        label: (context) => {
-                            // Get gradient value from dataset label
-                            const gradient = context.dataset.label.split(': ')[1];
-                            const absGradient = parseFloat(gradient);
-                            
-                            // Determine gradient category
-                            let gradientCategory = '';
-                            if (absGradient <= 3) gradientCategory = 'Easy';
-                            else if (absGradient <= 8) gradientCategory = 'Moderate';
-                            else if (absGradient <= 11) gradientCategory = 'Hard';
-                            else gradientCategory = 'Extreme';
+// Inside your renderElevationProfile function, update the tooltip configuration:
+plugins: {
+    tooltip: {
+        enabled: true,
+        mode: 'nearest',
+        intersect: true,
+        callbacks: {
+            label: (context) => {
+                // Get gradient value from dataset label
+                const gradient = context.dataset.label.split(': ')[1];
+                const absGradient = parseFloat(gradient);
+                
+                // Determine gradient category
+                let gradientCategory = '';
+                if (absGradient <= 3) gradientCategory = 'Easy';
+                else if (absGradient <= 8) gradientCategory = 'Moderate';
+                else if (absGradient <= 11) gradientCategory = 'Hard';
+                else gradientCategory = 'Extreme';
 
-                            return [
-                                `Elevation: ${Math.round(context.parsed.y)}m`,
-                                `Gradient: ${gradient}`,
-                                `Category: ${gradientCategory}`,
-                                gradient.includes('-') ? 'Descending' : 'Ascending'
-                            ];
-                        },
-                        title: (context) => {
-                            if (context[0]) {
-                                return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
-                            }
-                        }
-                    },
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    padding: 12,
-                    displayColors: false
-                },
-                legend: {
-                    display: false
+                return [
+                    `Elevation: ${Math.round(context.parsed.y)}m`,
+                    `Gradient: ${gradient}`,
+                    `Category: ${gradientCategory}`,
+                    gradient.includes('-') ? 'Descending' : 'Ascending'
+                ];
+            },
+            title: (context) => {
+                if (context[0]) {
+                    return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
                 }
-            },
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
+            }
+        },
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleFont: {
+            size: 14,
+            weight: 'bold'
+        },
+        bodyFont: {
+            size: 13
+        },
+        padding: 12,
+        displayColors: false
+    },
+    legend: {
+        display: false
+    }
+},
+interaction: {
+    mode: 'nearest',
+    intersect: true,
+    axis: 'x'
+},
             scales: {
                 x: {
                     type: 'linear',
