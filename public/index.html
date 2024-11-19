@@ -23,7 +23,7 @@
 <body>
 
     <style>
-
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
 /* ============================
    SECTION: Bottom Navigation Tabs
    ============================ */
@@ -820,35 +820,37 @@ body {
     bottom: 100px;
     left: 5px;
     background-color: white;
-    padding: 8px 12px 12px 12px; /* More padding on sides and bottom, less on top */
+    padding: 8px 12px 12px 12px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     z-index: 1000;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .drawing-options {
-    margin-top: 2px; /* Even less margin at top */
+    margin-top: 2px;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: start;
-    padding: 0 4px; /* Add some padding on sides */
+    padding: 0 4px;
 }
 
 .drawing-options h5 {
-    margin: 2px 0 6px 0; /* Less margin top, normal margin bottom */
+    margin: 2px 0 6px 0;
     font-size: 14px;
     font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .drawing-options label {
     display: block;
     margin-bottom: 6px;
     font-size: 13px;
-    padding: 2px 0; /* Add some vertical padding to labels */
+    padding: 2px 0;
+    font-family: 'DM Sans', sans-serif;
 }
 
-/* Button group and info text */
 .btn-group-container {
     display: flex;
     flex-direction: column;
@@ -865,6 +867,7 @@ body {
     font-size: 11px;
     padding: 4px 8px;
     line-height: 1.2;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .info-text {
@@ -874,6 +877,7 @@ body {
     align-items: center;
     gap: 4px;
     padding: 0 4px;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .info-text i {
@@ -1177,6 +1181,11 @@ body {
             <div class="info-text">
                 <i class="fa-solid fa-circle-info"></i>
                 Please only add one road, <br>lane or track at a time
+            </div>
+            <div class="info-text">
+                <i class="fa-solid fa-circle-info"></i>
+                Draw your route, <br>then hit save.
+                <br>You can alternate colours <br> while drawing. 
             </div>
         </div>
     </div>
