@@ -485,9 +485,6 @@ body {
 }
 
 /* ============================
- SECTION: Custom Tooltips
- ============================ */
-/* ============================
  SECTION: Custom Tooltips - Bottom Tabs Only
  ============================ */
  .tabs [data-tooltip] {
@@ -501,7 +498,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     padding: 8px 12px;
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.85);
     color: white;
     font-size: 12px;
     line-height: 1.4;
@@ -513,22 +510,38 @@ body {
     z-index: 1000;
     width: max-content;
     max-width: 250px;
-    text-align: left;
-    /* Green highlight border */
-    border: 1px solid #32CD32;
-    /* Box shadow with slight green glow */
-    box-shadow: 0 0 10px rgba(50, 205, 50, 0.2);
 }
 
-/* Show tooltips on hover */
-.tabs [data-tooltip]:hover::before {
+/* Add the pointer arrow */
+.tabs [data-tooltip]::after {
+    content: '';
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* Show tooltip and arrow on hover */
+.tabs [data-tooltip]:hover::before,
+.tabs [data-tooltip]:hover::after {
     visibility: visible;
     opacity: 1;
 }
 
-/* Ensure tooltips near screen edges remain visible */
+/* Handle edge cases */
 .tabs [data-tooltip]:first-child::before {
     left: 0;
+    transform: none;
+}
+
+.tabs [data-tooltip]:first-child::after {
+    left: 20px;
     transform: none;
 }
 
@@ -538,9 +551,16 @@ body {
     transform: none;
 }
 
+.tabs [data-tooltip]:last-child::after {
+    left: auto;
+    right: 20px;
+    transform: none;
+}
+
 /* Hide tooltips on mobile */
 @media (max-width: 768px) {
-    .tabs [data-tooltip]::before {
+    .tabs [data-tooltip]::before,
+    .tabs [data-tooltip]::after {
         display: none;
     }
 }
