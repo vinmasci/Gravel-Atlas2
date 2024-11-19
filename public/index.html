@@ -820,43 +820,65 @@ body {
     bottom: 100px;
     left: 5px;
     background-color: white;
-    padding: 4px; /* Reduced from 10px */
+    padding: 8px 12px 12px 12px; /* More padding on sides and bottom, less on top */
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     z-index: 1000;
 }
 
 .drawing-options {
-    margin-top: 4px; /* Reduced from 10px */
+    margin-top: 2px; /* Even less margin at top */
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: start;
+    padding: 0 4px; /* Add some padding on sides */
 }
 
 .drawing-options h5 {
-    margin: 4px 0; /* Reduced from 8px */
+    margin: 2px 0 6px 0; /* Less margin top, normal margin bottom */
     font-size: 14px;
     font-weight: 500;
 }
 
 .drawing-options label {
     display: block;
-    margin-bottom: 6px; /* Reduced from 8px */
+    margin-bottom: 6px;
     font-size: 13px;
+    padding: 2px 0; /* Add some vertical padding to labels */
 }
 
-/* Button styling */
-.btn-group {
+/* Button group and info text */
+.btn-group-container {
     display: flex;
-    gap: 4px;
+    flex-direction: column;
+    gap: 8px;
     margin-top: 8px;
 }
 
+.btn-group {
+    display: flex;
+    gap: 4px;
+}
+
 .btn-group button {
-    font-size: 11px; /* Reduced font size */
-    padding: 4px 8px; /* Reduced padding */
-    line-height: 1.2; /* Helps with vertical centering */
+    font-size: 11px;
+    padding: 4px 8px;
+    line-height: 1.2;
+}
+
+.info-text {
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+}
+
+.info-text i {
+    color: #007bff;
+    font-size: 12px;
 }
 
 /* ============================
@@ -1164,29 +1186,28 @@ body {
 </div></div>
 
 <!-- Tabs -->
-<div class="tabs">
-    <div class="tab draw-route-tab" id="draw-route-tab" data-tooltip="For adding photos & segments (must be logged in)">
-        <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
-        <span class="login-required" style="font-size: 10px; display: none;">(Login required)</span>
-    </div>
-    <div class="tab" id="segments-tab" data-tooltip="Toggle segments on or off">
-        <span class="tab-content">
-            <i class="fa-thin fa-route" style="color: #ffffff;"></i> Segments
-        </span>
-        <span class="loading-indicator" style="display: none;">
-            <i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> Loading...
-        </span>
-    </div>
-    <div class="tab" id="photos-tab" data-tooltip="Toggle photos on or off">
-        <span class="tab-content">
-            <i class="fa-thin fa-camera-retro" style="color: #ffffff;"></i> Photos
-        </span>
-        <span class="loading-indicator" style="display: none;">
-            <i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> Loading...
-        </span>
-    </div>
-    <div class="tab" id="pois-tab" data-tooltip="Toggle POI on or off (coming soon)">
-        <i class="fa-thin fa-map-pin" style="color: #ffffff;"></i> POIs
+<div id="draw-route-control-panel" class="control-panel" style="display: none;">
+    <div id="gravel-style" class="gravel-style-container">
+        <div class="drawing-options">
+            <h5>Gravel Type</h5>
+            <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+            <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #ffa801"></i> Intermediate</label>
+            <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+            <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+            <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> Rail Trail</label>
+            <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+        </div>
+        <div class="btn-group-container">
+            <div class="btn-group">
+                <button id="undo-btn" class="btn btn-primary">Undo</button>
+                <button id="reset-btn" class="btn btn-warning">Reset</button>
+                <button id="save-btn" class="btn btn-success">Save</button>
+            </div>
+            <div class="info-text">
+                <i class="fa-solid fa-circle-info"></i>
+                Please only add one road, lane or track at a time
+            </div>
+        </div>
     </div>
 </div>
 
