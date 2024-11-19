@@ -487,52 +487,42 @@ body {
 /* ============================
  SECTION: Custom Tooltips
  ============================ */
-[data-tooltip] {
+ [data-tooltip] {
     position: relative;
 }
 
-/* Bottom tabs tooltips */
-.tabs [data-tooltip]::before {
+/* Base tooltip styles (shared between tabs and dropdown) */
+[data-tooltip]::before {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: 120%;
     left: 50%;
     transform: translateX(-50%);
-    padding: 8px 12px;
-    background-color: rgba(0, 0, 0, 0.9);
-    color: white;
-    font-size: 11px;
-    white-space: nowrap;
-    border-radius: 4px;
+    padding: 10px 15px;
+    background-color: white;
+    color: #333;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+    border-radius: 8px;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.2s ease, visibility 0.2s ease;
     z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     width: max-content;
-    max-width: 200px;
+    max-width: 250px;
+    text-align: left;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-/* Contribute dropdown tooltips */
+/* Bottom tabs tooltips specific positioning */
+.tabs [data-tooltip]::before {
+    bottom: 150%; /* Increased to ensure more space */
+}
+
+/* Contribute dropdown tooltips specific positioning */
 #contribute-dropdown [data-tooltip]::before {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: -40px; /* Adjusted to appear above the buttons */
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 8px 12px;
-    background-color: rgba(0, 0, 0, 0.9);
-    color: white;
-    font-size: 11px;
-    white-space: normal; /* Allow wrapping for longer messages */
-    border-radius: 4px;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-    z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    width: max-content;
-    max-width: 200px;
+    top: -45px;
 }
 
 /* Show tooltips on hover */
@@ -546,6 +536,18 @@ body {
     [data-tooltip]::before {
         display: none;
     }
+}
+
+/* Ensure tooltips near screen edges remain visible */
+.tabs [data-tooltip]:first-child::before {
+    left: 0;
+    transform: none;
+}
+
+.tabs [data-tooltip]:last-child::before {
+    left: auto;
+    right: 0;
+    transform: none;
 }
 
 /* ============================
