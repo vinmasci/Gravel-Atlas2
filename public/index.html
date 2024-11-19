@@ -24,6 +24,7 @@
 
     <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+
 /* ============================
    SECTION: Bottom Navigation Tabs
    ============================ */
@@ -888,6 +889,50 @@ body {
 /* ============================
    SECTION: Utility Classes
    ============================ */
+/* Photo Upload Panel Styles */
+.upload-container {
+    font-family: 'DM Sans', sans-serif;
+    padding: 8px 12px 12px 12px;
+}
+
+.upload-container h5 {
+    margin: 2px 0 12px 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.upload-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.file-input {
+    width: 100%;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 4px;
+}
+
+#uploadPhotosBtn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    padding: 6px 12px;
+    width: fit-content;
+}
+
+/* Update your existing .info-text class or add these specific styles */
+.upload-content .info-text {
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ============================
+   SECTION: Utility Classes
+   ============================ */
 .hidden {
     display: none !important;
 }
@@ -1196,12 +1241,24 @@ body {
 
 <!-- Photo Upload Control Panel -->
 <div id="photo-upload-control-panel" class="control-panel" style="display: none;">
-    <div style="width: 100%; margin-top: 10px; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+    <div class="upload-container">
         <h5>Upload Photos</h5>
-        <input type="file" id="photoFilesInput" multiple accept="image/*" class="form-control" style="width: 190px; margin-bottom: 10px; font-size: 10px;" />
-        <button id="uploadPhotosBtn" class="btn btn-primary" style="padding: 5px 10px; font-size: 14px;">Upload</button>
+        <div class="upload-content">
+            <input 
+                type="file" 
+                id="photoFilesInput" 
+                multiple 
+                accept="image/*" 
+                class="form-control file-input"
+            />
+            <div class="info-text">
+                <i class="fa-solid fa-circle-info"></i>
+                Photos must contain GPS data
+            </div>
+            <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
+        </div>
     </div>
-</div></div>
+</div>
 
 <!-- Tabs -->
 <div class="tabs">
