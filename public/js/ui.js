@@ -325,123 +325,120 @@ function renderElevationProfile(route) {
         </div>
     `;
 
-// Inside your renderElevationProfile function, replace the Chart initialization part with this:
-try {
-    // Create the chart using Chart.js
-    const ctx = document.getElementById('elevation-chart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: segments
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2,
-// Inside your renderElevationProfile function, update the tooltip configuration:
-plugins: {
-    tooltip: {
-        enabled: true,
-        mode: 'nearest',
-        intersect: true,
-        callbacks: {
-            label: (context) => {
-                // Get gradient value from dataset label
-                const gradient = context.dataset.label.split(': ')[1];
-                const absGradient = parseFloat(gradient);
-                
-                // Determine gradient category
-                let gradientCategory = '';
-                if (absGradient <= 3) gradientCategory = 'Easy';
-                else if (absGradient <= 8) gradientCategory = 'Moderate';
-                else if (absGradient <= 11) gradientCategory = 'Hard';
-                else gradientCategory = 'Extreme';
-
-                return [
-                    `Elevation: ${Math.round(context.parsed.y)}m`,
-                    `Gradient: ${gradient}`,
-                    `Category: ${gradientCategory}`,
-                    gradient.includes('-') ? 'Descending' : 'Ascending'
-                ];
+    try {
+        // Create the chart using Chart.js
+        const ctx = document.getElementById('elevation-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: segments
             },
-            title: (context) => {
-                if (context[0]) {
-                    return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
-                }
-            }
-        },
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleFont: {
-            size: 14,
-            weight: 'bold'
-        },
-        bodyFont: {
-            size: 13
-        },
-        padding: 12,
-        displayColors: false
-    },
-    legend: {
-        display: false
-    }
-},
-interaction: {
-    mode: 'nearest',
-    intersect: true,
-    axis: 'x'
-},
-            scales: {
-                x: {
-                    type: 'linear',
-                    grid: {
-                        color: '#E5E5E5',
-                        drawBorder: false
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        mode: 'nearest',
+                        intersect: true,
+                        callbacks: {
+                            label: (context) => {
+                                // Get gradient value from dataset label
+                                const gradient = context.dataset.label.split(': ')[1];
+                                const absGradient = parseFloat(gradient);
+                                
+                                // Determine gradient category
+                                let gradientCategory = '';
+                                if (absGradient <= 3) gradientCategory = 'Easy';
+                                else if (absGradient <= 8) gradientCategory = 'Moderate';
+                                else if (absGradient <= 11) gradientCategory = 'Hard';
+                                else gradientCategory = 'Extreme';
+    
+                                return [
+                                    `Elevation: ${Math.round(context.parsed.y)}m`,
+                                    `Gradient: ${gradient}`,
+                                    `Category: ${gradientCategory}`,
+                                    gradient.includes('-') ? 'Descending' : 'Ascending'
+                                ];
+                            },
+                            title: (context) => {
+                                if (context[0]) {
+                                    return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
+                                }
+                            }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        displayColors: false
                     },
-                    title: {
-                        display: true,
-                        text: 'Distance (km)',
-                        font: {
-                            size: 12
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    },
-                    min: 0,
-                    max: totalDistance,
-                    suggestedMax: totalDistance
+                    legend: {
+                        display: false
+                    }
                 },
-                y: {
-                    min: Math.floor(minElevation - (maxElevation - minElevation) * 0.15),
-                    max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.3),
-                    grid: {
-                        color: '#E5E5E5',
-                        drawBorder: false
+                interaction: {
+                    mode: 'nearest',
+                    intersect: true,
+                    axis: 'x'
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        grid: {
+                            color: '#E5E5E5',
+                            drawBorder: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Distance (km)',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        },
+                        min: 0,
+                        max: totalDistance,
+                        suggestedMax: totalDistance
                     },
-                    title: {
-                        display: true,
-                        text: 'Elevation (m)',
-                        font: {
-                            size: 12
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
+                    y: {
+                        min: Math.floor(minElevation - (maxElevation - minElevation) * 0.15),
+                        max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.3),
+                        grid: {
+                            color: '#E5E5E5',
+                            drawBorder: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Elevation (m)',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
                         }
                     }
                 }
             }
-        }
-    });
-
-    console.log("Elevation chart created successfully");
-} catch (error) {
-    console.error("Error creating elevation chart:", error);
-}
-}
+        });
+    
+        console.log("Elevation chart created successfully");
+    } catch (error) {
+        console.error("Error creating elevation chart:", error);
+    }}
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
