@@ -422,9 +422,9 @@ body {
 }
 
 /* ============================
-   SECTION: Bottom Navigation Tabs
-   ============================ */
-.tabs {
+ SECTION: Bottom Navigation Tabs
+ ============================ */
+ .tabs {
     position: fixed;
     bottom: 0;
     width: 100%;
@@ -441,11 +441,12 @@ body {
     color: white;
     cursor: pointer;
     display: block !important;
+    position: relative; /* Added for tooltip positioning */
 }
 
 /* ============================
-   SECTION: Contribute Dropdown
-   ============================ */
+ SECTION: Contribute Dropdown
+ ============================ */
 #contribute-dropdown {
     display: none;
     position: absolute;
@@ -470,6 +471,7 @@ body {
     border-radius: 3px;
     border: none;
     margin: 0 2px;
+    position: relative; /* Added for tooltip positioning */
 }
 
 #contribute-dropdown .btn:hover {
@@ -480,6 +482,70 @@ body {
 #contribute-dropdown .btn.active {
     background-color: #1d1096;
     color: #ffffff;
+}
+
+/* ============================
+ SECTION: Custom Tooltips
+ ============================ */
+[data-tooltip] {
+    position: relative;
+}
+
+/* Bottom tabs tooltips */
+.tabs [data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 11px;
+    white-space: nowrap;
+    border-radius: 4px;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: max-content;
+    max-width: 200px;
+}
+
+/* Contribute dropdown tooltips */
+#contribute-dropdown [data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -40px; /* Adjusted to appear above the buttons */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 11px;
+    white-space: normal; /* Allow wrapping for longer messages */
+    border-radius: 4px;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: max-content;
+    max-width: 200px;
+}
+
+/* Show tooltips on hover */
+[data-tooltip]:hover::before {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Hide tooltips on mobile */
+@media (max-width: 768px) {
+    [data-tooltip]::before {
+        display: none;
+    }
 }
 
 /* ============================
@@ -1076,25 +1142,24 @@ body {
 </div></div>
 
 <div class="tabs">
-    <div class="tab draw-route-tab" id="draw-route-tab">
+    <div class="tab draw-route-tab" id="draw-route-tab" data-tooltip="For adding photos & segments (must be logged in)">
         <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
         <span class="login-required" style="font-size: 10px; display: none;">(Login required)</span>
     </div>
-    <div class="tab" id="segments-tab">
+    <div class="tab" id="segments-tab" data-tooltip="Toggle segments on or off">
         <i class="fa-thin fa-route" style="color: #ffffff;"></i> Segments
     </div>
-    <div class="tab" id="photos-tab">
+    <div class="tab" id="photos-tab" data-tooltip="Toggle photos on or off">
         <i class="fa-thin fa-camera-retro" style="color: #ffffff;"></i> Photos
     </div>
-    <div class="tab" id="pois-tab">
+    <div class="tab" id="pois-tab" data-tooltip="Toggle POI on or off (coming soon)">
         <i class="fa-thin fa-map-pin" style="color: #ffffff;"></i> POIs
     </div>
 </div>
-
 <div id="contribute-dropdown" class="btn-group" role="group" style="display: flex;">
-    <button type="button" class="btn btn-outline-secondary" onclick="showControlPanel()" id="draw-route-dropdown">Draw Route</button>
-    <button type="button" class="btn btn-outline-secondary" onclick="showPhotoUploadPanel()" id="photo-upload-dropdown">Upload Photo</button>
-    <button type="button" class="btn btn-outline-secondary" onclick="showTempOverlay()" id="gpx-overlay-dropdown">GPX Overlay</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="showControlPanel()" id="draw-route-dropdown" data-tooltip="Please only draw one road / lane or track at a time">Draw Route</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="showPhotoUploadPanel()" id="photo-upload-dropdown" data-tooltip="Please only add photos with GPS data (or they won't appear on the map)">Upload Photo</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="showTempOverlay()" id="gpx-overlay-dropdown" data-tooltip="Coming soon">GPX Overlay</button>
 </div>
 
 <!-- Modal for Route Name -->
