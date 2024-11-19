@@ -253,10 +253,11 @@ function renderElevationProfile(route) {
                         fill: true,
                         tension: 0.2,
                         pointRadius: 0,
-                        pointHoverRadius: 4,
+                        pointHoverRadius: 6,
                         pointBackgroundColor: color.line,
                         pointBorderColor: '#fff',
-                        pointBorderWidth: 1
+                        pointBorderWidth: 2,
+                        pointHitRadius: 10
                     };
                     segments.push(currentSegment);
                 }
@@ -274,20 +275,19 @@ function renderElevationProfile(route) {
         } else {
             const color = getGradientColor(0);
             currentSegment = {
-                label: 'Gradient: 0%', // Fixed version for initial point
-                data: lastPoint ? [lastPoint] : [],
+                label: 'Gradient: 0%',
+                data: [{x: 0, y: elevation}],
                 borderColor: color.line,
                 backgroundColor: color.fill,
                 borderWidth: 2,
                 fill: true,
-                tension: 0.1,
-                // Update point styling
-                pointRadius: 0,  // Hide points by default
-                pointHoverRadius: 6,  // Larger hover radius
+                tension: 0.2,
+                pointRadius: 0,
+                pointHoverRadius: 6,
                 pointBackgroundColor: color.line,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
-                pointHitRadius: 10,  // Larger hit area for better hover detection
+                pointHitRadius: 10
             };
             segments.push(currentSegment);
         }
@@ -328,8 +328,17 @@ function renderElevationProfile(route) {
     `;
 
     try {
+        // Get the canvas element
+        const canvas = document.getElementById('elevation-chart');
+        
+        // Destroy existing chart if it exists
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
         // Create the chart using Chart.js
-        const ctx = document.getElementById('elevation-chart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -345,9 +354,8 @@ function renderElevationProfile(route) {
                         mode: 'nearest',
                         intersect: true,
                         axis: 'x',
-                        itemSort: (a, b) => b.raw.y - a.raw.y, // Show highest elevation first if multiple points
+                        itemSort: (a, b) => b.raw.y - a.raw.y,
                         filter: (tooltipItem, index) => {
-                            // Only show the tooltip item with the highest elevation at this x coordinate
                             const items = tooltipItem.chart.tooltip.dataPoints;
                             if (!items) return true;
                             return tooltipItem === items[0];
@@ -446,7 +454,9 @@ function renderElevationProfile(route) {
         console.log("Elevation chart created successfully");
     } catch (error) {
         console.error("Error creating elevation chart:", error);
-    }}
+        console.error("Error details:", error.stack);
+    }
+}
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
