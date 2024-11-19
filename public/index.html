@@ -498,19 +498,19 @@ body {
     left: 50%;
     transform: translateX(-50%);
     padding: 8px 12px;
-    background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent background */
+    background-color: rgba(0, 0, 0, 0.75);
     color: white;
     font-size: 12px;
     line-height: 1.4;
     white-space: nowrap;
-    border-radius: 6px; /* Rounded corners */
+    border-radius: 6px;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.2s ease;
     z-index: 1000;
 }
 
-/* Add the pointer as a separate pseudo-element to maintain the opacity */
+/* Unified pointer styling */
 .tabs [data-tooltip]::after {
     content: '';
     position: absolute;
@@ -519,9 +519,9 @@ body {
     transform: translateX(-50%);
     width: 0;
     height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 8px solid rgba(0, 0, 0, 0.75); /* Match the tooltip opacity */
+    border-style: solid;
+    border-width: 8px 8px 0 8px;
+    border-color: rgba(0, 0, 0, 0.75) transparent transparent transparent;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -534,15 +534,16 @@ body {
     opacity: 1;
 }
 
-/* Handle edge cases */
+/* Edge case handling - ensure pointer stays with tooltip */
 .tabs [data-tooltip]:first-child::before {
     left: 20px;
     transform: none;
 }
 
 .tabs [data-tooltip]:first-child::after {
-    left: 28px;
+    left: 20px;
     transform: none;
+    margin-left: 15px; /* Center the pointer under the tooltip */
 }
 
 .tabs [data-tooltip]:last-child::before {
@@ -553,7 +554,7 @@ body {
 
 .tabs [data-tooltip]:last-child::after {
     left: auto;
-    right: 28px;
+    right: 35px; /* Center the pointer under the tooltip */
     transform: none;
 }
 
