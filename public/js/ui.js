@@ -355,7 +355,6 @@ function renderElevationProfile(route) {
                         intersect: true,
                         callbacks: {
                             label: (context) => {
-                                // Only show tooltip for the nearest point
                                 if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
                                     const gradient = context.dataset.label.split(': ')[1];
                                     return [
@@ -415,8 +414,8 @@ function renderElevationProfile(route) {
                         suggestedMax: totalDistance
                     },
                     y: {
-                        min: Math.floor(minElevation - (maxElevation - minElevation) * 0.15),
-                        max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.3),
+                        min: 0,  // Set minimum to 0
+                        max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.1),  // Adjusted padding at top
                         grid: {
                             color: '#E5E5E5',
                             drawBorder: false
