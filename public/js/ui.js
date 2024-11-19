@@ -203,7 +203,7 @@ function renderElevationProfile(route) {
                      
         return {
             line: color,
-            fill: color  // Solid color, no opacity
+            fill: color
         };
     }
 
@@ -237,18 +237,16 @@ function renderElevationProfile(route) {
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
 
-            // Process gradient when we've accumulated enough distance
             if (distanceAccumulator >= minDistance) {
                 const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
                 const color = getGradientColor(gradient);
 
                 if (!currentSegment || currentSegment.borderColor !== color.line) {
-                    // Keep the last point from previous segment to ensure continuity
                     const lastPoint = currentSegment?.data[currentSegment.data.length - 1];
                     
                     currentSegment = {
                         label: `Gradient: ${gradient.toFixed(1)}%`,
-                        data: lastPoint ? [lastPoint] : [], // Start with last point if it exists
+                        data: lastPoint ? [lastPoint] : [],
                         borderColor: color.line,
                         backgroundColor: color.fill,
                         borderWidth: 2,
@@ -267,7 +265,6 @@ function renderElevationProfile(route) {
                 distanceAccumulator = 0;
             }
 
-            // Always add point to current segment
             if (currentSegment) {
                 currentSegment.data.push({
                     x: totalDistance,
@@ -275,7 +272,6 @@ function renderElevationProfile(route) {
                 });
             }
         } else {
-            // First point - start with easy gradient
             const color = getGradientColor(0);
             currentSegment = {
                 label: 'Gradient: 0%',
@@ -302,22 +298,7 @@ function renderElevationProfile(route) {
             x: totalDistance,
             y: lastCoord[2]
         });
-
-        currentSegment.data.push({
-            x: totalDistance + 0.001, // Tiny bit extra
-            y: lastCoord[2]
-        });
-
     }
-
-    console.log("Elevation statistics calculated:", {
-        totalDistance,
-        elevationGain,
-        elevationLoss,
-        minElevation,
-        maxElevation,
-        segments: segments.length
-    });
 
     // Create the profile HTML
     elevationDiv.innerHTML = `
@@ -395,7 +376,11 @@ function renderElevationProfile(route) {
                             font: {
                                 size: 10
                             }
-                        }
+                        },
+                        // Add these properties to control the x-axis range
+                        min: 0,
+                        max: totalDistance,
+                        suggestedMax: totalDistance
                     },
                     y: {
                         min: Math.floor(minElevation - (maxElevation - minElevation) * 0.15),
