@@ -351,15 +351,8 @@ function renderElevationProfile(route) {
                 plugins: {
                     tooltip: {
                         enabled: true,
-                        mode: 'nearest',
-                        intersect: true,
-                        axis: 'x',
-                        itemSort: (a, b) => b.raw.y - a.raw.y,
-                        filter: (tooltipItem, index) => {
-                            const items = tooltipItem.chart.tooltip.dataPoints;
-                            if (!items) return true;
-                            return tooltipItem === items[0];
-                        },
+                        mode: 'index',
+                        intersect: false,
                         callbacks: {
                             label: (context) => {
                                 const gradient = context.dataset.label.split(': ')[1];
@@ -399,10 +392,9 @@ function renderElevationProfile(route) {
                         display: false
                     }
                 },
-                hover: {
-                    mode: 'nearest',
-                    intersect: true,
-                    axis: 'x'
+                interaction: {
+                    mode: 'index',
+                    intersect: false
                 },
                 scales: {
                     x: {
