@@ -24,9 +24,6 @@
 
     <style>
 
-/* Add this at the very top of your CSS file */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
 /* ============================
    SECTION: Bottom Navigation Tabs
    ============================ */
@@ -822,114 +819,30 @@ body {
     position: absolute;
     bottom: 100px;
     left: 5px;
-    z-index: 1000;
-    width: 280px; /* Set a fixed width for consistency */
-}
-
-.gravel-style-container {
     background-color: white;
+    padding: 10px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    overflow: hidden; /* Keep inner elements from spilling out */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
 }
 
 .drawing-options {
-    padding: 16px;
+    margin-top: 10px;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: start;
 }
 
 .drawing-options h5 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
+    margin: 8px 0;
+    font-size: 14px;
 }
 
 .drawing-options label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-    margin: 0;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-}
-
-.drawing-options label:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-}
-
-.drawing-options input[type="radio"] {
-    margin: 0;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.drawing-options i {
-    width: 20px;
-    text-align: center;
-}
-
-/* Button group styling */
-.btn-group {
-    display: flex;
-    padding: 12px 16px;
-    gap: 8px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    background-color: #fafafa;
-}
-
-.btn-group button {
-    flex: 1;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-/* Specific button styles */
-#undo-btn {
-    background-color: #007bff;
-    border-color: #0056b3;
-}
-
-#undo-btn:hover {
-    background-color: #0056b3;
-}
-
-#reset-btn {
-    background-color: #ffc107;
-    border-color: #d39e00;
-    color: #000;
-}
-
-#reset-btn:hover {
-    background-color: #d39e00;
-}
-
-#save-btn {
-    background-color: #28a745;
-    border-color: #1e7e34;
-}
-
-#save-btn:hover {
-    background-color: #1e7e34;
-}
-
-/* Add this if you want to show focus states for accessibility */
-.drawing-options label:focus-within {
-    outline: 2px solid #007bff;
-    outline-offset: 2px;
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
 }
 
 /* ============================
@@ -1283,7 +1196,23 @@ body {
 </div>
 
 
-
+<!-- Drawing Options Modal -->
+<div id="drawingOptionsModal" class="modal">
+    <div class="modal-content small-modal"> <!-- Add class 'small-modal' for smaller size -->
+      <h4>Select Road Type and Color</h4>
+      <div>
+        <h5>Gravel Type (Color):</h5>
+        <label><input type="radio" name="gravelType" value="0"> Blue (Bad or rough asphalt)</label>
+        <label><input type="radio" name="gravelType" value="1"> Green (Non-technical)</label>
+        <label><input type="radio" name="gravelType" value="2"> Yellow (Slightly technical)</label>
+        <label><input type="radio" name="gravelType" value="3"> Red (Technical)</label>
+        <label><input type="radio" name="gravelType" value="4"> Dark Red (Very technical)</label>
+        <label><input type="radio" name="gravelType" value="5"> Black Red (Hike-a-bike)</label>
+      </div>
+      
+      <button id="applyDrawingOptionsButton">Apply</button>
+    </div>
+</div>
 
 <!-- Profile Section -->
 <div id="profile-section" class="hidden">
