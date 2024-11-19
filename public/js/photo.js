@@ -419,7 +419,12 @@ async function loadPhotoMarkers() {
             }))
         };
 
-        // Add source
+        // Load marker images
+        await Promise.all([
+            loadMapImage('camera-icon-cluster'),
+            loadMapImage('camera-icon')
+        ]);
+
         map.addSource('photoMarkers', {
             type: 'geojson',
             data: photoGeoJSON,
@@ -428,21 +433,33 @@ async function loadPhotoMarkers() {
             clusterRadius: 50
         });
 
-        // Add basic circles for unclustered photos
+        // Add cluster layer with camera icon
         map.addLayer({
-            id: 'unclustered-photo',
-            type: 'circle',
+            id: 'clusters',
+            type: 'symbol',
             source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            paint: {
-                'circle-radius': 8,
-                'circle-color': '#3FB1CE',
-                'circle-stroke-width': 2,
-                'circle-stroke-color': '#ffffff'
+            filter: ['has', 'point_count'],
+            layout: {
+                'icon-image': 'camera-icon-cluster',
+                'icon-size': 0.4,
+                'icon-allow-overlap': true
             }
         });
 
-        // Create preview container if it doesn't exist
+        // Add unclustered photo layer with camera icon
+        map.addLayer({
+            id: 'unclustered-photo',
+            type: 'symbol',
+            source: 'photoMarkers',
+            filter: ['!', ['has', 'point_count']],
+            layout: {
+                'icon-image': 'camera-icon',
+                'icon-size': 0.3,
+                'icon-allow-overlap': true
+            }
+        });
+
+        // Create preview containers if they don't exist
         if (!document.getElementById('photo-preview-container')) {
             const previewContainer = document.createElement('div');
             previewContainer.id = 'photo-preview-container';
@@ -483,20 +500,6 @@ async function loadPhotoMarkers() {
             const previewContainer = document.getElementById('photo-preview-container');
             previewContainer.style.display = 'none';
             map.getCanvas().style.cursor = '';
-        });
-
-        // Add custom cluster layer with photo grid
-        map.addLayer({
-            id: 'clusters',
-            type: 'circle',
-            source: 'photoMarkers',
-            filter: ['has', 'point_count'],
-            paint: {
-                'circle-color': '#fff',
-                'circle-radius': 30,
-                'circle-stroke-width': 2,
-                'circle-stroke-color': '#3FB1CE'
-            }
         });
 
         // Handle cluster hover
@@ -550,6 +553,29 @@ async function loadPhotoMarkers() {
     } catch (error) {
         console.error('Error loading photo markers:', error);
     }
+}
+
+function loadMapImage(name) {
+    const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
+    
+    return new Promise((resolve, reject) => {
+        if (map.hasImage(name)) {
+            resolve();
+            return;
+        }
+        
+        map.loadImage(imagePath, (error, image) => {
+            if (error) {
+                console.error(`Error loading ${name}:`, error);
+                reject(error);
+                return;
+            }
+            if (!map.hasImage(name)) {
+                map.addImage(name, image);
+            }
+            resolve();
+        });
+    });
 }
 
 function removePhotoMarkers() {
