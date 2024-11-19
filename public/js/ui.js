@@ -351,8 +351,12 @@ function renderElevationProfile(route) {
                 plugins: {
                     tooltip: {
                         enabled: true,
-                        mode: 'point',  // Changed to point mode
+                        mode: 'nearest',
                         intersect: true,
+                        filter: function(tooltipItem) {
+                            // Only show the first tooltip item
+                            return tooltipItem.datasetIndex === 0;
+                        },
                         callbacks: {
                             label: (context) => {
                                 const gradient = context.dataset.label.split(': ')[1];
@@ -384,8 +388,9 @@ function renderElevationProfile(route) {
                     }
                 },
                 interaction: {
-                    mode: 'point',  // Changed to point mode
-                    intersect: true
+                    mode: 'nearest',
+                    intersect: true,
+                    axis: 'xy'
                 },
                 scales: {
                     x: {
