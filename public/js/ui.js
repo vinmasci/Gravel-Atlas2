@@ -353,18 +353,18 @@ function renderElevationProfile(route) {
                         enabled: true,
                         mode: 'nearest',
                         intersect: true,
-                        filter: function(tooltipItem) {
-                            // Only show the first tooltip item
-                            return tooltipItem.datasetIndex === 0;
-                        },
                         callbacks: {
                             label: (context) => {
-                                const gradient = context.dataset.label.split(': ')[1];
-                                return [
-                                    `Elevation: ${Math.round(context.parsed.y)}m`,
-                                    `Gradient: ${gradient}`,
-                                    gradient.includes('-') ? 'Descending' : 'Ascending'
-                                ];
+                                // Only show tooltip for the nearest point
+                                if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
+                                    const gradient = context.dataset.label.split(': ')[1];
+                                    return [
+                                        `Elevation: ${Math.round(context.parsed.y)}m`,
+                                        `Gradient: ${gradient}`,
+                                        gradient.includes('-') ? 'Descending' : 'Ascending'
+                                    ];
+                                }
+                                return [];
                             },
                             title: (context) => {
                                 if (context[0]) {
@@ -390,7 +390,7 @@ function renderElevationProfile(route) {
                 interaction: {
                     mode: 'nearest',
                     intersect: true,
-                    axis: 'xy'
+                    axis: 'x'
                 },
                 scales: {
                     x: {
