@@ -33,41 +33,38 @@ function updateLiveElevationProfile(newCoordinates) {
         console.error('Chart.js not loaded');
         return;
     }
-    
-    liveElevationData = [...liveElevationData, ...newCoordinates];
-    
+
+    // Calculate elevation data for just this segment
     let elevationGain = 0;
     let elevationLoss = 0;
-    let maxElevation = -Infinity;
-    let prevElevation = liveElevationData[0]?.[2] || 0;
+    let maxElevation = Math.max(...newCoordinates.map(coord => coord[2]));
     let currentDistance = 0;
-
     const chartData = [];
-    
-    liveElevationData.forEach((coord, i) => {
-        const elevation = coord[2];
-        maxElevation = Math.max(maxElevation, elevation);
+
+    for (let i = 0; i < newCoordinates.length; i++) {
+        const elevation = newCoordinates[i][2];
         
         if (i > 0) {
+            const prevElevation = newCoordinates[i-1][2];
             const elevDiff = elevation - prevElevation;
+            
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
             
             const distance = calculateDistance(
-                liveElevationData[i-1][1], liveElevationData[i-1][0],
-                coord[1], coord[0]
+                newCoordinates[i-1][1], newCoordinates[i-1][0],
+                newCoordinates[i][1], newCoordinates[i][0]
             );
             currentDistance += distance;
         }
-        
+
         chartData.push({
             x: currentDistance,
             y: elevation
         });
-        
-        prevElevation = elevation;
-    });
+    }
 
+    // Update total distance
     totalDistance = currentDistance;
 
     // Update stats display
@@ -76,13 +73,18 @@ function updateLiveElevationProfile(newCoordinates) {
     document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
     document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
 
+    // Create/update chart
     const ctx = document.getElementById('elevation-chart');
-    const existingChart = Chart.getChart(ctx);
-    if (existingChart) existingChart.destroy();
+    const existingChart = Chart.getChart('elevation-chart');
+    if (existingChart) {
+        existingChart.destroy();
+    }
 
-    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');   // Blue at top
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.1)');   // Transparent at bottom
+    const canvas = document.getElementById('elevation-chart');
+    const context = canvas.getContext('2d');
+    const gradient = context.createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.1)');
 
     new Chart(ctx, {
         type: 'line',
@@ -112,16 +114,16 @@ function updateLiveElevationProfile(newCoordinates) {
             scales: {
                 x: {
                     type: 'linear',
-                    title: { 
-                        display: true, 
+                    title: {
+                        display: true,
                         text: 'Distance (km)',
                         font: { size: 10 }
                     },
                     ticks: { font: { size: 8 } }
                 },
                 y: {
-                    title: { 
-                        display: true, 
+                    title: {
+                        display: true,
                         text: 'Elevation (m)',
                         font: { size: 10 }
                     },
@@ -133,7 +135,6 @@ function updateLiveElevationProfile(newCoordinates) {
     });
 }
 
-// Helper function for distance calculation
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
