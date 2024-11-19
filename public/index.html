@@ -475,67 +475,55 @@ body {
 }
 
 #contribute-dropdown .btn:hover {
-    background-color: #1d1096;
+    background-color: #FF652F;
     color: white;
 }
 
 #contribute-dropdown .btn.active {
-    background-color: #1d1096;
+    background-color: #FF652F;
     color: #ffffff;
 }
 
 /* ============================
  SECTION: Custom Tooltips
  ============================ */
- [data-tooltip] {
+/* ============================
+ SECTION: Custom Tooltips - Bottom Tabs Only
+ ============================ */
+ .tabs [data-tooltip] {
     position: relative;
 }
 
-/* Base tooltip styles (shared between tabs and dropdown) */
-[data-tooltip]::before {
+.tabs [data-tooltip]::before {
     content: attr(data-tooltip);
     position: absolute;
+    bottom: 150%;
     left: 50%;
     transform: translateX(-50%);
-    padding: 10px 15px;
-    background-color: white;
-    color: #333;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
     font-size: 12px;
     line-height: 1.4;
     white-space: normal;
-    border-radius: 8px;
+    border-radius: 4px;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.2s ease, visibility 0.2s ease;
     z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     width: max-content;
     max-width: 250px;
     text-align: left;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-/* Bottom tabs tooltips specific positioning */
-.tabs [data-tooltip]::before {
-    bottom: 150%; /* Increased to ensure more space */
-}
-
-/* Contribute dropdown tooltips specific positioning */
-#contribute-dropdown [data-tooltip]::before {
-    top: -45px;
+    /* Green highlight border */
+    border: 1px solid #32CD32;
+    /* Box shadow with slight green glow */
+    box-shadow: 0 0 10px rgba(50, 205, 50, 0.2);
 }
 
 /* Show tooltips on hover */
-[data-tooltip]:hover::before {
+.tabs [data-tooltip]:hover::before {
     visibility: visible;
     opacity: 1;
-}
-
-/* Hide tooltips on mobile */
-@media (max-width: 768px) {
-    [data-tooltip]::before {
-        display: none;
-    }
 }
 
 /* Ensure tooltips near screen edges remain visible */
@@ -548,6 +536,13 @@ body {
     left: auto;
     right: 0;
     transform: none;
+}
+
+/* Hide tooltips on mobile */
+@media (max-width: 768px) {
+    .tabs [data-tooltip]::before {
+        display: none;
+    }
 }
 
 /* ============================
