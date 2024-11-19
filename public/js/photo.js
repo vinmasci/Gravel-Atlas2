@@ -388,16 +388,21 @@ async function loadPhotoMarkers() {
         const photos = await response.json();
 
         console.log(`Total photos: ${photos.length}`);
+        
+        // Filter photos with valid coordinates first
         const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
         console.log(`Photos with valid coordinates: ${validPhotos.length}`);
+        console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
 
         if (validPhotos.length === 0) {
             console.warn('No photos with valid coordinates found');
             return;
         }
 
+        // Remove existing layers and handlers
         removePhotoMarkers();
 
+        // Convert valid photos into GeoJSON with all user properties
         const photoGeoJSON = {
             type: 'FeatureCollection',
             features: validPhotos.map(photo => ({
@@ -419,9 +424,13 @@ async function loadPhotoMarkers() {
             }))
         };
 
-        // Load cluster icon
-        await loadMapImage('camera-icon-cluster');
+        // Load marker images
+        await Promise.all([
+            loadMapImage('camera-icon-cluster'),
+            loadMapImage('camera-icon')
+        ]);
 
+        // Add source
         map.addSource('photoMarkers', {
             type: 'geojson',
             data: photoGeoJSON,
@@ -443,113 +452,63 @@ async function loadPhotoMarkers() {
             }
         });
 
-        // Add circular border layer
-        map.addLayer({
-            id: 'photo-border',
-            type: 'circle',
-            source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            paint: {
-                // Use zoom-dependent expressions for circle-radius
-                'circle-radius': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    10, 15,  // zoom level 10 -> 15px
-                    15, 20,  // zoom level 15 -> 20px
-                    20, 30   // zoom level 20 -> 30px
-                ],
-                'circle-color': '#ffffff',
-                'circle-stroke-color': '#ffffff',
-                'circle-stroke-width': 1,
-                'circle-opacity': 1
-            }
-        });
-
-        // Load and process photos
-        validPhotos.forEach(photo => {
-            if (!map.hasImage(photo.url)) {
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const size = 100;
-                    canvas.width = size;
-                    canvas.height = size;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Create circular clipping path
-                    ctx.beginPath();
-                    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2, true);
-                    ctx.closePath();
-                    ctx.clip();
-                    
-                    // Draw the image maintaining aspect ratio
-                    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-                    const x = (size - img.width * scale) / 2;
-                    const y = (size - img.height * scale) / 2;
-                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-                    
-                    if (!map.hasImage(photo.url)) {
-                        map.addImage(photo.url, { 
-                            width: size, 
-                            height: size, 
-                            data: ctx.getImageData(0, 0, size, size).data 
-                        });
-                    }
-                };
-                img.src = photo.url;
-            }
-        });
-
-        // Add unclustered photo layer with zoom-dependent sizing
+        // Add unclustered photo layer
         map.addLayer({
             id: 'unclustered-photo',
             type: 'symbol',
             source: 'photoMarkers',
             filter: ['!', ['has', 'point_count']],
             layout: {
-                'icon-image': ['get', 'url'],
-                // Use zoom-dependent expressions for icon-size
-                'icon-size': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    10, 0.15,  // zoom level 10 -> size 0.15
-                    15, 0.2,   // zoom level 15 -> size 0.2
-                    20, 0.25   // zoom level 20 -> size 0.25
-                ],
-                'icon-allow-overlap': true,
-                'icon-anchor': 'center'
+                'icon-image': 'camera-icon',
+                'icon-size': 0.3,
+                'icon-allow-overlap': true
             }
-        });
-
-        // Add hover effects
-        map.on('mouseenter', 'unclustered-photo', () => {
-            map.setPaintProperty('photo-border', 'circle-stroke-color', '#0066ff');
-            map.getCanvas().style.cursor = 'pointer';
-        });
-
-        map.on('mouseleave', 'unclustered-photo', () => {
-            map.setPaintProperty('photo-border', 'circle-stroke-color', '#ffffff');
-            map.getCanvas().style.cursor = '';
-        });
-
-        map.on('mouseenter', 'clusters', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-
-        map.on('mouseleave', 'clusters', () => {
-            map.getCanvas().style.cursor = '';
         });
 
         // Add click handlers
         map.on('click', 'clusters', handleClusterClick);
         map.on('click', 'unclustered-photo', handlePhotoClick);
 
+        // Change cursor on hover
+        map.on('mouseenter', 'clusters', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'clusters', () => {
+            map.getCanvas().style.cursor = '';
+        });
+        map.on('mouseenter', 'unclustered-photo', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'unclustered-photo', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
     } catch (error) {
         console.error('Error loading photo markers:', error);
     }
+}
+
+function loadMapImage(name) {
+    const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
+    
+    return new Promise((resolve, reject) => {
+        if (map.hasImage(name)) {
+            resolve();
+            return;
+        }
+        
+        map.loadImage(imagePath, (error, image) => {
+            if (error) {
+                console.error(`Error loading ${name}:`, error);
+                reject(error);
+                return;
+            }
+            if (!map.hasImage(name)) {
+                map.addImage(name, image);
+            }
+            resolve();
+        });
+    });
 }
 
 function removePhotoMarkers() {
@@ -558,9 +517,6 @@ function removePhotoMarkers() {
         map.off('mouseenter', 'clusters');
         map.off('mouseleave', 'clusters');
         map.removeLayer('clusters');
-    }
-    if (map.getLayer('photo-border')) {
-        map.removeLayer('photo-border');
     }
     if (map.getLayer('unclustered-photo')) {
         map.off('click', 'unclustered-photo', handlePhotoClick);
