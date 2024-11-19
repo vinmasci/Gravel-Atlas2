@@ -274,7 +274,7 @@ function renderElevationProfile(route) {
         } else {
             const color = getGradientColor(0);
             currentSegment = {
-                label: `Gradient: ${gradient.toFixed(1)}%`,
+                label: 'Gradient: 0%', // Fixed version for initial point
                 data: lastPoint ? [lastPoint] : [],
                 borderColor: color.line,
                 backgroundColor: color.fill,
