@@ -1143,7 +1143,8 @@ body {
    SECTION: Route Name Modal
    ============================ */
 
-   .photo-preview {
+/* Base preview styles */
+.photo-preview {
     position: absolute;
     z-index: 1000;
     pointer-events: none;
@@ -1202,6 +1203,14 @@ body {
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 12px;
+}
+
+/* Hide previews on mobile devices */
+@media (max-width: 768px), (hover: none) {
+    .photo-preview,
+    .cluster-preview {
+        display: none !important;
+    }
 }
     </style>
     
