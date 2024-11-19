@@ -481,8 +481,8 @@ async function loadPhotoMarkers() {
             const point = map.project(coordinates);
 
             const previewContainer = document.getElementById('photo-preview-container');
-            previewContainer.style.left = `${point.x + 15}px`;
-            previewContainer.style.top = `${point.y - 15}px`;
+            previewContainer.style.left = `${point.x - 60}px`; // Center horizontally
+            previewContainer.style.top = `${point.y - 140}px`; // Position above the marker
             previewContainer.innerHTML = `<div class="preview-loading"></div>`;
             previewContainer.style.display = 'block';
 
@@ -518,9 +518,9 @@ async function loadPhotoMarkers() {
                     if (err) return;
 
                     const clusterContainer = document.getElementById('cluster-preview-container');
-                    let html = '<div class="cluster-grid">';
+                    let html = '<div class="cluster-row">';
                     
-                    // Add up to 4 photos
+                    // Add up to 4 photos in a row
                     leaves.slice(0, 4).forEach(leaf => {
                         html += `<div class="cluster-photo" style="background-image: url('${leaf.properties.url}')"></div>`;
                     });
@@ -532,8 +532,11 @@ async function loadPhotoMarkers() {
 
                     html += '</div>';
                     clusterContainer.innerHTML = html;
-                    clusterContainer.style.left = `${point.x + 15}px`;
-                    clusterContainer.style.top = `${point.y - 15}px`;
+                    
+                    // Position the preview above the cluster
+                    const rowWidth = (leaves.length > 4 ? 4 : leaves.length) * 126; // 120px + 6px gap
+                    clusterContainer.style.left = `${point.x - (rowWidth / 2)}px`;
+                    clusterContainer.style.top = `${point.y - 140}px`; // Position above the cluster
                     clusterContainer.style.display = 'block';
                 }
             );
