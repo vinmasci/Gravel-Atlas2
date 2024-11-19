@@ -77,9 +77,11 @@ function updateLiveElevationProfile(newCoordinates) {
     document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
     document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
 
-    const ctx = document.getElementById('elevation-chart');
-    const existingChart = Chart.getChart(ctx);
-    if (existingChart) existingChart.destroy();
+    const ctx = document.getElementById('elevation-chart').getContext('2d');
+    let chart = Chart.getChart('elevation-chart');
+    if (chart) {
+        chart.destroy();
+    }
 
     const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
     gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');   // Blue at top
