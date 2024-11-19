@@ -26,6 +26,113 @@ const gravelColors = {
 };
 
 // ============================
+// SECTION: Live Elevation Profile
+// ============================
+
+function updateLiveElevationProfile(newCoordinates) {
+    if (!window.Chart) {
+        console.error('Chart.js not loaded');
+        return;
+    }
+    
+    liveElevationData = [...liveElevationData, ...newCoordinates];
+    
+    let elevationGain = 0;
+    let elevationLoss = 0;
+    let maxElevation = -Infinity;
+    let prevElevation = liveElevationData[0]?.[2] || 0;
+
+    const chartData = liveElevationData.map((coord, i) => {
+        const elevation = coord[2];
+        maxElevation = Math.max(maxElevation, elevation);
+        
+        if (i > 0) {
+            const elevDiff = elevation - prevElevation;
+            if (elevDiff > 0) elevationGain += elevDiff;
+            if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
+            
+            const distance = calculateDistance(
+                liveElevationData[i-1][1], liveElevationData[i-1][0],
+                coord[1], coord[0]
+            );
+            totalDistance += distance;
+        }
+        prevElevation = elevation;
+
+        return {
+            x: totalDistance,
+            y: elevation
+        };
+    });
+
+    // Update stats display
+    document.getElementById('total-distance').textContent = `${totalDistance.toFixed(2)} km`;
+    document.getElementById('elevation-gain').textContent = `↑ ${Math.round(elevationGain)}m`;
+    document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
+    document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
+
+    const ctx = document.getElementById('elevation-chart');
+    const existingChart = Chart.getChart(ctx);
+    if (existingChart) existingChart.destroy();
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                data: chartData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return `Elevation: ${Math.round(context.parsed.y)}m`;
+                        },
+                        title: (context) => {
+                            return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    title: { display: true, text: 'Distance (km)', font: { size: 10 } },
+                    ticks: { font: { size: 8 } }
+                },
+                y: {
+                    title: { display: true, text: 'Elevation (m)', font: { size: 10 } },
+                    ticks: { font: { size: 8 } }
+                }
+            }
+        }
+    });
+}
+
+// Helper function for distance calculation
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// ============================
 // SECTION: Apply Drawing Options
 // ============================
 document.getElementById('applyDrawingOptionsButton').addEventListener('click', function () {
