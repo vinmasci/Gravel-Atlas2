@@ -510,27 +510,8 @@ body {
     z-index: 1000;
 }
 
-/* Pointer attached to tooltip */
-.tabs [data-tooltip]::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(100% + 2px); /* Change this to attach to tooltip bottom */
-    margin-bottom: 8px; /* Add space between tooltip and pointer */
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 8px 8px 0 8px;
-    border-color: rgba(0, 0, 0, 0.75) transparent transparent transparent;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-/* Show tooltip and pointer on hover */
-.tabs [data-tooltip]:hover::before,
-.tabs [data-tooltip]:hover::after {
+/* Show tooltip on hover */
+.tabs [data-tooltip]:hover::before {
     visibility: visible;
     opacity: 1;
 }
@@ -541,27 +522,15 @@ body {
     transform: none;
 }
 
-.tabs [data-tooltip]:first-child::after {
-    left: 35px; /* Match the tooltip position */
-    transform: none;
-}
-
 .tabs [data-tooltip]:last-child::before {
     left: auto;
     right: 20px;
     transform: none;
 }
 
-.tabs [data-tooltip]:last-child::after {
-    left: auto;
-    right: 35px;
-    transform: none;
-}
-
 /* Hide tooltips on mobile */
 @media (max-width: 768px) {
-    .tabs [data-tooltip]::before,
-    .tabs [data-tooltip]::after {
+    .tabs [data-tooltip]::before {
         display: none;
     }
 }
