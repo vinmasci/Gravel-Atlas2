@@ -41,8 +41,11 @@ function updateLiveElevationProfile(newCoordinates) {
     let elevationLoss = 0;
     let maxElevation = -Infinity;
     let prevElevation = liveElevationData[0]?.[2] || 0;
+    let currentDistance = 0;
 
-    const chartData = liveElevationData.map((coord, i) => {
+    const chartData = [];
+    
+    liveElevationData.forEach((coord, i) => {
         const elevation = coord[2];
         maxElevation = Math.max(maxElevation, elevation);
         
@@ -55,15 +58,18 @@ function updateLiveElevationProfile(newCoordinates) {
                 liveElevationData[i-1][1], liveElevationData[i-1][0],
                 coord[1], coord[0]
             );
-            totalDistance += distance;
+            currentDistance += distance;
         }
-        prevElevation = elevation;
-
-        return {
-            x: totalDistance,
+        
+        chartData.push({
+            x: currentDistance,
             y: elevation
-        };
+        });
+        
+        prevElevation = elevation;
     });
+
+    totalDistance = currentDistance;
 
     // Update stats display
     document.getElementById('total-distance').textContent = `${totalDistance.toFixed(2)} km`;
@@ -75,13 +81,17 @@ function updateLiveElevationProfile(newCoordinates) {
     const existingChart = Chart.getChart(ctx);
     if (existingChart) existingChart.destroy();
 
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');   // Blue at top
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.1)');   // Transparent at bottom
+
     new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [{
                 data: chartData,
                 borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                backgroundColor: gradient,
                 borderWidth: 2,
                 fill: true,
                 tension: 0.4,
@@ -95,24 +105,29 @@ function updateLiveElevationProfile(newCoordinates) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => {
-                            return `Elevation: ${Math.round(context.parsed.y)}m`;
-                        },
-                        title: (context) => {
-                            return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
-                        }
+                        label: (context) => `Elevation: ${Math.round(context.parsed.y)}m`,
+                        title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
                     }
                 }
             },
             scales: {
                 x: {
                     type: 'linear',
-                    title: { display: true, text: 'Distance (km)', font: { size: 10 } },
+                    title: { 
+                        display: true, 
+                        text: 'Distance (km)',
+                        font: { size: 10 }
+                    },
                     ticks: { font: { size: 8 } }
                 },
                 y: {
-                    title: { display: true, text: 'Elevation (m)', font: { size: 10 } },
-                    ticks: { font: { size: 8 } }
+                    title: { 
+                        display: true, 
+                        text: 'Elevation (m)',
+                        font: { size: 10 }
+                    },
+                    ticks: { font: { size: 8 } },
+                    min: 0
                 }
             }
         }
