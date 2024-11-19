@@ -1266,6 +1266,29 @@ body {
 <!-- Map container should be empty -->
 <div id="map"></div>
 
+<!-- Elevation Preview -->
+<div id="elevation-preview" class="elevation-preview">
+    <canvas id="elevation-chart"></canvas>
+    <div class="elevation-stats">
+        <div class="stat-box">
+            <div id="total-distance">0.00 km</div>
+            <div>Distance</div>
+        </div>
+        <div class="stat-box">
+            <div id="elevation-gain">↑ 0m</div>
+            <div>Gain</div>
+        </div>
+        <div class="stat-box">
+            <div id="elevation-loss">↓ 0m</div>
+            <div>Loss</div>
+        </div>
+        <div class="stat-box">
+            <div id="max-elevation">0m</div>
+            <div>Max</div>
+        </div>
+    </div>
+</div>
+
 <div id="auth-container">
     <button id="loginBtn" class="map-button">Log In</button>
     <button id="logoutBtn" class="map-button" style="display: none;">Log Out</button>
@@ -1382,29 +1405,6 @@ body {
         </div>
     </div>
 </div></div>
-
-<!-- Elevation Preview -->
-<div id="elevation-preview" class="elevation-preview">
-    <div id="elevation-chart"></div>
-    <div class="elevation-stats">
-        <div class="stat-box">
-            <div id="total-distance">0.00 km</div>
-            <div>Distance</div>
-        </div>
-        <div class="stat-box">
-            <div id="elevation-gain">↑ 0m</div>
-            <div>Gain</div>
-        </div>
-        <div class="stat-box">
-            <div id="elevation-loss">↓ 0m</div>
-            <div>Loss</div>
-        </div>
-        <div class="stat-box">
-            <div id="max-elevation">0m</div>
-            <div>Max</div>
-        </div>
-    </div>
-</div>
 
 <!-- Tabs -->
 <div class="tabs">
