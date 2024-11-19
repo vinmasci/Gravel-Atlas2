@@ -494,64 +494,47 @@ body {
 .tabs [data-tooltip]::before {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: 150%;
+    bottom: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%);
     padding: 8px 12px;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: #191919;
     color: white;
     font-size: 12px;
     line-height: 1.4;
-    white-space: normal;
-    border-radius: 4px;
+    white-space: nowrap;
+    border-radius: 6px;
     visibility: hidden;
     opacity: 0;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transition: opacity 0.2s ease;
     z-index: 1000;
-    width: max-content;
-    max-width: 250px;
+    /* Create the pointer as part of the box using a drop shadow */
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+    /* Add the pointer using clip-path */
+    clip-path: polygon(
+        0% 0%,
+        100% 0%,
+        100% calc(100% - 8px),
+        calc(50% + 8px) calc(100% - 8px),
+        50% 100%,
+        calc(50% - 8px) calc(100% - 8px),
+        0% calc(100% - 8px)
+    );
 }
 
-/* Add the pointer arrow */
-.tabs [data-tooltip]::after {
-    content: '';
-    position: absolute;
-    bottom: 120%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 6px;
-    border-style: solid;
-    border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-}
-
-/* Show tooltip and arrow on hover */
-.tabs [data-tooltip]:hover::before,
-.tabs [data-tooltip]:hover::after {
+/* Show tooltip on hover */
+.tabs [data-tooltip]:hover::before {
     visibility: visible;
     opacity: 1;
 }
 
 /* Handle edge cases */
 .tabs [data-tooltip]:first-child::before {
-    left: 0;
-    transform: none;
-}
-
-.tabs [data-tooltip]:first-child::after {
     left: 20px;
     transform: none;
 }
 
 .tabs [data-tooltip]:last-child::before {
-    left: auto;
-    right: 0;
-    transform: none;
-}
-
-.tabs [data-tooltip]:last-child::after {
     left: auto;
     right: 20px;
     transform: none;
@@ -559,8 +542,7 @@ body {
 
 /* Hide tooltips on mobile */
 @media (max-width: 768px) {
-    .tabs [data-tooltip]::before,
-    .tabs [data-tooltip]::after {
+    .tabs [data-tooltip]::before {
         display: none;
     }
 }
