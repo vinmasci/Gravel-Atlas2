@@ -36,93 +36,6 @@ const config = {
     }
 };
 
-// Modify initCore to be auth-aware
-async function initCore() {
-    console.log('Initializing core...');
-    
-    try {
-        // Wait for both map and auth to be ready
-        await Promise.all([
-            new Promise(resolve => {
-                if (map.loaded()) {
-                    resolve();
-                } else {
-                    map.on('load', resolve);
-                }
-            }),
-            waitForAuth0() // Changed from authReady to waitForAuth0()
-        ]);
-
-        console.log('Map and Auth initialized successfully');
-
-        console.log('Map and Auth initialized successfully');
-
-        // Create and insert profile button next to login button
-        const loginBtn = document.getElementById('loginBtn');
-        if (loginBtn && !document.getElementById(config.profileButton.id)) {
-            const buttonContainer = loginBtn.parentElement;
-            const profileBtn = document.createElement('button');
-            profileBtn.id = config.profileButton.id;
-            profileBtn.textContent = config.profileButton.text;
-            profileBtn.className = 'hidden map-button';
-            buttonContainer.insertBefore(profileBtn, loginBtn);
-            profileBtn.addEventListener('click', handlers.handleProfileClick);
-        }
-
-        // The rest of your initCore function remains the same
-        document.addEventListener('click', (event) => {
-            const profileSection = document.getElementById('profile-section');
-            const profileBtn = document.getElementById(config.profileButton.id);
-            
-            if (profileSection && !profileSection.contains(event.target) && 
-                profileBtn && !profileBtn.contains(event.target)) {
-                utils.hideProfileSection();
-            }
-        });
-
-        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
-        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
-        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
-        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
-
-        initEventListeners();
-
-        const auth0 = await authReady;
-        if (await auth0.isAuthenticated()) {
-            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
-            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
-                await window.userModule.initializeProfile();
-            }
-        }
-
-        // Verify module exports
-        let attempts = 0;
-        while (attempts < 3) {
-            console.log('Verifying module exports... Attempt', attempts + 1);
-            const functionChecks = {
-                loadSegments: typeof window.loadSegments === 'function',
-                removeSegments: typeof window.removeSegments === 'function',
-                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
-                removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
-            };
-            
-            if (Object.values(functionChecks).every(Boolean)) {
-                console.log('All required functions are available');
-                break;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 500));
-            attempts++;
-        }
-
-        console.log('Core initialized successfully');
-        return { map, layerVisibility };
-    } catch (error) {
-        console.error('Error in core initialization:', error);
-        throw error;
-    }
-}
-
 // Utility functions
 const utils = {
     updateTabHighlight: (tabId, isActive) => {
@@ -140,37 +53,61 @@ const utils = {
         console.error(message);
     },
 
-//update profile section 
-toggleProfileSection: async () => {
-    const profileSection = document.getElementById('profile-section');
-    const auth0 = await waitForAuth0();
-    const isAuthenticated = await auth0.isAuthenticated();
-    
-    if (profileSection) {
-        if (isAuthenticated) {
-            // Hide any open contribute dropdown if it exists
-            const contributeDropdown = document.getElementById('contribute-dropdown');
-            if (contributeDropdown) {
-                contributeDropdown.classList.add('hidden');
+    showTabLoading: (tabId) => {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            // Store current content
+            const currentContent = tab.innerHTML;
+            if (!tab.getAttribute('data-original-content')) {
+                tab.setAttribute('data-original-content', currentContent);
             }
-            
-            // Toggle profile section
-            profileSection.classList.toggle('hidden');
-            
-            // Setup the profile form
-            if (!profileSection.classList.contains('hidden')) {
-                // Only setup the form if the profile section is now visible
-                if (window.userModule && typeof window.userModule.setupProfileForm === 'function') {
-                    window.userModule.setupProfileForm();
-                }
-            }
-        } else {
-            // Ensure it's hidden if not authenticated
-            profileSection.classList.add('hidden');
+            // Replace with loading indicator
+            tab.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> Loading...`;
         }
-    }
-},
+    },
 
+    hideTabLoading: (tabId) => {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            // Restore original content
+            const originalContent = tab.getAttribute('data-original-content');
+            if (originalContent) {
+                tab.innerHTML = originalContent;
+                tab.removeAttribute('data-original-content');
+            }
+        }
+    },
+
+    //update profile section 
+    toggleProfileSection: async () => {
+        const profileSection = document.getElementById('profile-section');
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        
+        if (profileSection) {
+            if (isAuthenticated) {
+                // Hide any open contribute dropdown if it exists
+                const contributeDropdown = document.getElementById('contribute-dropdown');
+                if (contributeDropdown) {
+                    contributeDropdown.classList.add('hidden');
+                }
+                
+                // Toggle profile section
+                profileSection.classList.toggle('hidden');
+                
+                // Setup the profile form
+                if (!profileSection.classList.contains('hidden')) {
+                    // Only setup the form if the profile section is now visible
+                    if (window.userModule && typeof window.userModule.setupProfileForm === 'function') {
+                        window.userModule.setupProfileForm();
+                    }
+                }
+            } else {
+                // Ensure it's hidden if not authenticated
+                profileSection.classList.add('hidden');
+            }
+        }
+    },
     
     hideProfileSection: () => {
         const profileSection = document.getElementById('profile-section');
@@ -196,9 +133,11 @@ window.map = map;
 const layers = {
     toggleLayer: async (layerType) => {
         try {
+            const tabId = `${layerType}-tab`;
+            utils.showTabLoading(tabId);
+            
             showLoadingSpinner(`Loading ${layerType}...`);
             
-            // Wait for map to be loaded
             if (!map.loaded()) {
                 await new Promise(resolve => map.on('load', resolve));
             }
@@ -263,6 +202,7 @@ const layers = {
             utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
         } finally {
             hideLoadingSpinner();
+            utils.hideTabLoading(`${layerType}-tab`);
         }
     }
 };
@@ -381,6 +321,10 @@ async function initCore() {
         try {
             console.log('Loading initial layers...');
             
+            // Show loading indicators for initial load
+            utils.showTabLoading('segments-tab');
+            utils.showTabLoading('photos-tab');
+            
             // Load segments
             if (typeof window.loadSegments === 'function') {
                 await window.loadSegments();
@@ -398,6 +342,10 @@ async function initCore() {
             }
         } catch (layerError) {
             console.error('Error loading initial layers:', layerError);
+        } finally {
+            // Hide loading indicators
+            utils.hideTabLoading('segments-tab');
+            utils.hideTabLoading('photos-tab');
         }
 
         // Handle authentication status

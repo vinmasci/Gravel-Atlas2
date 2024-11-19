@@ -444,6 +444,27 @@ body {
     position: relative; /* Added for tooltip positioning */
 }
 
+/* Add to your existing CSS */
+.loading-indicator {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.tab {
+    /* Add to your existing .tab styles */
+    position: relative;
+}
+
+.tab-content, .loading-indicator {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 /* ============================
  SECTION: Contribute Dropdown
  ============================ */
@@ -1128,21 +1149,34 @@ body {
     </div>
 </div></div>
 
+<!-- Tabs -->
 <div class="tabs">
     <div class="tab draw-route-tab" id="draw-route-tab" data-tooltip="For adding photos & segments (must be logged in)">
         <i class="fa-regular fa-circle-plus" style="color: #ffffff;"></i> Contribute
         <span class="login-required" style="font-size: 10px; display: none;">(Login required)</span>
     </div>
     <div class="tab" id="segments-tab" data-tooltip="Toggle segments on or off">
-        <i class="fa-thin fa-route" style="color: #ffffff;"></i> Segments
+        <span class="tab-content">
+            <i class="fa-thin fa-route" style="color: #ffffff;"></i> Segments
+        </span>
+        <span class="loading-indicator" style="display: none;">
+            <i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> Loading...
+        </span>
     </div>
     <div class="tab" id="photos-tab" data-tooltip="Toggle photos on or off">
-        <i class="fa-thin fa-camera-retro" style="color: #ffffff;"></i> Photos
+        <span class="tab-content">
+            <i class="fa-thin fa-camera-retro" style="color: #ffffff;"></i> Photos
+        </span>
+        <span class="loading-indicator" style="display: none;">
+            <i class="fa-solid fa-spinner fa-spin" style="color: #ffffff;"></i> Loading...
+        </span>
     </div>
     <div class="tab" id="pois-tab" data-tooltip="Toggle POI on or off (coming soon)">
         <i class="fa-thin fa-map-pin" style="color: #ffffff;"></i> POIs
     </div>
 </div>
+
+<!-- Contribute Dropdown -->
 <div id="contribute-dropdown" class="btn-group" role="group" style="display: flex;">
     <button type="button" class="btn btn-outline-secondary" onclick="showControlPanel()" id="draw-route-dropdown" data-tooltip="Please only draw one road / lane or track at a time">Draw Route</button>
     <button type="button" class="btn btn-outline-secondary" onclick="showPhotoUploadPanel()" id="photo-upload-dropdown" data-tooltip="Please only add photos with GPS data (or they won't appear on the map)">Upload Photo</button>
