@@ -381,15 +381,12 @@ function togglePhotoLayer() {
 // Make sure to export it globally
 window.togglePhotoLayer = togglePhotoLayer;
 
-// Photo markers management
 async function loadPhotoMarkers() {
     try {
         const response = await fetch('/api/get-photos');
         const photos = await response.json();
 
         console.log(`Total photos: ${photos.length}`);
-        
-        // Filter photos with valid coordinates first
         const validPhotos = photos.filter(photo => photo.latitude && photo.longitude);
         console.log(`Photos with valid coordinates: ${validPhotos.length}`);
         console.log(`Photos missing coordinates: ${photos.length - validPhotos.length}`);
@@ -399,10 +396,8 @@ async function loadPhotoMarkers() {
             return;
         }
 
-        // Remove existing layers and handlers
         removePhotoMarkers();
 
-        // Convert valid photos into GeoJSON with all user properties
         const photoGeoJSON = {
             type: 'FeatureCollection',
             features: validPhotos.map(photo => ({
@@ -424,12 +419,6 @@ async function loadPhotoMarkers() {
             }))
         };
 
-        // Load marker images
-        await Promise.all([
-            loadMapImage('camera-icon-cluster'),
-            loadMapImage('camera-icon')
-        ]);
-
         // Add source
         map.addSource('photoMarkers', {
             type: 'geojson',
@@ -439,76 +428,128 @@ async function loadPhotoMarkers() {
             clusterRadius: 50
         });
 
-        // Add cluster layer
+        // Add basic circles for unclustered photos
         map.addLayer({
-            id: 'clusters',
-            type: 'symbol',
+            id: 'unclustered-photo',
+            type: 'circle',
             source: 'photoMarkers',
-            filter: ['has', 'point_count'],
-            layout: {
-                'icon-image': 'camera-icon-cluster',
-                'icon-size': 0.4,
-                'icon-allow-overlap': true
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+                'circle-radius': 8,
+                'circle-color': '#3FB1CE',
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff'
             }
         });
 
-        // Add unclustered photo layer
+        // Create preview container if it doesn't exist
+        if (!document.getElementById('photo-preview-container')) {
+            const previewContainer = document.createElement('div');
+            previewContainer.id = 'photo-preview-container';
+            previewContainer.className = 'photo-preview';
+            document.body.appendChild(previewContainer);
+        }
+
+        if (!document.getElementById('cluster-preview-container')) {
+            const clusterContainer = document.createElement('div');
+            clusterContainer.id = 'cluster-preview-container';
+            clusterContainer.className = 'cluster-preview';
+            document.body.appendChild(clusterContainer);
+        }
+
+        // Add hover previews for unclustered photos
+        map.on('mouseenter', 'unclustered-photo', (e) => {
+            const { url } = e.features[0].properties;
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            const point = map.project(coordinates);
+
+            const previewContainer = document.getElementById('photo-preview-container');
+            previewContainer.style.left = `${point.x + 15}px`;
+            previewContainer.style.top = `${point.y - 15}px`;
+            previewContainer.innerHTML = `<div class="preview-loading"></div>`;
+            previewContainer.style.display = 'block';
+
+            const img = new Image();
+            img.onload = () => {
+                previewContainer.innerHTML = '';
+                img.className = 'preview-image';
+                previewContainer.appendChild(img);
+            };
+            img.src = url;
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'unclustered-photo', () => {
+            const previewContainer = document.getElementById('photo-preview-container');
+            previewContainer.style.display = 'none';
+            map.getCanvas().style.cursor = '';
+        });
+
+        // Add custom cluster layer with photo grid
         map.addLayer({
-            id: 'unclustered-photo',
-            type: 'symbol',
+            id: 'clusters',
+            type: 'circle',
             source: 'photoMarkers',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-                'icon-image': 'camera-icon',
-                'icon-size': 0.3,
-                'icon-allow-overlap': true
+            filter: ['has', 'point_count'],
+            paint: {
+                'circle-color': '#fff',
+                'circle-radius': 30,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#3FB1CE'
             }
+        });
+
+        // Handle cluster hover
+        map.on('mouseenter', 'clusters', (e) => {
+            const features = e.features[0];
+            const clusterId = features.properties.cluster_id;
+            const pointCount = features.properties.point_count;
+            const coordinates = features.geometry.coordinates;
+            const point = map.project(coordinates);
+
+            map.getSource('photoMarkers').getClusterLeaves(
+                clusterId,
+                5, // Get up to 5 photos
+                0,
+                (err, leaves) => {
+                    if (err) return;
+
+                    const clusterContainer = document.getElementById('cluster-preview-container');
+                    let html = '<div class="cluster-grid">';
+                    
+                    // Add up to 4 photos
+                    leaves.slice(0, 4).forEach(leaf => {
+                        html += `<div class="cluster-photo" style="background-image: url('${leaf.properties.url}')"></div>`;
+                    });
+
+                    // Add count if there are more photos
+                    if (pointCount > 4) {
+                        html += `<div class="cluster-count">+${pointCount - 4}</div>`;
+                    }
+
+                    html += '</div>';
+                    clusterContainer.innerHTML = html;
+                    clusterContainer.style.left = `${point.x + 15}px`;
+                    clusterContainer.style.top = `${point.y - 15}px`;
+                    clusterContainer.style.display = 'block';
+                }
+            );
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'clusters', () => {
+            const clusterContainer = document.getElementById('cluster-preview-container');
+            clusterContainer.style.display = 'none';
+            map.getCanvas().style.cursor = '';
         });
 
         // Add click handlers
         map.on('click', 'clusters', handleClusterClick);
         map.on('click', 'unclustered-photo', handlePhotoClick);
 
-        // Change cursor on hover
-        map.on('mouseenter', 'clusters', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'clusters', () => {
-            map.getCanvas().style.cursor = '';
-        });
-        map.on('mouseenter', 'unclustered-photo', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'unclustered-photo', () => {
-            map.getCanvas().style.cursor = '';
-        });
-
     } catch (error) {
         console.error('Error loading photo markers:', error);
     }
-}
-
-function loadMapImage(name) {
-    const imagePath = name === 'camera-icon-cluster' ? '/cameraiconexpand.png' : '/cameraicon1.png';
-    
-    return new Promise((resolve, reject) => {
-        if (map.hasImage(name)) {
-            resolve();
-            return;
-        }
-        
-        map.loadImage(imagePath, (error, image) => {
-            if (error) {
-                console.error(`Error loading ${name}:`, error);
-                reject(error);
-                return;
-            }
-            if (!map.hasImage(name)) {
-                map.addImage(name, image);
-            }
-            resolve();
-        });
-    });
 }
 
 function removePhotoMarkers() {
@@ -527,14 +568,20 @@ function removePhotoMarkers() {
     if (map.getSource('photoMarkers')) {
         map.removeSource('photoMarkers');
     }
+
+    // Clean up preview containers
+    const previewContainer = document.getElementById('photo-preview-container');
+    const clusterContainer = document.getElementById('cluster-preview-container');
+    if (previewContainer) previewContainer.remove();
+    if (clusterContainer) clusterContainer.remove();
 }
 
-// Add the event listener when the DOM is ready
+// Add event listener when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadPhotosBtn').addEventListener('click', handlePhotoUpload);
 });
 
-// At the bottom of photo.js, make functions globally available
+// Make functions globally available
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.removePhotoMarkers = removePhotoMarkers;
 window.togglePhotoLayer = togglePhotoLayer;
