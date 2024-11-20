@@ -1238,16 +1238,16 @@ body {
 }
 
 #elevation-chart {
-    height: 180px; /* Slightly taller for better visibility */
-    width: 100%;
-    margin-bottom: 8px;
+    height: 180px !important; /* Force fixed height */
+    width: 100% !important;
 }
 
 .elevation-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    padding-bottom: 4px;
+    font-size: 12px;
+    padding-bottom: 2px;
 }
 
 .stat-box {
