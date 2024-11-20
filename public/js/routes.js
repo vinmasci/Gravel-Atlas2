@@ -29,62 +29,50 @@ const gravelColors = {
 // SECTION: Live Elevation Profile
 // ============================
 function updateLiveElevationProfile(newCoordinates) {
-    if (!window.Chart) {
-        console.error('Chart.js not loaded');
-        return;
-    }
+    if (!window.Chart) return;
 
-    // Calculate elevation data for just this segment
+    // Reset the data each time
+    liveElevationData = newCoordinates;
+    totalDistance = 0;
+
+    const chartData = [];
     let elevationGain = 0;
     let elevationLoss = 0;
-    let maxElevation = Math.max(...newCoordinates.map(coord => coord[2]));
-    let currentDistance = 0;
-    const chartData = [];
+    let maxElevation = -Infinity;
+    let prevCoord = null;
 
-    for (let i = 0; i < newCoordinates.length; i++) {
-        const elevation = newCoordinates[i][2];
-        
-        if (i > 0) {
-            const prevElevation = newCoordinates[i-1][2];
-            const elevDiff = elevation - prevElevation;
-            
+    liveElevationData.forEach((coord) => {
+        const elevation = coord[2];
+        maxElevation = Math.max(maxElevation, elevation);
+
+        if (prevCoord) {
+            const elevDiff = elevation - prevCoord[2];
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
-            
-            const distance = calculateDistance(
-                newCoordinates[i-1][1], newCoordinates[i-1][0],
-                newCoordinates[i][1], newCoordinates[i][0]
+
+            totalDistance += calculateDistance(
+                prevCoord[1], prevCoord[0],
+                coord[1], coord[0]
             );
-            currentDistance += distance;
         }
 
         chartData.push({
-            x: currentDistance,
+            x: totalDistance,
             y: elevation
         });
-    }
 
-    // Update total distance
-    totalDistance = currentDistance;
+        prevCoord = coord;
+    });
 
-    // Update stats display
+    // Update stats
     document.getElementById('total-distance').textContent = `${totalDistance.toFixed(2)} km`;
     document.getElementById('elevation-gain').textContent = `↑ ${Math.round(elevationGain)}m`;
     document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
     document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
 
-    // Create/update chart
     const ctx = document.getElementById('elevation-chart');
     const existingChart = Chart.getChart('elevation-chart');
-    if (existingChart) {
-        existingChart.destroy();
-    }
-
-    const canvas = document.getElementById('elevation-chart');
-    const context = canvas.getContext('2d');
-    const gradient = context.createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.1)');
+    if (existingChart) existingChart.destroy();
 
     new Chart(ctx, {
         type: 'line',
@@ -92,7 +80,7 @@ function updateLiveElevationProfile(newCoordinates) {
             datasets: [{
                 data: chartData,
                 borderColor: '#3b82f6',
-                backgroundColor: gradient,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2,
                 fill: true,
                 tension: 0.4,
@@ -103,13 +91,7 @@ function updateLiveElevationProfile(newCoordinates) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => `Elevation: ${Math.round(context.parsed.y)}m`,
-                        title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
-                    }
-                }
+                legend: { display: false }
             },
             scales: {
                 x: {
@@ -122,13 +104,13 @@ function updateLiveElevationProfile(newCoordinates) {
                     ticks: { font: { size: 8 } }
                 },
                 y: {
+                    type: 'linear',
                     title: {
                         display: true,
                         text: 'Elevation (m)',
                         font: { size: 10 }
                     },
-                    ticks: { font: { size: 8 } },
-                    min: 0
+                    ticks: { font: { size: 8 } }
                 }
             }
         }
