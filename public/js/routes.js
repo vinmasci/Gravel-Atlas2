@@ -140,6 +140,7 @@ function updateLiveElevationProfile(newCoordinates) {
     document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
     document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
 
+    const canvasId = 'elevation-chart-preview'; // Use the new canvas ID
     const ctx = document.getElementById('elevation-chart');
     const existingChart = Chart.getChart('elevation-chart');
     if (existingChart) existingChart.destroy();
@@ -497,7 +498,7 @@ function undoLastSegment() {
                     } else {
                         // Reset elevation display if no segments left
                         preview.style.display = 'none';
-                        const existingChart = Chart.getChart('elevation-chart');
+                        const existingChart = Chart.getChart('elevation-chart-preview');
                         if (existingChart) {
                             existingChart.destroy();
                         }
@@ -542,7 +543,7 @@ function resetRoute() {
         document.getElementById('max-elevation').textContent = '0m';
         
         // Clear chart
-        const existingChart = Chart.getChart('elevation-chart');
+        const existingChart = Chart.getChart('elevation-chart-preview');
         if (existingChart) {
             existingChart.destroy();
         }
