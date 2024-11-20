@@ -31,40 +31,109 @@ const gravelColors = {
 function updateLiveElevationProfile(newCoordinates) {
     if (!window.Chart) return;
 
-    // Reset the data each time
-    liveElevationData = newCoordinates;
-    totalDistance = 0;
+    // Define gradient colors and thresholds (matching your existing implementation)
+    const gradientColors = {
+        easy: '#01bf11',      // Green (0-3%)
+        moderate: '#ffa801',  // Yellow (3.1-8%)
+        hard: '#c0392b',      // Red (8.1-11%)
+        extreme: '#751203'    // Maroon (11.1%+)
+    };
 
-    const chartData = [];
+    function getGradientColor(gradient) {
+        const absGradient = Math.abs(gradient);
+        return absGradient <= 3 ? gradientColors.easy :
+               absGradient <= 8 ? gradientColors.moderate :
+               absGradient <= 11 ? gradientColors.hard :
+               gradientColors.extreme;
+    }
+
+    let totalDistance = 0;
     let elevationGain = 0;
     let elevationLoss = 0;
+    let minElevation = Infinity;
     let maxElevation = -Infinity;
-    let prevCoord = null;
 
-    liveElevationData.forEach((coord) => {
+    // Initialize segments
+    let lastSamplePoint = newCoordinates[0];
+    let distanceAccumulator = 0;
+    const minDistance = 0.1; // 100 meters in kilometers
+    let currentSegment = null;
+    const segments = [];
+
+    newCoordinates.forEach((coord, index) => {
         const elevation = coord[2];
+        minElevation = Math.min(minElevation, elevation);
         maxElevation = Math.max(maxElevation, elevation);
 
-        if (prevCoord) {
-            const elevDiff = elevation - prevCoord[2];
+        if (index > 0) {
+            const distance = calculateDistance(
+                lastSamplePoint[1], lastSamplePoint[0],
+                coord[1], coord[0]
+            );
+            totalDistance += distance;
+            distanceAccumulator += distance;
+
+            const elevDiff = elevation - lastSamplePoint[2];
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
 
-            totalDistance += calculateDistance(
-                prevCoord[1], prevCoord[0],
-                coord[1], coord[0]
-            );
+            if (distanceAccumulator >= minDistance) {
+                const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
+                const color = getGradientColor(gradient);
+
+                if (!currentSegment || currentSegment.borderColor !== color) {
+                    const lastPoint = currentSegment?.data[currentSegment.data.length - 1];
+                    
+                    currentSegment = {
+                        label: `Gradient: ${gradient.toFixed(1)}%`,
+                        data: lastPoint ? [lastPoint] : [],
+                        borderColor: color,
+                        backgroundColor: color,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.2,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: color,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHitRadius: 10
+                    };
+                    segments.push(currentSegment);
+                }
+
+                lastSamplePoint = coord;
+                distanceAccumulator = 0;
+            }
+
+            if (currentSegment) {
+                currentSegment.data.push({
+                    x: totalDistance,
+                    y: elevation
+                });
+            }
+        } else {
+            const color = getGradientColor(0);
+            currentSegment = {
+                label: 'Gradient: 0%',
+                data: [{x: 0, y: elevation}],
+                borderColor: color,
+                backgroundColor: color,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointBackgroundColor: color,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHitRadius: 10
+            };
+            segments.push(currentSegment);
         }
-
-        chartData.push({
-            x: totalDistance,
-            y: elevation
-        });
-
-        prevCoord = coord;
     });
 
-    // Update stats
+    // Update stats display
     document.getElementById('total-distance').textContent = `${totalDistance.toFixed(2)} km`;
     document.getElementById('elevation-gain').textContent = `↑ ${Math.round(elevationGain)}m`;
     document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
@@ -77,20 +146,31 @@ function updateLiveElevationProfile(newCoordinates) {
     new Chart(ctx, {
         type: 'line',
         data: {
-            datasets: [{
-                data: chartData,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0
-            }]
+            datasets: segments
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
+                                const gradient = context.dataset.label.split(': ')[1];
+                                return [
+                                    `Elevation: ${Math.round(context.parsed.y)}m`,
+                                    `Gradient: ${gradient}`
+                                ];
+                            }
+                            return [];
+                        },
+                        title: (context) => {
+                            if (context[0]) {
+                                return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
+                            }
+                        }
+                    }
+                },
                 legend: { display: false }
             },
             scales: {
@@ -101,7 +181,8 @@ function updateLiveElevationProfile(newCoordinates) {
                         text: 'Distance (km)',
                         font: { size: 10 }
                     },
-                    ticks: { font: { size: 8 } }
+                    min: 0,
+                    max: totalDistance
                 },
                 y: {
                     type: 'linear',
@@ -110,7 +191,8 @@ function updateLiveElevationProfile(newCoordinates) {
                         text: 'Elevation (m)',
                         font: { size: 10 }
                     },
-                    ticks: { font: { size: 8 } }
+                    min: 0,
+                    max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.1)
                 }
             }
         }
