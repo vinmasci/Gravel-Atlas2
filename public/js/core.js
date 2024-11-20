@@ -259,103 +259,63 @@ async function initCore() {
     console.log('Initializing core...');
     
     try {
-        // Start auth0 initialization early
-        const auth0Promise = waitForAuth0();
-        
-        // Initialize map loading
-        const mapLoadPromise = new Promise(resolve => {
+        // Wait for map to be fully loaded
+        await new Promise(resolve => {
             if (map.loaded()) {
                 resolve();
             } else {
                 map.on('load', resolve);
             }
         });
-
-        // Pre-initialize data loading promises
-        const dataLoadPromises = [];
-
-        // Wait for map to be ready
-        await mapLoadPromise;
         console.log('Map loaded successfully');
 
-        // Initialize map components immediately
+        // Map initialization
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
+        window.loadSegments();
 
-        // Start loading data immediately
-        console.log('Starting initial data load...');
-        
-        // Show loading indicators
-        utils.showTabLoading('segments-tab');
-        utils.showTabLoading('photos-tab');
-        
-        // Load segments promise
-        const segmentsPromise = window.loadSegments()
-            .then(() => {
-                layerVisibility.segments = true;
-                utils.updateTabHighlight('segments-tab', true);
-                console.log('Segments loaded successfully');
-            })
-            .catch(error => {
-                console.error('Error loading segments:', error);
-            });
-        dataLoadPromises.push(segmentsPromise);
+        // Enhanced auth0 initialization with logging
+        console.log('Waiting for Auth0...');
+        const auth0 = await waitForAuth0();
+        console.log('Auth0 initialization complete');
 
-        // Load photos promise
-        const photosPromise = window.loadPhotoMarkers()
-            .then(() => {
-                layerVisibility.photos = true;
-                utils.updateTabHighlight('photos-tab', true);
-                console.log('Photos loaded successfully');
-            })
-            .catch(error => {
-                console.error('Error loading photos:', error);
-            });
-        dataLoadPromises.push(photosPromise);
-
-        // Wait for auth0 in parallel with data loading
-        const auth0 = await auth0Promise;
-        console.log('Auth0 initialized');
-
-        // Set up profile button and auth state
+        // Check authentication immediately
         const isAuthenticated = await auth0.isAuthenticated();
         console.log('Authentication status:', isAuthenticated);
 
-        // Create profile button
+        // Profile button creation with enhanced logging
         const loginBtn = document.getElementById('loginBtn');
+        console.log('Found login button:', !!loginBtn);
+
         if (loginBtn && !document.getElementById(config.profileButton.id)) {
+            console.log('Creating profile button');
             const buttonContainer = loginBtn.parentElement;
             const profileBtn = document.createElement('button');
             profileBtn.id = config.profileButton.id;
             profileBtn.textContent = config.profileButton.text;
-            profileBtn.className = isAuthenticated ? 'map-button' : 'hidden map-button';
+            profileBtn.className = isAuthenticated ? 'map-button' : 'hidden map-button'; // Show immediately if authenticated
             buttonContainer.insertBefore(profileBtn, loginBtn);
             profileBtn.addEventListener('click', handlers.handleProfileClick);
+            console.log('Profile button created and inserted');
         }
 
         // Initialize profile if authenticated
         if (isAuthenticated) {
-            if (window.userModule?.initializeProfile) {
+            console.log('User is authenticated, initializing profile');
+            const profileBtn = document.getElementById(config.profileButton.id);
+            if (profileBtn) {
+                profileBtn.classList.remove('hidden');
+                console.log('Profile button made visible');
+            }
+            
+            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
                 await window.userModule.initializeProfile();
+                console.log('User profile initialized');
             }
         }
 
-        // Set up event listeners
-        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
-        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
-        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
-        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
-
-        // Wait for all data loading to complete
-        await Promise.all(dataLoadPromises);
-        console.log('All data loaded successfully');
-
-        // Hide loading indicators
-        utils.hideTabLoading('segments-tab');
-        utils.hideTabLoading('photos-tab');
-
-        // Set up click handler for profile section
+        // Add click outside handler to hide profile section
         document.addEventListener('click', (event) => {
             const profileSection = document.getElementById('profile-section');
             const profileBtn = document.getElementById(config.profileButton.id);
@@ -365,6 +325,85 @@ async function initCore() {
                 utils.hideProfileSection();
             }
         });
+
+        // Initialize event listeners
+        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
+        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
+        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
+        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
+
+        initEventListeners();
+
+        // Verify module exports with retry
+        let attempts = 0;
+        while (attempts < 3) {
+            console.log('Verifying module exports... Attempt', attempts + 1);
+            const functionChecks = {
+                loadSegments: typeof window.loadSegments === 'function',
+                removeSegments: typeof window.removeSegments === 'function',
+                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+                removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+            };
+            
+            if (Object.values(functionChecks).every(Boolean)) {
+                console.log('All required functions are available');
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
+
+        // Load segments and photos by default
+        try {
+            console.log('Loading initial layers...');
+            
+            // Show loading indicators for initial load
+            utils.showTabLoading('segments-tab');
+            utils.showTabLoading('photos-tab');
+            
+            // Load segments and photos concurrently
+            const loadingPromises = [];
+            
+            // Load segments
+            if (typeof window.loadSegments === 'function') {
+                const segmentsPromise = window.loadSegments()
+                    .then(() => {
+                        layerVisibility.segments = true;
+                        utils.updateTabHighlight('segments-tab', true);
+                        console.log('Segments loaded successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error loading segments:', error);
+                    });
+                loadingPromises.push(segmentsPromise);
+            }
+
+            // Load photos
+            if (typeof window.loadPhotoMarkers === 'function') {
+                const photosPromise = window.loadPhotoMarkers()
+                    .then(() => {
+                        layerVisibility.photos = true;
+                        utils.updateTabHighlight('photos-tab', true);
+                        console.log('Photos loaded successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error loading photos:', error);
+                    });
+                loadingPromises.push(photosPromise);
+            }
+
+            // Wait for all loading to complete
+            await Promise.all(loadingPromises);
+            console.log('Initial data load complete');
+            
+        } catch (layerError) {
+            console.error('Error loading initial layers:', layerError);
+        } finally {
+            // Hide loading indicators
+            utils.hideTabLoading('segments-tab');
+            utils.hideTabLoading('photos-tab');
+        }
 
         // Set up auth state change handler
         auth0.checkSession({}, function(err, result) {
