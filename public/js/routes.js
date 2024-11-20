@@ -211,6 +211,18 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+
+// ============================
+// SECTION: update Elevation Preview Visibility
+// ============================
+function updateElevationPreviewVisibility() {
+    const preview = document.getElementById('elevation-preview');
+    if (preview) {
+        preview.style.display = 
+            window.innerWidth > 768 && originalPins.length > 0 ? 'block' : 'none';
+    }
+}
+
 // ============================
 // SECTION: Apply Drawing Options
 // ============================
