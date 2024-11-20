@@ -14,6 +14,7 @@ let lastSnappedPoint = null; // Track the last successfully snapped point
 // Add to your routes.js
 let liveElevationData = [];
 let totalDistance = 0;
+let fullRouteElevationData = [];
 
 // Gravel type color mapping
 const gravelColors = {
@@ -314,6 +315,11 @@ async function snapToRoads(points) {
 // SECTION: Draw Point with Improved Snapping
 // ============================
 async function drawPoint(e) {
+    // Reset data if this is the first point
+    if (originalPins.length === 0) {
+        fullRouteElevationData = [];
+    }
+
     const coords = [e.lngLat.lng, e.lngLat.lat];
     console.log("Point drawn at:", coords);
     originalPins.push(coords);
@@ -337,13 +343,11 @@ async function drawPoint(e) {
             if (response.ok) {
                 const elevationData = await response.json();
                 if (window.innerWidth > 768) {
+                    // Add new coordinates to the full route data
+                    fullRouteElevationData = fullRouteElevationData.concat(elevationData.coordinates);
                     const preview = document.getElementById('elevation-preview');
                     if (preview) preview.style.display = 'block';
-                    // Get all coordinates from existing features and add the new ones
-                    const allCoordinates = segmentsGeoJSON.features
-                        .flatMap(f => f.geometry.coordinates)
-                        .concat(elevationData.coordinates);
-                    updateLiveElevationProfile(allCoordinates);
+                    updateLiveElevationProfile(fullRouteElevationData);
                 }
             }
         } catch (error) {
@@ -450,6 +454,7 @@ function resetRoute() {
     markers = [];
     originalPins = [];
     liveElevationData = [];
+    fullRouteElevationData = []; // Reset full route elevation data
     totalDistance = 0;
     
     // Reset elevation preview
