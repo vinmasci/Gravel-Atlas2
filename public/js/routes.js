@@ -669,17 +669,25 @@ async function handleSaveConfirmation(gpxData, auth0) {
         const auth0Id = user.sub;
         console.log("Got auth0Id:", auth0Id);
 
+        // Store the bounds of the drawn route before resetting
+        const coordinates = drawnSegmentsGeoJSON.features.flatMap(feature => 
+            feature.geometry.coordinates
+        );
+        const bounds = coordinates.reduce((bounds, coord) => {
+            return bounds.extend(coord);
+        }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+
         // Prepare the data to be saved
         const routeData = {
             metadata: {
                 title: title,
                 gravelType: drawnSegmentsGeoJSON.features[0].properties.gravelType
-                // Include any other metadata fields if needed
             },
             geojson: drawnSegmentsGeoJSON,
             gpxData: gpxData,
             auth0Id: auth0Id
         };
+
         console.log("Route data to be sent:", routeData);
 
         // Send the data to your API endpoint
@@ -702,14 +710,23 @@ async function handleSaveConfirmation(gpxData, auth0) {
         const result = await response.json();
         console.log("Route saved successfully:", result);
 
-        // Close the modal and reset the route
+        // Close the modal
         closeRouteNameModal();
+
+        // Reset the route
         resetRoute();
 
-        // Optionally, reload the segments to include the new one
+        // Reload segments to include the new one
         await loadSegments();
 
+        // Zoom to the saved route's bounds
+        map.fitBounds(bounds, {
+            padding: 50, // Add some padding around the bounds
+            duration: 1000 // Animate the zoom over 1 second
+        });
+
         alert("Route saved successfully!");
+
     } catch (error) {
         console.error("Error saving route:", error);
         alert("Failed to save route. Please try again.");
