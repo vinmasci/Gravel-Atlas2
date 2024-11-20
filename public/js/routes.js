@@ -161,8 +161,8 @@ function updateLiveElevationProfile(newCoordinates) {
             maintainAspectRatio: false,
             plugins: {
                 tooltip: {
-                    mode: 'index',
-                    intersect: false,
+                    mode: 'nearest',
+                    intersect: true,
                     callbacks: {
                         label: (context) => {
                             return [
@@ -178,40 +178,9 @@ function updateLiveElevationProfile(newCoordinates) {
                 },
                 legend: { display: false }
             },
-            scales: {
-                x: {
-                    type: 'linear',
-                    grid: {
-                        color: '#e0e0e0'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Distance (km)',
-                        font: { size: 10 }
-                    },
-                    min: 0,
-                    max: totalDistance
-                },
-                y: {
-                    type: 'linear',
-                    grid: {
-                        color: '#e0e0e0'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Elevation (m)',
-                        font: { size: 10 }
-                    },
-                    min: Math.floor(minElevation / 10) * 10, // Round down to nearest 10
-                    max: Math.ceil(maxElevation / 10) * 10,  // Round up to nearest 10
-                    ticks: {
-                        stepSize: 10
-                    }
-                }
-            },
             interaction: {
-                mode: 'index',
-                intersect: false
+                mode: 'nearest',
+                intersect: true
             },
             elements: {
                 point: {
