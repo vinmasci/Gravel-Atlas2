@@ -141,10 +141,16 @@ function updateLiveElevationProfile(newCoordinates) {
     document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
 
     const canvasId = 'elevation-chart-preview'; // Use the new canvas ID
-    const ctx = document.getElementById('elevation-chart');
-    const existingChart = Chart.getChart('elevation-chart');
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+        console.error(`Canvas element with ID ${canvasId} not found.`);
+        return;
+    }
+
+    const existingChart = Chart.getChart(canvas);
     if (existingChart) existingChart.destroy();
 
+    const ctx = canvas.getContext('2d');
     new Chart(ctx, {
         type: 'line',
         data: {
