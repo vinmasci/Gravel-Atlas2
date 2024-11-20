@@ -78,7 +78,7 @@ function updateLiveElevationProfile(newCoordinates) {
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
 
-            if (distanceAccumulator >= minDistance) {
+            if (distanceAccumulator >= minDistance || index === newCoordinates.length - 1) {
                 const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
                 const color = getGradientColor(gradient);
 
@@ -170,15 +170,19 @@ function updateLiveElevationProfile(newCoordinates) {
             maintainAspectRatio: false,
             plugins: {
                 tooltip: {
-                    enabled: true,
                     mode: 'nearest',
-                    intersect: true,
+                    intersect: false,
                     callbacks: {
                         label: (context) => {
-                            return [
-                                `Elevation: ${Math.round(context.parsed.y)}m`,
-                                `Gradient: ${context.dataset.label.split(': ')[1]}`
-                            ];
+                            // Only show tooltip for the dataset that is closest to the cursor
+                            if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
+                                const gradient = context.dataset.label.split(': ')[1];
+                                return [
+                                    `Elevation: ${Math.round(context.parsed.y)}m`,
+                                    `Gradient: ${gradient}`
+                                ];
+                            }
+                            return [];
                         },
                         title: (context) => {
                             if (context[0]) {
@@ -201,7 +205,8 @@ function updateLiveElevationProfile(newCoordinates) {
             },
             interaction: {
                 mode: 'nearest',
-                intersect: true
+                intersect: false,
+                axis: 'x'
             },
             scales: {
                 x: {
