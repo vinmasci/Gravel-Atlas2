@@ -151,9 +151,25 @@ function updateLiveElevationProfile(newCoordinates) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2, // Add this to control width/height ratio
+            maintainAspectRatio: false,
+            padding: {
+                bottom: 3  // Reduced padding
+            },
             plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const gradient = context.dataset.label.split(': ')[1];
+                            return [`Elevation: ${Math.round(context.parsed.y)}m`, `Gradient: ${gradient}`];
+                        },
+                        title: (context) => {
+                            return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
+                        }
+                    },
+                    displayColors: false,  // Remove color boxes
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 6  // Reduced padding in tooltip
+                },
                 legend: { display: false }
             },
             scales: {
@@ -162,26 +178,32 @@ function updateLiveElevationProfile(newCoordinates) {
                     title: {
                         display: true,
                         text: 'Distance (km)',
-                        font: { size: 10 }
+                        font: { size: 10 },
+                        padding: { top: 0, bottom: 0 }  // Reduced padding
                     },
                     min: 0,
-                    max: totalDistance  // This ensures x-axis matches actual distance
+                    max: totalDistance
                 },
                 y: {
                     type: 'linear',
                     title: {
                         display: true,
                         text: 'Elevation (m)',
-                        font: { size: 10 }
+                        font: { size: 10 },
+                        padding: { top: 0, bottom: 0 }  // Reduced padding
                     },
-                    min: Math.floor(minElevation), // Round down to nearest meter
-                    max: Math.ceil(maxElevation),  // Round up to nearest meter
-                    suggestedMin: minElevation,
-                    suggestedMax: maxElevation
+                    min: Math.floor(minElevation),
+                    max: Math.ceil(maxElevation)
+                }
+            },
+            layout: {
+                padding: {
+                    bottom: 3  // Reduced bottom padding
                 }
             }
         }
     });
+
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
