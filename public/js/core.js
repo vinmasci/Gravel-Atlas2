@@ -131,7 +131,6 @@ map = new mapboxgl.Map({
     zoom: config.defaultZoom
 });
 
-
 // Export map globally
 window.map = map;
 
@@ -268,26 +267,52 @@ async function initCore() {
                 map.on('load', resolve);
             }
         });
+        console.log('Map loaded successfully');
 
-        // Map has loaded; initialize sources and layers
+        // Map initialization
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
-        window.loadSegments(); // Load existing segments
+        window.loadSegments();
 
-        // Wait for auth0 to be initialized
+        // Enhanced auth0 initialization with logging
+        console.log('Waiting for Auth0...');
         const auth0 = await waitForAuth0();
+        console.log('Auth0 initialization complete');
 
-        // Create and insert profile button next to login button
+        // Check authentication immediately
+        const isAuthenticated = await auth0.isAuthenticated();
+        console.log('Authentication status:', isAuthenticated);
+
+        // Profile button creation with enhanced logging
         const loginBtn = document.getElementById('loginBtn');
+        console.log('Found login button:', !!loginBtn);
+
         if (loginBtn && !document.getElementById(config.profileButton.id)) {
+            console.log('Creating profile button');
             const buttonContainer = loginBtn.parentElement;
             const profileBtn = document.createElement('button');
             profileBtn.id = config.profileButton.id;
             profileBtn.textContent = config.profileButton.text;
-            profileBtn.className = 'hidden map-button';
+            profileBtn.className = isAuthenticated ? 'map-button' : 'hidden map-button'; // Show immediately if authenticated
             buttonContainer.insertBefore(profileBtn, loginBtn);
             profileBtn.addEventListener('click', handlers.handleProfileClick);
+            console.log('Profile button created and inserted');
+        }
+
+        // Initialize profile if authenticated
+        if (isAuthenticated) {
+            console.log('User is authenticated, initializing profile');
+            const profileBtn = document.getElementById(config.profileButton.id);
+            if (profileBtn) {
+                profileBtn.classList.remove('hidden');
+                console.log('Profile button made visible');
+            }
+            
+            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
+                await window.userModule.initializeProfile();
+                console.log('User profile initialized');
+            }
         }
 
         // Add click outside handler to hide profile section
@@ -337,21 +362,41 @@ async function initCore() {
             utils.showTabLoading('segments-tab');
             utils.showTabLoading('photos-tab');
             
+            // Load segments and photos concurrently
+            const loadingPromises = [];
+            
             // Load segments
             if (typeof window.loadSegments === 'function') {
-                await window.loadSegments();
-                layerVisibility.segments = true;
-                utils.updateTabHighlight('segments-tab', true);
-                console.log('Segments loaded successfully');
+                const segmentsPromise = window.loadSegments()
+                    .then(() => {
+                        layerVisibility.segments = true;
+                        utils.updateTabHighlight('segments-tab', true);
+                        console.log('Segments loaded successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error loading segments:', error);
+                    });
+                loadingPromises.push(segmentsPromise);
             }
 
             // Load photos
             if (typeof window.loadPhotoMarkers === 'function') {
-                await window.loadPhotoMarkers();
-                layerVisibility.photos = true;
-                utils.updateTabHighlight('photos-tab', true);
-                console.log('Photos loaded successfully');
+                const photosPromise = window.loadPhotoMarkers()
+                    .then(() => {
+                        layerVisibility.photos = true;
+                        utils.updateTabHighlight('photos-tab', true);
+                        console.log('Photos loaded successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error loading photos:', error);
+                    });
+                loadingPromises.push(photosPromise);
             }
+
+            // Wait for all loading to complete
+            await Promise.all(loadingPromises);
+            console.log('Initial data load complete');
+            
         } catch (layerError) {
             console.error('Error loading initial layers:', layerError);
         } finally {
@@ -360,27 +405,22 @@ async function initCore() {
             utils.hideTabLoading('photos-tab');
         }
 
-        // Handle authentication status
-        if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
-            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
-            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
-                await window.userModule.initializeProfile();
+        // Set up auth state change handler
+        auth0.checkSession({}, function(err, result) {
+            if (err || !result) {
+                utils.hideProfileSection();
             }
-        }
+        });
 
-        // Auth state change handler
-        if (typeof auth0 !== 'undefined') {
-            auth0.checkSession({}, function(err, result) {
-                if (err || !result) {
-                    utils.hideProfileSection();
-                }
-            });
-        }
-
-        console.log('Core initialized successfully');
+        console.log('Core initialization complete');
         return { map, layerVisibility };
     } catch (error) {
         console.error('Error in core initialization:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         throw error;
     }
 }
