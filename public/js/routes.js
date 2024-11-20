@@ -265,7 +265,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 
-
 // ============================
 // SECTION: update Elevation Preview Visibility
 // ============================
