@@ -580,7 +580,6 @@ function resetRoute() {
 // ============================
 // SECTION: Save Drawn Route (with route name prompt)
 // ============================
-// First, update the saveDrawnRoute function
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
     if (drawnSegmentsGeoJSON.features.length === 0) {
@@ -620,19 +619,13 @@ async function saveDrawnRoute() {
         return;
     }
 
-    console.log("GPX data generated successfully.");
-
-    // Store the bounds before opening modal
+    // Calculate bounds before anything gets reset
     const coordinates = drawnSegmentsGeoJSON.features.flatMap(feature => 
         feature.geometry.coordinates
     );
     const bounds = coordinates.reduce((bounds, coord) => {
         return bounds.extend(coord);
     }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
-
-    // Save bounds to window for access in confirmation handler
-    window.savedRouteBounds = bounds;
-    console.log("Saved route bounds:", bounds);
 
     // Open the modal
     openRouteNameModal();
@@ -648,9 +641,8 @@ async function saveDrawnRoute() {
     confirmSaveBtn.replaceWith(confirmSaveBtn.cloneNode(true));
     const newConfirmBtn = document.getElementById('confirmSaveBtn');
 
-    // Add new event listener with enhanced save confirmation
+    // Add new event listener
     newConfirmBtn.addEventListener('click', async () => {
-        console.log("Confirm button clicked");
         const routeNameInput = document.getElementById('routeNameInput');
         const title = routeNameInput.value.trim();
         
@@ -663,7 +655,6 @@ async function saveDrawnRoute() {
         newConfirmBtn.innerText = "Saving...";
 
         try {
-            // Prepare route data
             const routeData = {
                 metadata: {
                     title: title,
@@ -674,7 +665,6 @@ async function saveDrawnRoute() {
                 auth0Id: (await auth0.getUser()).sub
             };
 
-            // Save the route
             const response = await fetch('/api/save-drawn-route', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -685,27 +675,42 @@ async function saveDrawnRoute() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            console.log("Route saved successfully");
-            
-            // Close modal and reset
+            // Close modal first
             closeRouteNameModal();
-            resetRoute();
 
-            // Reload segments and zoom to new route
-            console.log("Reloading segments...");
-            await loadSegments();
+            // Important: Execute these steps in sequence
+            console.log("Executing post-save sequence...");
             
-            // Use the stored bounds
-            if (window.savedRouteBounds) {
-                console.log("Zooming to saved route bounds");
-                map.fitBounds(window.savedRouteBounds, {
-                    padding: 50,
-                    duration: 1000
+            // 1. Reset the drawing
+            resetRoute();
+            
+            // 2. Reset the segments source
+            const source = map.getSource('existingSegments');
+            if (source) {
+                source.setData({
+                    'type': 'FeatureCollection',
+                    'features': []
                 });
-                delete window.savedRouteBounds; // Clean up
             }
 
+            // 3. Reload segments with a small delay to ensure proper loading
+            setTimeout(async () => {
+                await loadSegments();
+                
+                // 4. Zoom to bounds with more generous padding
+                map.fitBounds(bounds, {
+                    padding: {
+                        top: 100,
+                        bottom: 100,
+                        left: 100,
+                        right: 100
+                    },
+                    duration: 1000
+                });
+            }, 100);
+
             alert("Route saved successfully!");
+
         } catch (error) {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
