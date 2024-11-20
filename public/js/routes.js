@@ -716,10 +716,6 @@ async function saveDrawnRoute() {
     }, { once: true });
 }
 
-// Export the function
-window.saveDrawnRoute = saveDrawnRoute;
-
-
 // ============================
 // SECTION: Handle Save Confirmation
 // ============================
