@@ -255,7 +255,8 @@ const handlers = {
     }
 };
 
-// Initialize core functionality
+// Keep your existing imports and setup code
+
 async function initCore() {
     console.log('Initializing core...');
     
@@ -269,37 +270,29 @@ async function initCore() {
             }
         });
 
-        // Map has loaded; initialize sources and layers
+        console.log('Map loaded successfully');
+
+        // Initialize sources and layers first
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
-        window.loadSegments(); // Load existing segments
 
         // Wait for auth0 to be initialized
         const auth0 = await waitForAuth0();
+        console.log('Auth0 initialized');
 
         // Create and insert profile button next to login button
         const loginBtn = document.getElementById('loginBtn');
-        if (loginBtn && !document.getElementById(config.profileButton.id)) {
+        if (loginBtn && !document.getElementById('profileBtn')) {
             const buttonContainer = loginBtn.parentElement;
             const profileBtn = document.createElement('button');
-            profileBtn.id = config.profileButton.id;
-            profileBtn.textContent = config.profileButton.text;
+            profileBtn.id = 'profileBtn';
+            profileBtn.textContent = 'Profile';
             profileBtn.className = 'hidden map-button';
             buttonContainer.insertBefore(profileBtn, loginBtn);
             profileBtn.addEventListener('click', handlers.handleProfileClick);
+            console.log('Profile button created');
         }
-
-        // Add click outside handler to hide profile section
-        document.addEventListener('click', (event) => {
-            const profileSection = document.getElementById('profile-section');
-            const profileBtn = document.getElementById(config.profileButton.id);
-            
-            if (profileSection && !profileSection.contains(event.target) && 
-                profileBtn && !profileBtn.contains(event.target)) {
-                utils.hideProfileSection();
-            }
-        });
 
         // Initialize event listeners
         document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
@@ -307,9 +300,7 @@ async function initCore() {
         document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
         document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
 
-        initEventListeners();
-
-        // Verify module exports with retry
+        // Verify module exports
         let attempts = 0;
         while (attempts < 3) {
             console.log('Verifying module exports... Attempt', attempts + 1);
@@ -329,29 +320,28 @@ async function initCore() {
             attempts++;
         }
 
-        // Load segments and photos by default
+        // Load initial layers with proper error handling
         try {
-            console.log('Loading initial layers...');
+            console.log('Loading initial segments');
+            // Initialize layer visibility state
+            layerVisibility.segments = true;
+            layerVisibility.photos = true;
             
-            // Show loading indicators for initial load
+            // Show loading indicators
             utils.showTabLoading('segments-tab');
             utils.showTabLoading('photos-tab');
             
-            // Load segments
-            if (typeof window.loadSegments === 'function') {
-                await window.loadSegments();
-                layerVisibility.segments = true;
-                utils.updateTabHighlight('segments-tab', true);
-                console.log('Segments loaded successfully');
-            }
-
-            // Load photos
-            if (typeof window.loadPhotoMarkers === 'function') {
-                await window.loadPhotoMarkers();
-                layerVisibility.photos = true;
-                utils.updateTabHighlight('photos-tab', true);
-                console.log('Photos loaded successfully');
-            }
+            // Load segments and photos concurrently
+            await Promise.all([
+                window.loadSegments().then(() => {
+                    utils.updateTabHighlight('segments-tab', true);
+                    console.log('Segments loaded successfully');
+                }),
+                window.loadPhotoMarkers().then(() => {
+                    utils.updateTabHighlight('photos-tab', true);
+                    console.log('Photos loaded successfully');
+                })
+            ]);
         } catch (layerError) {
             console.error('Error loading initial layers:', layerError);
         } finally {
@@ -360,24 +350,28 @@ async function initCore() {
             utils.hideTabLoading('photos-tab');
         }
 
-        // Handle authentication status
-        if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
-            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
+        // Update UI based on authentication status
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (isAuthenticated) {
+            const profileBtn = document.getElementById('profileBtn');
+            if (profileBtn) {
+                profileBtn.classList.remove('hidden');
+                console.log('Profile button shown');
+            }
             if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
                 await window.userModule.initializeProfile();
+                console.log('User profile initialized');
             }
         }
 
-        // Auth state change handler
-        if (typeof auth0 !== 'undefined') {
-            auth0.checkSession({}, function(err, result) {
-                if (err || !result) {
-                    utils.hideProfileSection();
-                }
-            });
-        }
+        // Set up auth state change handler
+        auth0.checkSession({}, function(err, result) {
+            if (err || !result) {
+                utils.hideProfileSection();
+            }
+        });
 
-        console.log('Core initialized successfully');
+        console.log('Core initialization complete');
         return { map, layerVisibility };
     } catch (error) {
         console.error('Error in core initialization:', error);
@@ -385,6 +379,6 @@ async function initCore() {
     }
 }
 
-// Export globally
+// Export core functionality
 window.initCore = initCore;
 window.toggleLayer = layers.toggleLayer;
