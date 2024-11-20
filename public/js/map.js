@@ -16,7 +16,7 @@ const segmentPopup = new mapboxgl.Popup({
 });
 
 // ============================
-// 1SECTION: Segment Interaction (Hover & Click)
+// SECTION: Segment Interaction (Hover & Click)
 // ============================
 // Track if the segment interaction event listeners have already been added
 let segmentInteractionInitialized = false;
@@ -28,7 +28,7 @@ function setupSegmentInteraction() {
     }
 
     // Hover interaction for showing segment title
-    map.on('mouseenter', 'drawn-segments-layer', (e) => {
+    map.on('mouseenter', 'existing-segments-layer', (e) => {
         console.log("Segment hover detected");
         map.getCanvas().style.cursor = 'pointer';
         const title = e.features[0].properties.title;
@@ -37,12 +37,12 @@ function setupSegmentInteraction() {
         }
     });
 
-    map.on('mouseleave', 'drawn-segments-layer', () => {
+    map.on('mouseleave', 'existing-segments-layer', () => {
         map.getCanvas().style.cursor = '';
         segmentPopup.remove();
     });
 
-    map.on('click', 'drawn-segments-layer', async (e) => {
+    map.on('click', 'existing-segments-layer', async (e) => {
         console.log("Segment clicked");
         const title = e.features[0].properties.title;
         const routeId = e.features[0].properties.routeId;
@@ -58,6 +58,7 @@ function setupSegmentInteraction() {
     segmentInteractionInitialized = true;
     console.log("Segment interaction initialized");
 }
+
 
 // ===========================
 // Function to reset to original Mapbox style
@@ -101,9 +102,21 @@ function setTileLayer(tileUrl) {
 
 
 // ============================
-// SECTION: Initialize GeoJSON Source for Segments
+// SECTION: Initialize GeoJSON Sources for Segments
 // ============================
-function initGeoJSONSource() {
+function initGeoJSONSources() {
+    // Source for existing segments
+    if (!map.getSource('existingSegments')) {
+        map.addSource('existingSegments', {
+            'type': 'geojson',
+            'data': {
+                'type': 'FeatureCollection',
+                'features': []  // Initially empty
+            }
+        });
+    }
+
+    // Source for drawn segments
     if (!map.getSource('drawnSegments')) {
         map.addSource('drawnSegments', {
             'type': 'geojson',
@@ -112,15 +125,56 @@ function initGeoJSONSource() {
                 'features': []  // Initially empty
             }
         });
-
     }
 }
+
 
 // ============================
 // SECTION: Add Segment Layers
 // ============================
 function addSegmentLayers() {
-    // Add the background layer first
+    // Existing Segments Layers
+    // Add existing segments background layer
+    if (!map.getLayer('existing-segments-layer-background')) {
+        map.addLayer({
+            'id': 'existing-segments-layer-background',
+            'type': 'line',
+            'source': 'existingSegments',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': '#FFFFFF',  // White background
+                'line-width': 7           // Slightly wider than the main line
+            } 
+        }); 
+    }
+
+    // Add existing segments main layer
+    if (!map.getLayer('existing-segments-layer')) {
+        map.addLayer({
+            'id': 'existing-segments-layer',
+            'type': 'line',
+            'source': 'existingSegments',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
+                'line-width': 5,                 // Thinner than background
+                'line-dasharray': [
+                    'case',
+                    ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
+                    ['literal', [1, 0]]  // Solid line by default
+                ]
+            }
+        });
+    }
+
+    // Drawn Segments Layers
+    // Add drawn segments background layer
     if (!map.getLayer('drawn-segments-layer-background')) {
         map.addLayer({
             'id': 'drawn-segments-layer-background',
@@ -132,29 +186,12 @@ function addSegmentLayers() {
             },
             'paint': {
                 'line-color': '#FFFFFF',  // White background
-                'line-width': 5           // Slightly wider than the main line
+                'line-width': 7           // Slightly wider than the main line
             } 
         }); 
     }
 
-    // Add the stroke layer next (to provide an outline)
-    if (!map.getLayer('drawn-segments-layer-stroke')) {
-        map.addLayer({
-            'id': 'drawn-segments-layer-stroke',
-            'type': 'line',
-            'source': 'drawnSegments',
-            'layout': {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#FFFFFF',  // White stroke
-                'line-width': 7           // Thick stroke
-            }
-        });
-    }
-
-    // Add the actual segments layer (with dynamic color and line style)
+    // Add drawn segments main layer
     if (!map.getLayer('drawn-segments-layer')) {
         map.addLayer({
             'id': 'drawn-segments-layer',
@@ -166,19 +203,17 @@ function addSegmentLayers() {
             },
             'paint': {
                 'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
-                'line-width': 5,                 // Thinner than stroke and background
+                'line-width': 5,                 // Thinner than background
                 'line-dasharray': [
                     'case',
                     ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
                     ['literal', [1, 0]]  // Solid line by default
-
-                    
                 ]
-                
             }
         });
     }
 }
+
 
 // ============================
 // SECTION: Load Segments
@@ -190,10 +225,10 @@ async function loadSegments() {
             await new Promise(resolve => map.on('load', resolve));
         }
 
-        // First, ensure the source exists
-        if (!map.getSource('drawnSegments')) {
-            console.log("Initializing drawnSegments source");
-            initGeoJSONSource();
+        // First, ensure the sources and layers exist
+        if (!map.getSource('existingSegments') || !map.getSource('drawnSegments')) {
+            console.log("Initializing GeoJSON sources");
+            initGeoJSONSources();
             addSegmentLayers();
             setupSegmentInteraction(); // Set up interactions when layers are first added
         }
@@ -235,18 +270,19 @@ async function loadSegments() {
 
         console.log("GeoJSON Data being set:", geojsonData);
 
-        // Now we know the source exists, set its data
-        const source = map.getSource('drawnSegments');
+        // Set data to existingSegments source
+        const source = map.getSource('existingSegments');
         if (source) {
-            console.log("Setting data for drawnSegments.");
+            console.log("Setting data for existingSegments.");
             source.setData(geojsonData);
         } else {
-            console.error('drawnSegments source still not found after initialization.');
+            console.error('existingSegments source not found after initialization.');
         }
     } catch (error) {
         console.error('Error loading drawn routes:', error);
     }
 }
+
 
 
 // ============================
@@ -258,6 +294,60 @@ function removeSegments() {
         source.setData({
             'type': 'FeatureCollection',
             'features': []  // Clear the features from the source
+        });
+    }
+}
+
+// ============================
+// SECTION: Initialize Drawing Source and Layers
+// ============================
+function initDrawingSource() {
+    if (!map.getSource('drawnSegments')) {
+        map.addSource('drawnSegments', {
+            'type': 'geojson',
+            'data': {
+                'type': 'FeatureCollection',
+                'features': []  // Initially empty
+            }
+        });
+    }
+
+    // Add drawn segments background layer
+    if (!map.getLayer('drawn-segments-layer-background')) {
+        map.addLayer({
+            'id': 'drawn-segments-layer-background',
+            'type': 'line',
+            'source': 'drawnSegments',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': '#FFFFFF',  // White background
+                'line-width': 7           // Slightly wider than the main line
+            } 
+        }); 
+    }
+
+    // Add drawn segments main layer
+    if (!map.getLayer('drawn-segments-layer')) {
+        map.addLayer({
+            'id': 'drawn-segments-layer',
+            'type': 'line',
+            'source': 'drawnSegments',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
+                'line-width': 5,                 // Thinner than background
+                'line-dasharray': [
+                    'case',
+                    ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
+                    ['literal', [1, 0]]  // Solid line by default
+                ]
+            }
         });
     }
 }
@@ -295,5 +385,7 @@ function initEventListeners() {
 // At the bottom of map.js
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
-window.initGeoJSONSource = initGeoJSONSource;
-window.setupSegmentInteraction = setupSegmentInteraction; 
+window.initGeoJSONSources = initGeoJSONSources;
+window.setupSegmentInteraction = setupSegmentInteraction;
+window.initDrawingSource = initDrawingSource;
+window.addSegmentLayers = addSegmentLayers; // Add this line

@@ -1,34 +1,34 @@
 // ============================
-// SECTION: Global Variables
-// ============================
-let segmentCounter = 0; // Counter for unique segment IDs
-let markers = [];
-let segmentsGeoJSON = {
-    type: 'FeatureCollection',
-    features: []
-};
-let selectedColor = '#FFFFFF'; // Default color
-let selectedLineStyle = 'solid'; // Default to solid line
-let originalPins = []; // Store user-added pins
-let lastSnappedPoint = null; // Track the last successfully snapped point
-// Add to your routes.js
-let liveElevationData = [];
-let totalDistance = 0;
-let fullRouteElevationData = [];
-let existingSegmentsGeoJSON = {
-    type: 'FeatureCollection',
-    features: []
-};
+    // SECTION: Global Variables
+    // ============================
+    let segmentCounter = 0; // Counter for unique segment IDs
+    let markers = [];
+    let drawnSegmentsGeoJSON = {  // Changed from segmentsGeoJSON to drawnSegmentsGeoJSON
+        type: 'FeatureCollection',
+        features: []
+    };
+    let existingSegmentsGeoJSON = {
+        type: 'FeatureCollection',
+        features: []
+    };
+    let selectedColor = '#FFFFFF'; // Default color
+    let selectedLineStyle = 'solid'; // Default to solid line
+    let originalPins = []; // Store user-added pins
+    let lastSnappedPoint = null; // Track the last successfully snapped point
+    let liveElevationData = [];
+    let totalDistance = 0;
+    let fullRouteElevationData = [];
 
-// Gravel type color mapping
-const gravelColors = {
-    0: '#01bf11', // Easiest // Green
-    1: '#ffa801', // Intermediate // Yellow
-    2: '#c0392b', // Hard // Red
-    3: '#751203', // Expert // Moroon
-    4: '#0050c1', // Rail trail // Blue
-    5: '#2f3542'  // Closed or Private // Midnight Blue
-};
+    // Gravel type color mapping
+    const gravelColors = {
+        0: '#01bf11', // Easiest // Green
+        1: '#ffa801', // Intermediate // Yellow
+        2: '#c0392b', // Hard // Red
+        3: '#751203', // Expert // Maroon
+        4: '#0050c1', // Rail trail // Blue
+        5: '#2f3542'  // Closed or Private // Midnight Blue
+    };
+
 
 // ============================
 // SECTION: Live Elevation Profile
@@ -321,21 +321,20 @@ function toggleDrawingMode() {
 // ============================
 function enableDrawingMode() {
     console.log("Drawing mode enabled.");
-    
-    // Initialize GeoJSON source if it doesn't exist
-    if (!map.getSource('drawnSegments')) {
-        initGeoJSONSource();
-        addSegmentLayers();
-    }
-    
+
+    // Initialize drawing source and layers
+    initDrawingSource();
+
     document.getElementById('control-panel').style.display = 'block';
     map.on('click', drawPoint);
-    map.getCanvas().style.cursor = 'crosshair';
+
+    // Add the crosshair cursor class to the map container
+    map.getContainer().classList.add('crosshair-cursor');
 
     // Set the default route color to 'easy' (gravel type 0, green)
     selectedColor = gravelColors[0];
     selectedLineStyle = 'solid';
-    
+
     // Set the first radio button as checked by default
     const firstGravelType = document.querySelector('input[name="gravelType"][value="0"]');
     if (firstGravelType) {
@@ -439,50 +438,39 @@ async function drawPoint(e) {
 
 
 // ============================
-// SECTION: Add Segment
-// ============================
-function addSegment(snappedSegment) {
-    // Set line color to the selected color and ensure solid lines without dashes
-    const lineColor = selectedColor;
-    const lineDashArray = [1, 0];  // Solid line
+    // SECTION: Add Segment
+    // ============================
+    function addSegment(snappedSegment) {
+        const lineColor = selectedColor;
 
-    const segmentFeature = {
-        type: 'Feature',
-        geometry: {
-            type: 'LineString',
-            coordinates: snappedSegment
-        },
-        properties: {
-            color: lineColor,          // Use the selected color
-            dashArray: lineDashArray,   // Apply solid line without any dash
-            id: `segment-${segmentCounter++}` // Unique ID for each segment
-        }
-    };
-    segmentsGeoJSON.features.push(segmentFeature);
-}
-
-// ============================
-// SECTION: Draw Segments on Map
-// ============================
-function drawSegmentsOnMap() {
-    const source = map.getSource('drawnSegments');
-    if (source) {
-        const flattenedGeoJSON = {
-            type: 'FeatureCollection',
-            features: flattenFeatureCollection(segmentsGeoJSON)
+        const segmentFeature = {
+            type: 'Feature',
+            geometry: {
+                type: 'LineString',
+                coordinates: snappedSegment
+            },
+            properties: {
+                color: lineColor,
+                id: `segment-${segmentCounter++}`
+            }
         };
-
-        // Set the source with the flattened data
-        source.setData(flattenedGeoJSON);
-
-        // Apply the line color directly from the 'color' property in features
-        map.setPaintProperty('drawn-segments-layer', 'line-color', ['get', 'color']);
-        // Ensure that line dash array is set to solid lines
-        map.setPaintProperty('drawn-segments-layer', 'line-dasharray', [1, 0]); 
-    } else {
-        console.error('GeoJSON source "drawnSegments" not found on the map');
+        drawnSegmentsGeoJSON.features.push(segmentFeature);
     }
-}
+
+
+
+// ============================
+    // SECTION: Draw Segments on Map
+    // ============================
+    function drawSegmentsOnMap() {
+        const source = map.getSource('drawnSegments');
+        if (source) {
+            source.setData(drawnSegmentsGeoJSON);
+        } else {
+            console.error('GeoJSON source "drawnSegments" not found on the map');
+        }
+    }
+
 
 
 // ============================
@@ -555,9 +543,9 @@ function undoLastSegment() {
 // ============================
 function resetRoute() {
     console.log("Resetting route...");
-    
-    // Clear route data
-    segmentsGeoJSON.features = [];
+
+    // Clear drawn route data
+    drawnSegmentsGeoJSON.features = [];
     drawSegmentsOnMap();
     markers.forEach(marker => marker.remove());
     markers = [];
@@ -565,27 +553,28 @@ function resetRoute() {
     liveElevationData = [];
     fullRouteElevationData = []; // Reset full route elevation data
     totalDistance = 0;
-    
+
     // Reset elevation preview
     const preview = document.getElementById('elevation-preview');
     if (preview) {
         preview.style.display = 'none';
-        
+
         // Reset stats
         document.getElementById('total-distance').textContent = '0.00 km';
         document.getElementById('elevation-gain').textContent = '↑ 0m';
         document.getElementById('elevation-loss').textContent = '↓ 0m';
         document.getElementById('max-elevation').textContent = '0m';
-        
+
         // Clear chart
         const existingChart = Chart.getChart('elevation-chart-preview');
         if (existingChart) {
             existingChart.destroy();
         }
     }
-    
+
     console.log("Route and elevation preview reset.");
 }
+
 
 // ============================
 // SECTION: Save Drawn Route (with route name prompt)

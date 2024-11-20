@@ -131,6 +131,7 @@ map = new mapboxgl.Map({
     zoom: config.defaultZoom
 });
 
+
 // Export map globally
 window.map = map;
 
@@ -267,6 +268,12 @@ async function initCore() {
                 map.on('load', resolve);
             }
         });
+
+        // Map has loaded; initialize sources and layers
+        window.initGeoJSONSources();
+        window.addSegmentLayers();
+        window.setupSegmentInteraction();
+        window.loadSegments(); // Load existing segments
 
         // Wait for auth0 to be initialized
         const auth0 = await waitForAuth0();
