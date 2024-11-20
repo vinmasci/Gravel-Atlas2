@@ -101,61 +101,32 @@ function setTileLayer(tileUrl) {
 }
 
 
+// ============================
+// SECTION: Initialize GeoJSON Sources for Segments
+// ============================
 function initGeoJSONSources() {
-    console.log('Initializing GeoJSON sources...');
-    
-    try {
-        // Check if map is loaded
-        if (!map.loaded()) {
-            console.warn('Map not fully loaded when initializing GeoJSON sources');
-        }
+    // Source for existing segments
+    if (!map.getSource('existingSegments')) {
+        map.addSource('existingSegments', {
+            'type': 'geojson',
+            'data': {
+                'type': 'FeatureCollection',
+                'features': []  // Initially empty
+            }
+        });
+    }
 
-        // Source for existing segments
-        if (!map.getSource('existingSegments')) {
-            console.log('Adding existingSegments source');
-            map.addSource('existingSegments', {
-                'type': 'geojson',
-                'data': {
-                    'type': 'FeatureCollection',
-                    'features': []  // Initially empty
-                }
-            });
-        } else {
-            console.log('existingSegments source already exists');
-        }
-
-        // Source for drawn segments
-        if (!map.getSource('drawnSegments')) {
-            console.log('Adding drawnSegments source');
-            map.addSource('drawnSegments', {
-                'type': 'geojson',
-                'data': {
-                    'type': 'FeatureCollection',
-                    'features': []  // Initially empty
-                }
-            });
-        } else {
-            console.log('drawnSegments source already exists');
-        }
-
-        // Verify sources were added successfully
-        const existingSource = map.getSource('existingSegments');
-        const drawnSource = map.getSource('drawnSegments');
-        
-        if (!existingSource || !drawnSource) {
-            throw new Error('Failed to initialize one or more GeoJSON sources');
-        }
-
-        console.log('GeoJSON sources initialized successfully');
-        return true;
-    } catch (error) {
-        console.error('Error initializing GeoJSON sources:', error);
-        throw error; // Re-throw to handle in calling code
+    // Source for drawn segments
+    if (!map.getSource('drawnSegments')) {
+        map.addSource('drawnSegments', {
+            'type': 'geojson',
+            'data': {
+                'type': 'FeatureCollection',
+                'features': []  // Initially empty
+            }
+        });
     }
 }
-
-// Make it globally available
-window.initGeoJSONSources = initGeoJSONSources;
 
 
 // ============================
