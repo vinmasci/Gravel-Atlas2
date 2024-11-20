@@ -288,17 +288,24 @@ async function initCore() {
 
         // Add segments loading promise
         if (typeof window.loadSegments === 'function') {
-            const segmentsPromise = window.loadSegments()
-                .then(() => {
+            const segmentsPromise = (async () => {
+                try {
+                    console.log('Starting segments load...');
+                    // Ensure we wait for the map to be ready
+                    if (!map.loaded()) {
+                        await new Promise(resolve => map.on('load', resolve));
+                    }
+                    await window.loadSegments();
                     layerVisibility.segments = true;
                     utils.updateTabHighlight('segments-tab', true);
                     console.log('Segments loaded successfully');
+                } catch (error) {
+                    console.error('Error in segments loading:', error);
+                    throw error; // Rethrow to be caught by the outer catch
+                } finally {
                     utils.hideTabLoading('segments-tab');
-                })
-                .catch(error => {
-                    console.error('Error loading segments:', error);
-                    utils.hideTabLoading('segments-tab');
-                });
+                }
+            })();
             loadingPromises.push(segmentsPromise);
         } else {
             console.error('loadSegments function not available');

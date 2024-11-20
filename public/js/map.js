@@ -215,9 +215,6 @@ function addSegmentLayers() {
 }
 
 
-// ============================
-// SECTION: Load Segments
-// ============================
 async function loadSegments() {
     console.log('Starting loadSegments function');
     try {
@@ -227,14 +224,16 @@ async function loadSegments() {
             await new Promise(resolve => map.on('load', resolve));
         }
 
-        // First, ensure the sources and layers exist
-        if (!map.getSource('existingSegments') || !map.getSource('drawnSegments')) {
-            console.log("Initializing GeoJSON sources");
+        // Check for source before initializing
+        const source = map.getSource('existingSegments');
+        if (!source) {
+            console.log("Source not found, initializing GeoJSON sources");
             initGeoJSONSources();
             addSegmentLayers();
-            setupSegmentInteraction(); // Set up interactions when layers are first added
+            setupSegmentInteraction();
         }
 
+        // Fetch and process data
         console.log('Fetching routes from API...');
         const response = await fetch('/api/get-drawn-routes');
         if (!response.ok) {
@@ -242,61 +241,78 @@ async function loadSegments() {
         }
 
         const data = await response.json();
-        console.log("Raw routes data from API:", data.routes);
-
-        if (!data || !data.routes) {
-            throw new Error("No data or routes found in the API response");
+        
+        // Validate data
+        if (!data?.routes?.length) {
+            console.log("No routes found in API response");
+            // Set empty data instead of throwing error
+            map.getSource('existingSegments').setData({
+                'type': 'FeatureCollection',
+                'features': []
+            });
+            return true;
         }
 
-        // Log each route's geojson individually
-        data.routes.forEach((route, index) => {
-            console.log(`Route ${index} geojson:`, route.geojson);
-        });
+        console.log(`Received ${data.routes.length} routes from API`);
 
+        // Process the data in a more optimized way
         const geojsonData = {
             'type': 'FeatureCollection',
-            'features': data.routes.flatMap(route => {
-                if (route.geojson && route.geojson.features) {
-                    return route.geojson.features
-                        .filter(feature => 
-                            feature && feature.geometry && feature.geometry.coordinates)
-                        .map(feature => {
-                            // Add routeId to feature properties
-                            feature.properties = feature.properties || {};
-                            feature.properties.routeId = route._id;
-                            return feature;
-                        });
+            'features': data.routes.reduce((features, route) => {
+                if (route.geojson?.features?.length) {
+                    const validFeatures = route.geojson.features
+                        .filter(feature => feature?.geometry?.coordinates?.length)
+                        .map(feature => ({
+                            ...feature,
+                            properties: {
+                                ...feature.properties,
+                                routeId: route._id
+                            }
+                        }));
+                    features.push(...validFeatures);
                 }
-                return [];
-            })
+                return features;
+            }, [])
         };
 
-        console.log("GeoJSON Data being set:", geojsonData);
+        console.log(`Processed ${geojsonData.features.length} valid features`);
 
-        // Set data to existingSegments source
-        const source = map.getSource('existingSegments');
-        if (source) {
-            console.log("Setting data for existingSegments.");
-            source.setData(geojsonData);
-
-            // If there are saved bounds from a recent save, zoom to them
-            if (window.savedRouteBounds) {
-                console.log("Zooming to saved route bounds");
-                map.fitBounds(window.savedRouteBounds, {
-                    padding: 50,
-                    duration: 1000
-                });
-                delete window.savedRouteBounds; // Clean up
-            }
-
-            return true; // Indicate successful load
-        } else {
-            console.error('existingSegments source not found after initialization.');
-            return false;
+        // Update the source
+        const updatedSource = map.getSource('existingSegments');
+        if (!updatedSource) {
+            throw new Error('existingSegments source not found after initialization');
         }
+
+        updatedSource.setData(geojsonData);
+        console.log("Source data updated successfully");
+
+        // Handle zoom to bounds if needed
+        if (window.savedRouteBounds) {
+            console.log("Zooming to saved route bounds");
+            map.fitBounds(window.savedRouteBounds, {
+                padding: 50,
+                duration: 1000
+            });
+            delete window.savedRouteBounds;
+        }
+
+        return true;
+
     } catch (error) {
-        console.error('Error loading drawn routes:', error);
-        throw error; // Re-throw to handle in calling code
+        console.error('Error in loadSegments:', error);
+        // Try to set empty data on error to prevent source issues
+        try {
+            const source = map.getSource('existingSegments');
+            if (source) {
+                source.setData({
+                    'type': 'FeatureCollection',
+                    'features': []
+                });
+            }
+        } catch (e) {
+            console.error('Failed to reset source data:', e);
+        }
+        throw error;
     }
 }
 
