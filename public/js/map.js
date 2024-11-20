@@ -225,32 +225,61 @@ async function loadSegments() {
             await new Promise(resolve => map.on('load', resolve));
         }
 
+        // First, ensure the sources and layers exist
+        if (!map.getSource('existingSegments') || !map.getSource('drawnSegments')) {
+            console.log("Initializing GeoJSON sources");
+            initGeoJSONSources();
+            addSegmentLayers();
+            setupSegmentInteraction(); // Set up interactions when layers are first added
+        }
+
         const response = await fetch('/api/get-drawn-routes');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("Received routes data:", data);
+        console.log("Raw routes data from API:", data.routes);
 
-        // Get the source
-        const source = map.getSource('existingSegments');
-        if (!source) {
-            throw new Error('existingSegments source not found');
+        if (!data || !data.routes) {
+            throw new Error("No data or routes found in the API response");
         }
 
-        // Update the source data
-        source.setData({
-            'type': 'FeatureCollection',
-            'features': data.routes.flatMap(route => 
-                route.geojson?.features || []
-            )
+        // Log each route's geojson individually
+        data.routes.forEach((route, index) => {
+            console.log(`Route ${index} geojson:`, route.geojson);
         });
 
-        return true;
+        const geojsonData = {
+            'type': 'FeatureCollection',
+            'features': data.routes.flatMap(route => {
+                if (route.geojson && route.geojson.features) {
+                    return route.geojson.features
+                        .filter(feature => 
+                            feature && feature.geometry && feature.geometry.coordinates)
+                        .map(feature => {
+                            // Add routeId to feature properties
+                            feature.properties = feature.properties || {};
+                            feature.properties.routeId = route._id;
+                            return feature;
+                        });
+                }
+                return [];
+            })
+        };
+
+        console.log("GeoJSON Data being set:", geojsonData);
+
+        // Set data to existingSegments source
+        const source = map.getSource('existingSegments');
+        if (source) {
+            console.log("Setting data for existingSegments.");
+            source.setData(geojsonData);
+        } else {
+            console.error('existingSegments source not found after initialization.');
+        }
     } catch (error) {
-        console.error('Error loading segments:', error);
-        throw error; // Re-throw to handle in calling code
+        console.error('Error loading drawn routes:', error);
     }
 }
 
