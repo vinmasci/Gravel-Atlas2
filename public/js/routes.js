@@ -151,37 +151,37 @@ function updateLiveElevationProfile(newCoordinates) {
     if (existingChart) existingChart.destroy();
 
     const ctx = canvas.getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: segments
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                tooltip: {
-                    mode: 'nearest',
-                    intersect: true,
-                    callbacks: {
-                        label: (context) => {
-                            return [
-                                `Elevation: ${Math.round(context.parsed.y)}m`,
-                                `Gradient: ${context.dataset.label.split(': ')[1]}`
-                            ];
-                        },
-                        title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
-                    },
-                    displayColors: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 8
-                },
-                legend: { display: false }
-            },
-            interaction: {
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        datasets: segments
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
                 mode: 'nearest',
-                intersect: true
+                intersect: true,
+                callbacks: {
+                    label: (context) => {
+                        return [
+                            `Elevation: ${Math.round(context.parsed.y)}m`,
+                            `Gradient: ${context.dataset.label.split(': ')[1]}`
+                        ];
+                    },
+                    title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
+                },
+                displayColors: false,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 8
             },
+            legend: { display: false }
+        },
+        interaction: {
+            mode: 'nearest',
+            intersect: true
+        },
             elements: {
                 point: {
                     radius: 0,
