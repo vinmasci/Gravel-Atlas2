@@ -330,12 +330,6 @@ async function snapToRoads(points) {
 // SECTION: Draw Point with Improved Snapping
 // ============================
 async function drawPoint(e) {
-    // Reset data if this is the first point
-    if (originalPins.length === 0) {
-        liveElevationData = [];
-        totalDistance = 0;
-    }
-
     const coords = [e.lngLat.lng, e.lngLat.lat];
     console.log("Point drawn at:", coords);
     originalPins.push(coords);
@@ -361,7 +355,11 @@ async function drawPoint(e) {
                 if (window.innerWidth > 768) {
                     const preview = document.getElementById('elevation-preview');
                     if (preview) preview.style.display = 'block';
-                    updateLiveElevationProfile(elevationData.coordinates);
+                    // Get all coordinates from existing features and add the new ones
+                    const allCoordinates = segmentsGeoJSON.features
+                        .flatMap(f => f.geometry.coordinates)
+                        .concat(elevationData.coordinates);
+                    updateLiveElevationProfile(allCoordinates);
                 }
             }
         } catch (error) {
