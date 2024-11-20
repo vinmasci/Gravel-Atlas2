@@ -580,9 +580,9 @@ function resetRoute() {
 // ============================
 // SECTION: Save Drawn Route (with route name prompt)
 // ============================
+// First, update the saveDrawnRoute function
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
-
     if (drawnSegmentsGeoJSON.features.length === 0) {
         alert('No route to save.');
         return;
@@ -601,8 +601,6 @@ async function saveDrawnRoute() {
 
     if (!isAuthenticated) {
         alert("Please log in to save your route.");
-        // Optionally, redirect to login page
-        // window.location.href = '/login';
         return;
     }
 
@@ -615,13 +613,26 @@ async function saveDrawnRoute() {
         feature.properties.gravelType = gravelTypes;
     });
 
-    // Convert GeoJSON to GPX (if needed)
+    // Convert GeoJSON to GPX
     const gpxData = togpx ? togpx(drawnSegmentsGeoJSON) : null;
     if (!gpxData) {
         console.error("GPX conversion failed. 'togpx' is not defined or returned null.");
         return;
     }
+
     console.log("GPX data generated successfully.");
+
+    // Store the bounds before opening modal
+    const coordinates = drawnSegmentsGeoJSON.features.flatMap(feature => 
+        feature.geometry.coordinates
+    );
+    const bounds = coordinates.reduce((bounds, coord) => {
+        return bounds.extend(coord);
+    }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+
+    // Save bounds to window for access in confirmation handler
+    window.savedRouteBounds = bounds;
+    console.log("Saved route bounds:", bounds);
 
     // Open the modal
     openRouteNameModal();
@@ -637,10 +648,76 @@ async function saveDrawnRoute() {
     confirmSaveBtn.replaceWith(confirmSaveBtn.cloneNode(true));
     const newConfirmBtn = document.getElementById('confirmSaveBtn');
 
-    // Add new event listener
-    newConfirmBtn.addEventListener('click', () => handleSaveConfirmation(gpxData, auth0), { once: true });
+    // Add new event listener with enhanced save confirmation
+    newConfirmBtn.addEventListener('click', async () => {
+        console.log("Confirm button clicked");
+        const routeNameInput = document.getElementById('routeNameInput');
+        const title = routeNameInput.value.trim();
+        
+        if (!title) {
+            alert("Please enter a route name.");
+            return;
+        }
+
+        newConfirmBtn.disabled = true;
+        newConfirmBtn.innerText = "Saving...";
+
+        try {
+            // Prepare route data
+            const routeData = {
+                metadata: {
+                    title: title,
+                    gravelType: drawnSegmentsGeoJSON.features[0].properties.gravelType
+                },
+                geojson: drawnSegmentsGeoJSON,
+                gpxData: gpxData,
+                auth0Id: (await auth0.getUser()).sub
+            };
+
+            // Save the route
+            const response = await fetch('/api/save-drawn-route', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(routeData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            console.log("Route saved successfully");
+            
+            // Close modal and reset
+            closeRouteNameModal();
+            resetRoute();
+
+            // Reload segments and zoom to new route
+            console.log("Reloading segments...");
+            await loadSegments();
+            
+            // Use the stored bounds
+            if (window.savedRouteBounds) {
+                console.log("Zooming to saved route bounds");
+                map.fitBounds(window.savedRouteBounds, {
+                    padding: 50,
+                    duration: 1000
+                });
+                delete window.savedRouteBounds; // Clean up
+            }
+
+            alert("Route saved successfully!");
+        } catch (error) {
+            console.error("Error saving route:", error);
+            alert("Failed to save route. Please try again.");
+        } finally {
+            newConfirmBtn.disabled = false;
+            newConfirmBtn.innerText = "Save Route";
+        }
+    }, { once: true });
 }
 
+// Export the function
+window.saveDrawnRoute = saveDrawnRoute;
 
 
 // ============================

@@ -219,9 +219,11 @@ function addSegmentLayers() {
 // SECTION: Load Segments
 // ============================
 async function loadSegments() {
+    console.log('Starting loadSegments function');
     try {
         // Wait for map to be fully loaded if it isn't already
         if (!map.loaded()) {
+            console.log('Waiting for map to load...');
             await new Promise(resolve => map.on('load', resolve));
         }
 
@@ -233,6 +235,7 @@ async function loadSegments() {
             setupSegmentInteraction(); // Set up interactions when layers are first added
         }
 
+        console.log('Fetching routes from API...');
         const response = await fetch('/api/get-drawn-routes');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -275,14 +278,27 @@ async function loadSegments() {
         if (source) {
             console.log("Setting data for existingSegments.");
             source.setData(geojsonData);
+
+            // If there are saved bounds from a recent save, zoom to them
+            if (window.savedRouteBounds) {
+                console.log("Zooming to saved route bounds");
+                map.fitBounds(window.savedRouteBounds, {
+                    padding: 50,
+                    duration: 1000
+                });
+                delete window.savedRouteBounds; // Clean up
+            }
+
+            return true; // Indicate successful load
         } else {
             console.error('existingSegments source not found after initialization.');
+            return false;
         }
     } catch (error) {
         console.error('Error loading drawn routes:', error);
+        throw error; // Re-throw to handle in calling code
     }
 }
-
 
 
 // ============================
