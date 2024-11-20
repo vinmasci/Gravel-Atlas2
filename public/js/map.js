@@ -391,8 +391,3 @@ window.initDrawingSource = initDrawingSource;
 window.addSegmentLayers = addSegmentLayers;
 window.loadPhotoMarkers = loadPhotoMarkers; // Add this line
 
-// Signal that map.js is ready
-if (typeof window.mapReadyCallback === 'function') {
-    window.mapReadyCallback();
-}
-window.mapIsReady = true; // For fallback checks

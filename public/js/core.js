@@ -258,19 +258,8 @@ const handlers = {
 // Initialize core functionality
 async function initCore() {
     console.log('Initializing core...');
-
+    
     try {
-        // Wait for map.js to load
-        await new Promise((resolve) => {
-            if (window.mapIsReady) {
-                resolve(); // map.js is already ready
-            } else {
-                window.mapReadyCallback = resolve; // Set a callback for when map.js is ready
-            }
-        });
-
-        console.log('map.js is ready. Proceeding with core initialization.');
-
         // Wait for map to be fully loaded
         await new Promise(resolve => {
             if (map.loaded()) {
@@ -284,15 +273,70 @@ async function initCore() {
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
+        window.loadSegments(); // Load existing segments
+
+        // Wait for auth0 to be initialized
+        const auth0 = await waitForAuth0();
+
+        // Create and insert profile button next to login button
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn && !document.getElementById(config.profileButton.id)) {
+            const buttonContainer = loginBtn.parentElement;
+            const profileBtn = document.createElement('button');
+            profileBtn.id = config.profileButton.id;
+            profileBtn.textContent = config.profileButton.text;
+            profileBtn.className = 'hidden map-button';
+            buttonContainer.insertBefore(profileBtn, loginBtn);
+            profileBtn.addEventListener('click', handlers.handleProfileClick);
+        }
+
+        // Add click outside handler to hide profile section
+        document.addEventListener('click', (event) => {
+            const profileSection = document.getElementById('profile-section');
+            const profileBtn = document.getElementById(config.profileButton.id);
+            
+            if (profileSection && !profileSection.contains(event.target) && 
+                profileBtn && !profileBtn.contains(event.target)) {
+                utils.hideProfileSection();
+            }
+        });
+
+        // Initialize event listeners
+        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
+        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
+        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
+        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
+
+        initEventListeners();
+
+        // Verify module exports with retry
+        let attempts = 0;
+        while (attempts < 3) {
+            console.log('Verifying module exports... Attempt', attempts + 1);
+            const functionChecks = {
+                loadSegments: typeof window.loadSegments === 'function',
+                removeSegments: typeof window.removeSegments === 'function',
+                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+                removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+            };
+            
+            if (Object.values(functionChecks).every(Boolean)) {
+                console.log('All required functions are available');
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
 
         // Load segments and photos by default
         try {
             console.log('Loading initial layers...');
-
+            
             // Show loading indicators for initial load
             utils.showTabLoading('segments-tab');
             utils.showTabLoading('photos-tab');
-
+            
             // Load segments
             if (typeof window.loadSegments === 'function') {
                 await window.loadSegments();
@@ -316,40 +360,6 @@ async function initCore() {
             utils.hideTabLoading('photos-tab');
         }
 
-        // Wait for auth0 to be initialized
-        const auth0 = await waitForAuth0();
-
-        // Create and insert profile button next to login button
-        const loginBtn = document.getElementById('loginBtn');
-        if (loginBtn && !document.getElementById(config.profileButton.id)) {
-            const buttonContainer = loginBtn.parentElement;
-            const profileBtn = document.createElement('button');
-            profileBtn.id = config.profileButton.id;
-            profileBtn.textContent = config.profileButton.text;
-            profileBtn.className = 'hidden map-button';
-            buttonContainer.insertBefore(profileBtn, loginBtn);
-            profileBtn.addEventListener('click', handlers.handleProfileClick);
-        }
-
-        // Add click outside handler to hide profile section
-        document.addEventListener('click', (event) => {
-            const profileSection = document.getElementById('profile-section');
-            const profileBtn = document.getElementById(config.profileButton.id);
-
-            if (profileSection && !profileSection.contains(event.target) &&
-                profileBtn && !profileBtn.contains(event.target)) {
-                utils.hideProfileSection();
-            }
-        });
-
-        // Initialize event listeners
-        document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
-        document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
-        document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
-        document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
-
-        initEventListeners();
-
         // Handle authentication status
         if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
             document.getElementById(config.profileButton.id)?.classList.remove('hidden');
@@ -360,7 +370,7 @@ async function initCore() {
 
         // Auth state change handler
         if (typeof auth0 !== 'undefined') {
-            auth0.checkSession({}, function (err, result) {
+            auth0.checkSession({}, function(err, result) {
                 if (err || !result) {
                     utils.hideProfileSection();
                 }
@@ -374,9 +384,6 @@ async function initCore() {
         throw error;
     }
 }
-
-// Start the core initialization
-initCore();
 
 // Export globally
 window.initCore = initCore;
