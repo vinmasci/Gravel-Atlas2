@@ -470,12 +470,44 @@ function createMarker(coords) {
 // ============================
 function undoLastSegment() {
     if (segmentsGeoJSON.features.length > 0) {
-        segmentsGeoJSON.features.pop(); // Remove the last segment
-        drawSegmentsOnMap(); // Update the map
+        // Remove last segment from GeoJSON
+        segmentsGeoJSON.features.pop();
+        drawSegmentsOnMap();
+
+        // Remove last marker
         if (markers.length > 0) {
             const lastMarker = markers.pop();
             lastMarker.remove();
             originalPins.pop();
+        }
+
+        // Update elevation data and chart
+        if (fullRouteElevationData.length > 0) {
+            // Get coordinates count from the removed segment
+            const removedSegmentCoords = segmentsGeoJSON.features[segmentsGeoJSON.features.length - 1]?.geometry.coordinates.length || 0;
+            // Remove those coordinates from the full route data
+            fullRouteElevationData = fullRouteElevationData.slice(0, -removedSegmentCoords);
+
+            // Update elevation chart if it exists
+            if (window.innerWidth > 768) {
+                const preview = document.getElementById('elevation-preview');
+                if (preview) {
+                    if (fullRouteElevationData.length > 0) {
+                        updateLiveElevationProfile(fullRouteElevationData);
+                    } else {
+                        // Reset elevation display if no segments left
+                        preview.style.display = 'none';
+                        const existingChart = Chart.getChart('elevation-chart');
+                        if (existingChart) {
+                            existingChart.destroy();
+                        }
+                        document.getElementById('total-distance').textContent = '0.00 km';
+                        document.getElementById('elevation-gain').textContent = '↑ 0m';
+                        document.getElementById('elevation-loss').textContent = '↓ 0m';
+                        document.getElementById('max-elevation').textContent = '0m';
+                    }
+                }
+            }
         }
     } else {
         console.log('No segments to undo.');
