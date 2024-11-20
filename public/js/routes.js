@@ -15,6 +15,10 @@ let lastSnappedPoint = null; // Track the last successfully snapped point
 let liveElevationData = [];
 let totalDistance = 0;
 let fullRouteElevationData = [];
+let existingSegmentsGeoJSON = {
+    type: 'FeatureCollection',
+    features: []
+};
 
 // Gravel type color mapping
 const gravelColors = {
