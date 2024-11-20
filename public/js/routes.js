@@ -78,7 +78,7 @@ function updateLiveElevationProfile(newCoordinates) {
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
 
-            if (distanceAccumulator >= minDistance || index === newCoordinates.length - 1) {
+            if (distanceAccumulator >= minDistance) {
                 const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
                 const color = getGradientColor(gradient);
 
@@ -94,7 +94,7 @@ function updateLiveElevationProfile(newCoordinates) {
                         fill: true,
                         tension: 0.2,
                         pointRadius: 0,
-                        pointHoverRadius: 0,
+                        pointHoverRadius: 6,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
@@ -124,7 +124,7 @@ function updateLiveElevationProfile(newCoordinates) {
                 fill: true,
                 tension: 0.2,
                 pointRadius: 0,
-                pointHoverRadius: 0,
+                pointHoverRadius: 6,
                 pointBackgroundColor: color,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
@@ -133,6 +133,15 @@ function updateLiveElevationProfile(newCoordinates) {
             segments.push(currentSegment);
         }
     });
+
+    // Ensure the last point is included
+    if (currentSegment && newCoordinates.length > 0) {
+        const lastCoord = newCoordinates[newCoordinates.length - 1];
+        currentSegment.data.push({
+            x: totalDistance,
+            y: lastCoord[2]
+        });
+    }
 
     // Update stats display
     document.getElementById('total-distance').textContent = `${totalDistance.toFixed(2)} km`;
@@ -161,8 +170,9 @@ function updateLiveElevationProfile(newCoordinates) {
             maintainAspectRatio: false,
             plugins: {
                 tooltip: {
+                    enabled: true,
                     mode: 'nearest',
-                    intersect: false,
+                    intersect: true,
                     callbacks: {
                         label: (context) => {
                             return [
@@ -170,17 +180,28 @@ function updateLiveElevationProfile(newCoordinates) {
                                 `Gradient: ${context.dataset.label.split(': ')[1]}`
                             ];
                         },
-                        title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
+                        title: (context) => {
+                            if (context[0]) {
+                                return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
+                            }
+                        }
                     },
-                    displayColors: false,
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 8
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    padding: 12,
+                    displayColors: false
                 },
                 legend: { display: false }
             },
             interaction: {
                 mode: 'nearest',
-                intersect: false
+                intersect: true
             },
             scales: {
                 x: {
