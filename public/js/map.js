@@ -388,4 +388,11 @@ window.removeSegments = removeSegments;
 window.initGeoJSONSources = initGeoJSONSources;
 window.setupSegmentInteraction = setupSegmentInteraction;
 window.initDrawingSource = initDrawingSource;
-window.addSegmentLayers = addSegmentLayers; // Add this line
+window.addSegmentLayers = addSegmentLayers;
+window.loadPhotoMarkers = loadPhotoMarkers; // Add this line
+
+// Signal that map.js is ready
+if (typeof window.mapReadyCallback === 'function') {
+    window.mapReadyCallback();
+}
+window.mapIsReady = true; // For fallback checks

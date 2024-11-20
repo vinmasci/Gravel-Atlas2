@@ -493,9 +493,9 @@ function createMarker(coords) {
 // SECTION: Undo Last Segment
 // ============================
 function undoLastSegment() {
-    if (segmentsGeoJSON.features.length > 0) {
+    if (drawnSegmentsGeoJSON.features.length > 0) {
         // Remove last segment from GeoJSON
-        segmentsGeoJSON.features.pop();
+        const removedFeature = drawnSegmentsGeoJSON.features.pop();
         drawSegmentsOnMap();
 
         // Remove last marker
@@ -508,7 +508,7 @@ function undoLastSegment() {
         // Update elevation data and chart
         if (fullRouteElevationData.length > 0) {
             // Get coordinates count from the removed segment
-            const removedSegmentCoords = segmentsGeoJSON.features[segmentsGeoJSON.features.length - 1]?.geometry.coordinates.length || 0;
+            const removedSegmentCoords = removedFeature.geometry.coordinates.length;
             // Remove those coordinates from the full route data
             fullRouteElevationData = fullRouteElevationData.slice(0, -removedSegmentCoords);
 
@@ -537,6 +537,7 @@ function undoLastSegment() {
         console.log('No segments to undo.');
     }
 }
+
 
 // ============================
 // SECTION: Reset Route
@@ -580,15 +581,17 @@ function resetRoute() {
 // SECTION: Save Drawn Route (with route name prompt)
 // ============================
 function saveDrawnRoute() {
-    if (segmentsGeoJSON.features.length > 0) {
+    if (drawnSegmentsGeoJSON.features.length > 0) {
+        // Get the selected gravel type
         const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
-        
-        segmentsGeoJSON.features.forEach(feature => {
-            feature.properties.gravelType = gravelTypes; 
+
+        // Assign gravel types to each feature's properties
+        drawnSegmentsGeoJSON.features.forEach(feature => {
+            feature.properties.gravelType = gravelTypes;
         });
 
-        // Convert GeoJSON to GPX
-        const gpxData = togpx ? togpx(segmentsGeoJSON) : null;
+        // Convert GeoJSON to GPX (if needed)
+        const gpxData = togpx ? togpx(drawnSegmentsGeoJSON) : null;
         if (!gpxData) {
             console.error("GPX conversion failed. 'togpx' is not defined.");
             return;
@@ -596,21 +599,74 @@ function saveDrawnRoute() {
 
         // Clear the route name input before showing the modal
         document.getElementById('routeNameInput').value = '';
-        
+
         // Open the modal
         openRouteNameModal();
 
         // Remove any existing event listeners from the confirm button
         const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-        const oldElement = confirmSaveBtn.cloneNode(true);
-        confirmSaveBtn.parentNode.replaceChild(oldElement, confirmSaveBtn);
-        
+        const newConfirmBtn = confirmSaveBtn.cloneNode(true);
+        confirmSaveBtn.parentNode.replaceChild(newConfirmBtn, confirmSaveBtn);
+
         // Add new event listener
-        oldElement.addEventListener('click', () => handleSaveConfirmation(gpxData), { once: true });
+        newConfirmBtn.addEventListener('click', async () => {
+            const routeNameInput = document.getElementById('routeNameInput');
+            const title = routeNameInput.value.trim();
+
+            if (!title) {
+                alert("Please enter a route name.");
+                return;
+            }
+
+            // Disable the button to prevent multiple submissions
+            newConfirmBtn.disabled = true;
+            newConfirmBtn.innerText = "Saving...";
+
+            try {
+                // Prepare the data to be saved
+                const routeData = {
+                    title: title,
+                    geojson: drawnSegmentsGeoJSON
+                };
+
+                // Send the data to your API endpoint
+                const response = await fetch('/api/save-drawn-route', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(routeData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log("Route saved successfully:", result);
+
+                // Close the modal and reset the route
+                closeRouteNameModal();
+                resetRoute();
+
+                // Optionally, reload the segments to include the new one
+                await loadSegments();
+
+                alert("Route saved successfully!");
+            } catch (error) {
+                console.error("Error saving route:", error);
+                alert("Failed to save route. Please try again.");
+            } finally {
+                // Re-enable the button
+                newConfirmBtn.disabled = false;
+                newConfirmBtn.innerText = "Save Route";
+            }
+        }, { once: true });
     } else {
         alert('No route to save.');
     }
 }
+
 
 // ============================
 // SECTION: Handle Save Confirmation
