@@ -152,25 +152,6 @@ function updateLiveElevationProfile(newCoordinates) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: (context) => {
-                            if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
-                                const gradient = context.dataset.label.split(': ')[1];
-                                return [
-                                    `Elevation: ${Math.round(context.parsed.y)}m`,
-                                    `Gradient: ${gradient}`
-                                ];
-                            }
-                            return [];
-                        },
-                        title: (context) => {
-                            if (context[0]) {
-                                return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
-                            }
-                        }
-                    }
-                },
                 legend: { display: false }
             },
             scales: {
@@ -182,7 +163,7 @@ function updateLiveElevationProfile(newCoordinates) {
                         font: { size: 10 }
                     },
                     min: 0,
-                    max: totalDistance
+                    max: totalDistance  // This ensures x-axis matches actual distance
                 },
                 y: {
                     type: 'linear',
@@ -191,13 +172,14 @@ function updateLiveElevationProfile(newCoordinates) {
                         text: 'Elevation (m)',
                         font: { size: 10 }
                     },
-                    min: 0,
-                    max: Math.ceil(maxElevation + (maxElevation - minElevation) * 0.1)
+                    min: Math.floor(minElevation), // Round down to nearest meter
+                    max: Math.ceil(maxElevation),  // Round up to nearest meter
+                    suggestedMin: minElevation,
+                    suggestedMax: maxElevation
                 }
             }
         }
     });
-}
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in km
