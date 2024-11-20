@@ -580,112 +580,65 @@ function resetRoute() {
 // ============================
 // SECTION: Save Drawn Route (with route name prompt)
 // ============================
-function saveDrawnRoute() {
+async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
 
-    if (drawnSegmentsGeoJSON.features.length > 0) {
-        console.log("drawnSegmentsGeoJSON:", drawnSegmentsGeoJSON);
-
-        // Get the selected gravel type
-        const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
-        console.log("Selected gravel types:", gravelTypes);
-
-        // Assign gravel types to each feature's properties
-        drawnSegmentsGeoJSON.features.forEach(feature => {
-            feature.properties.gravelType = gravelTypes;
-        });
-
-        // Convert GeoJSON to GPX (if needed)
-        const gpxData = togpx ? togpx(drawnSegmentsGeoJSON) : null;
-        if (!gpxData) {
-            console.error("GPX conversion failed. 'togpx' is not defined or returned null.");
-            return;
-        }
-        console.log("GPX data generated successfully.");
-
-        // Open the modal
-        openRouteNameModal();
-
-        // Set up event listener for the confirm button
-        const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-        if (!confirmSaveBtn) {
-            console.error("Confirm save button not found.");
-            return;
-        }
-
-        // Remove any existing event listeners
-        confirmSaveBtn.replaceWith(confirmSaveBtn.cloneNode(true));
-        const newConfirmBtn = document.getElementById('confirmSaveBtn');
-
-        // Add new event listener
-        newConfirmBtn.addEventListener('click', async () => {
-            console.log("Confirm save button clicked.");
-
-            const routeNameInput = document.getElementById('routeNameInput');
-            const title = routeNameInput.value.trim();
-            console.log("Route title entered:", title);
-
-            if (!title) {
-                alert("Please enter a route name.");
-                return;
-            }
-
-            // Disable the button to prevent multiple submissions
-            newConfirmBtn.disabled = true;
-            newConfirmBtn.innerText = "Saving...";
-
-            try {
-                // Prepare the data to be saved
-                const routeData = {
-                    metadata: {
-                        title: title,
-                        otherFields: [] // Include any other metadata fields if needed
-                    },
-                    geojson: drawnSegmentsGeoJSON,
-                    gpxData: gpxData
-                };
-                console.log("Route data to be sent:", routeData);
-
-                // Send the data to your API endpoint
-                const response = await fetch('/api/save-drawn-route', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(routeData)
-                });
-
-                console.log("Server response status:", response.status);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Server responded with an error:", errorText);
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                console.log("Route saved successfully:", result);
-
-                // Close the modal and reset the route
-                closeRouteNameModal();
-                resetRoute();
-
-                // Optionally, reload the segments to include the new one
-                await loadSegments();
-
-                alert("Route saved successfully!");
-            } catch (error) {
-                console.error("Error saving route:", error);
-                alert("Failed to save route. Please try again.");
-            } finally {
-                // Re-enable the button
-                newConfirmBtn.disabled = false;
-                newConfirmBtn.innerText = "Save Route";
-            }
-        }, { once: true });
-    } else {
+    if (drawnSegmentsGeoJSON.features.length === 0) {
         alert('No route to save.');
+        return;
     }
+
+    // Check if user is authenticated
+    let isAuthenticated = false;
+    let auth0;
+    try {
+        auth0 = await waitForAuth0();
+        isAuthenticated = await auth0.isAuthenticated();
+        console.log("Authentication status:", isAuthenticated);
+    } catch (authError) {
+        console.error("Error checking authentication status:", authError);
+    }
+
+    if (!isAuthenticated) {
+        alert("Please log in to save your route.");
+        // Optionally, redirect to login page
+        // window.location.href = '/login';
+        return;
+    }
+
+    // Get the selected gravel type
+    const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
+    console.log("Selected gravel types:", gravelTypes);
+
+    // Assign gravel types to each feature's properties
+    drawnSegmentsGeoJSON.features.forEach(feature => {
+        feature.properties.gravelType = gravelTypes;
+    });
+
+    // Convert GeoJSON to GPX (if needed)
+    const gpxData = togpx ? togpx(drawnSegmentsGeoJSON) : null;
+    if (!gpxData) {
+        console.error("GPX conversion failed. 'togpx' is not defined or returned null.");
+        return;
+    }
+    console.log("GPX data generated successfully.");
+
+    // Open the modal
+    openRouteNameModal();
+
+    // Set up event listener for the confirm button
+    const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+    if (!confirmSaveBtn) {
+        console.error("Confirm save button not found.");
+        return;
+    }
+
+    // Remove any existing event listeners
+    confirmSaveBtn.replaceWith(confirmSaveBtn.cloneNode(true));
+    const newConfirmBtn = document.getElementById('confirmSaveBtn');
+
+    // Add new event listener
+    newConfirmBtn.addEventListener('click', () => handleSaveConfirmation(gpxData, auth0), { once: true });
 }
 
 
@@ -693,130 +646,81 @@ function saveDrawnRoute() {
 // ============================
 // SECTION: Handle Save Confirmation
 // ============================
-async function handleSaveConfirmation(gpxData) {
+async function handleSaveConfirmation(gpxData, auth0) {
     console.log("Starting save confirmation process");
     const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-    const routeName = document.getElementById('routeNameInput').value;
+    const routeNameInput = document.getElementById('routeNameInput');
+    const title = routeNameInput.value.trim();
+    console.log("Route title entered:", title);
 
-    if (!routeName) {
-        console.log("No route name provided");
-        alert('Please enter a road/path name for your route.');
+    if (!title) {
+        alert("Please enter a route name.");
         return;
     }
 
-    confirmSaveBtn.innerText = "Saving...";
+    // Disable the button to prevent multiple submissions
     confirmSaveBtn.disabled = true;
+    confirmSaveBtn.innerText = "Saving...";
     console.log("Disabled save button");
 
     try {
-        let auth0Id = null;
-        try {
-            const auth0 = await waitForAuth0();
-            const isAuthenticated = await auth0.isAuthenticated();
-            console.log("Authentication status:", isAuthenticated);
-            
-            if (isAuthenticated) {
-                const user = await auth0.getUser();
-                auth0Id = user.sub;
-                console.log("Got auth0Id:", auth0Id);
-            }
-        } catch (authError) {
-            console.warn("Error getting auth0Id, continuing without it:", authError);
-        }
+        // Get user information
+        const user = await auth0.getUser();
+        const auth0Id = user.sub;
+        console.log("Got auth0Id:", auth0Id);
 
-        segmentsGeoJSON.features.forEach(feature => {
-            feature.properties.title = routeName;
-        });
-
-        console.log("Prepared GeoJSON with route name:", routeName);
-        console.log("Segments GeoJSON:", segmentsGeoJSON);
-
-        const selectedGravelTypes = Array.from(
-            document.querySelectorAll('input[name="gravelType"]:checked')
-        ).map(input => input.value);
-        console.log("Selected gravel types:", selectedGravelTypes);
-
-        const requestBody = {
-            gpxData: gpxData,
-            geojson: segmentsGeoJSON,
+        // Prepare the data to be saved
+        const routeData = {
             metadata: {
-                color: selectedColor,
-                lineStyle: selectedLineStyle,
-                gravelType: selectedGravelTypes,
-                title: routeName
+                title: title,
+                gravelType: drawnSegmentsGeoJSON.features[0].properties.gravelType
+                // Include any other metadata fields if needed
             },
+            geojson: drawnSegmentsGeoJSON,
+            gpxData: gpxData,
             auth0Id: auth0Id
         };
+        console.log("Route data to be sent:", routeData);
 
-        console.log("Sending request with body:", requestBody);
-
+        // Send the data to your API endpoint
         const response = await fetch('/api/save-drawn-route', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(routeData)
         });
 
-        console.log("Received response:", response.status);
-        const data = await response.json();
-        console.log("Response data:", data);
+        console.log("Server response status:", response.status);
 
-        if (data.success) {
-            const drawAnother = confirm('Route saved successfully! Would you like to draw another route?');
-            
-            console.log("User choice - Draw another route:", drawAnother);
-            
-            closeRouteNameModal(); // Always close the modal
-
-            if (drawAnother) {
-                console.log("Preparing to draw another route");
-                resetRouteData(); // Clear current route data
-                await loadSegments(); // Refresh to show new route
-                enableDrawingMode(); // Stay in drawing mode
-                document.getElementById('routeNameInput').value = ''; // Clear route name input
-                console.log("Drawing mode enabled for new route");
-            } else {
-                console.log("Cleaning up and exiting drawing mode");
-                
-                // Clear the drawn route from the map
-                resetRouteData();
-                
-                // Hide the contribute dropdown and control panel
-                const contributeDropdown = document.getElementById('contribute-dropdown');
-                if (contributeDropdown) {
-                    contributeDropdown.style.display = 'none';
-                }
-                
-                // Remove active state from the contribute tab
-                const contributeTab = document.getElementById('draw-route-tab');
-                if (contributeTab) {
-                    contributeTab.classList.remove('active');
-                }
-
-                // Hide control panel
-                const controlPanel = document.getElementById('control-panel');
-                if (controlPanel) {
-                    controlPanel.style.display = 'none';
-                }
-
-                disableDrawingMode(); // Exit drawing mode
-                
-                // Finally, load all segments to show the newly saved route
-                await loadSegments();
-                
-                console.log("Cleanup complete, drawing mode disabled, segments refreshed");
-            }
-        } else {
-            throw new Error(data.error || 'Failed to save route');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Server responded with an error:", errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const result = await response.json();
+        console.log("Route saved successfully:", result);
+
+        // Close the modal and reset the route
+        closeRouteNameModal();
+        resetRoute();
+
+        // Optionally, reload the segments to include the new one
+        await loadSegments();
+
+        alert("Route saved successfully!");
     } catch (error) {
-        console.error('Error saving route:', error);
-        alert('An error occurred while saving the route.');
+        console.error("Error saving route:", error);
+        alert("Failed to save route. Please try again.");
     } finally {
-        confirmSaveBtn.innerText = "Save Route";
+        // Re-enable the button
         confirmSaveBtn.disabled = false;
+        confirmSaveBtn.innerText = "Save Route";
         console.log("Reset save button state");
     }
 }
+
 
 window.handleSaveConfirmation = handleSaveConfirmation;
 
