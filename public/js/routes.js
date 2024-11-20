@@ -32,7 +32,7 @@ const gravelColors = {
 function updateLiveElevationProfile(newCoordinates) {
     if (!window.Chart) return;
 
-    // Define gradient colors and thresholds (matching your existing implementation)
+    // Define gradient colors and thresholds
     const gradientColors = {
         easy: '#01bf11',      // Green (0-3%)
         moderate: '#ffa801',  // Yellow (3.1-8%)
@@ -78,13 +78,13 @@ function updateLiveElevationProfile(newCoordinates) {
             if (elevDiff > 0) elevationGain += elevDiff;
             if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
 
-            if (distanceAccumulator >= minDistance) {
+            if (distanceAccumulator >= minDistance || index === newCoordinates.length - 1) {
                 const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
                 const color = getGradientColor(gradient);
 
                 if (!currentSegment || currentSegment.borderColor !== color) {
                     const lastPoint = currentSegment?.data[currentSegment.data.length - 1];
-                    
+
                     currentSegment = {
                         label: `Gradient: ${gradient.toFixed(1)}%`,
                         data: lastPoint ? [lastPoint] : [],
@@ -94,7 +94,7 @@ function updateLiveElevationProfile(newCoordinates) {
                         fill: true,
                         tension: 0.2,
                         pointRadius: 0,
-                        pointHoverRadius: 6,
+                        pointHoverRadius: 0,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
@@ -117,14 +117,14 @@ function updateLiveElevationProfile(newCoordinates) {
             const color = getGradientColor(0);
             currentSegment = {
                 label: 'Gradient: 0%',
-                data: [{x: 0, y: elevation}],
+                data: [{ x: 0, y: elevation }],
                 borderColor: color,
                 backgroundColor: color,
                 borderWidth: 2,
                 fill: true,
                 tension: 0.2,
                 pointRadius: 0,
-                pointHoverRadius: 6,
+                pointHoverRadius: 0,
                 pointBackgroundColor: color,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
@@ -140,48 +140,79 @@ function updateLiveElevationProfile(newCoordinates) {
     document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
     document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
 
-    const canvasId = 'elevation-chart-preview'; // Use the new canvas ID
+    const canvasId = 'elevation-chart-preview';
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
         console.error(`Canvas element with ID ${canvasId} not found.`);
         return;
     }
-
     const existingChart = Chart.getChart(canvas);
     if (existingChart) existingChart.destroy();
 
     const ctx = canvas.getContext('2d');
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        datasets: segments
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            tooltip: {
-                mode: 'nearest',
-                intersect: true,
-                callbacks: {
-                    label: (context) => {
-                        return [
-                            `Elevation: ${Math.round(context.parsed.y)}m`,
-                            `Gradient: ${context.dataset.label.split(': ')[1]}`
-                        ];
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: segments
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    mode: 'nearest',
+                    intersect: false,
+                    callbacks: {
+                        label: (context) => {
+                            return [
+                                `Elevation: ${Math.round(context.parsed.y)}m`,
+                                `Gradient: ${context.dataset.label.split(': ')[1]}`
+                            ];
+                        },
+                        title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
                     },
-                    title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 8
                 },
-                displayColors: false,
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 8
+                legend: { display: false }
             },
-            legend: { display: false }
-        },
-        interaction: {
-            mode: 'nearest',
-            intersect: true
-        },
+            interaction: {
+                mode: 'nearest',
+                intersect: false
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    grid: {
+                        color: '#e0e0e0'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distance (km)',
+                        font: { size: 10 }
+                    },
+                    min: 0,
+                    max: totalDistance
+                },
+                y: {
+                    type: 'linear',
+                    grid: {
+                        color: '#e0e0e0'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Elevation (m)',
+                        font: { size: 10 }
+                    },
+                    min: Math.floor(minElevation / 10) * 10, // Round down to nearest 10
+                    max: Math.ceil(maxElevation / 10) * 10,  // Round up to nearest 10
+                    ticks: {
+                        stepSize: 10
+                    }
+                }
+            },
             elements: {
                 point: {
                     radius: 0,
@@ -198,20 +229,20 @@ new Chart(ctx, {
             }
         }
     });
-
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
+
 
 
 // ============================
