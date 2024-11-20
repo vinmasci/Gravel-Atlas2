@@ -260,15 +260,6 @@ async function initCore() {
     console.log('Initializing core...');
     
     try {
-        // Wait for the DOM to be fully loaded
-        await new Promise(resolve => {
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                resolve();
-            } else {
-                document.addEventListener('DOMContentLoaded', resolve);
-            }
-        });
-
         // Wait for map to be fully loaded
         await new Promise(resolve => {
             if (map.loaded()) {
@@ -282,14 +273,10 @@ async function initCore() {
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
-        await window.loadSegments(); // Load existing segments
+        window.loadSegments(); // Load existing segments
 
-        // Wait for Auth0 to be initialized
+        // Wait for auth0 to be initialized
         const auth0 = await waitForAuth0();
-
-        // Check authentication status
-        const isAuthenticated = await auth0.isAuthenticated();
-        console.log('Authentication status:', isAuthenticated);
 
         // Create and insert profile button next to login button
         const loginBtn = document.getElementById('loginBtn');
@@ -301,14 +288,6 @@ async function initCore() {
             profileBtn.className = 'hidden map-button';
             buttonContainer.insertBefore(profileBtn, loginBtn);
             profileBtn.addEventListener('click', handlers.handleProfileClick);
-        }
-
-        // Show profile button if authenticated
-        if (isAuthenticated) {
-            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
-            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
-                await window.userModule.initializeProfile();
-            }
         }
 
         // Add click outside handler to hide profile section
@@ -329,6 +308,26 @@ async function initCore() {
         document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
 
         initEventListeners();
+
+        // Verify module exports with retry
+        let attempts = 0;
+        while (attempts < 3) {
+            console.log('Verifying module exports... Attempt', attempts + 1);
+            const functionChecks = {
+                loadSegments: typeof window.loadSegments === 'function',
+                removeSegments: typeof window.removeSegments === 'function',
+                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+                removePhotoMarkers: typeof window.removePhotoMarkers === 'function'
+            };
+            
+            if (Object.values(functionChecks).every(Boolean)) {
+                console.log('All required functions are available');
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
 
         // Load segments and photos by default
         try {
@@ -361,6 +360,14 @@ async function initCore() {
             utils.hideTabLoading('photos-tab');
         }
 
+        // Handle authentication status
+        if (typeof auth0 !== 'undefined' && await auth0.isAuthenticated()) {
+            document.getElementById(config.profileButton.id)?.classList.remove('hidden');
+            if (window.userModule && typeof window.userModule.initializeProfile === 'function') {
+                await window.userModule.initializeProfile();
+            }
+        }
+
         // Auth state change handler
         if (typeof auth0 !== 'undefined') {
             auth0.checkSession({}, function(err, result) {
@@ -377,9 +384,6 @@ async function initCore() {
         throw error;
     }
 }
-
-// Start the core initialization
-initCore();
 
 // Export globally
 window.initCore = initCore;
