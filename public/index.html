@@ -1220,16 +1220,16 @@ body {
 .elevation-preview {
     display: none;
     position: fixed;
-    bottom: 30px;
+    bottom: 60px;
     right: 10px;
     width: 300px;
-    height: 250px; /* Fixed height */
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    padding: 12px 12px 3px 12px;  /* Reduced bottom padding */
+    padding: 12px;
     z-index: 1000;
 }
+
 
 @media (max-width: 768px) {
     .elevation-preview {
@@ -1238,15 +1238,16 @@ body {
 }
 
 #elevation-chart {
-    height: 150px !important; /* Force fixed height */
-    width: 100% !important;
+    height: 180px; /* Slightly taller for better visibility */
+    width: 100%;
+    margin-bottom: 8px;
 }
 
 .elevation-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    font-size: 12px;
+    padding-bottom: 4px;
 }
 
 .stat-box {
