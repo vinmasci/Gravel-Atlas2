@@ -272,11 +272,14 @@ async function initCore() {
         });
         console.log('Map loaded successfully');
 
-        // Initialize map components
-        window.initGeoJSONSources();
-        window.addSegmentLayers();
-        window.setupSegmentInteraction();
-        // Remove the early loadSegments call that was here
+        // Initialize map components with delay
+        await new Promise(resolve => {
+            window.initGeoJSONSources();
+            window.addSegmentLayers();
+            window.setupSegmentInteraction();
+            // Give the map a moment to process the source/layer additions
+            setTimeout(resolve, 100);
+        });
 
         // Show loading indicators immediately
         utils.showTabLoading('segments-tab');
@@ -286,22 +289,20 @@ async function initCore() {
         console.log('Starting initial data load...');
         const loadingPromises = [];
 
-        // Add segments loading promise
+        // Add segments loading promise with delay
         if (typeof window.loadSegments === 'function') {
             const segmentsPromise = (async () => {
                 try {
                     console.log('Starting segments load...');
-                    // Ensure we wait for the map to be ready
-                    if (!map.loaded()) {
-                        await new Promise(resolve => map.on('load', resolve));
-                    }
+                    // Add small delay to ensure sources are ready
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     await window.loadSegments();
                     layerVisibility.segments = true;
                     utils.updateTabHighlight('segments-tab', true);
                     console.log('Segments loaded successfully');
                 } catch (error) {
                     console.error('Error in segments loading:', error);
-                    throw error; // Rethrow to be caught by the outer catch
+                    throw error;
                 } finally {
                     utils.hideTabLoading('segments-tab');
                 }
@@ -406,7 +407,6 @@ async function initCore() {
             message: error.message,
             stack: error.stack
         });
-        // Make sure loading indicators are hidden even if there's an error
         utils.hideTabLoading('segments-tab');
         utils.hideTabLoading('photos-tab');
         throw error;
