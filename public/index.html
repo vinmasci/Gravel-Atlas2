@@ -15,6 +15,8 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/compressorjs/1.1.1/compressor.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
     <script src="https://kit.fontawesome.com/b02e210188.js" crossorigin="anonymous"></script>
@@ -155,6 +157,12 @@ body {
     height: calc(100vh - 106px); /* Account for navbar and bottom tabs */
     width: 100%;
     z-index: 0;
+    transition: all 0.3s ease;
+}
+
+/* Map position when about is open */
+#map.about-open {
+    margin-top: 250px; /* Adjust based on your about section height */
 }
 
 /* Default cursor for the map container */
@@ -189,8 +197,11 @@ body {
     background-color: #f8f9fa;
     border-bottom: 1px solid rgba(0,0,0,0.1);
     font-family: 'DM Sans', sans-serif;
+    position: fixed;
+    width: 100%;
+    top: 56px; /* Height of navbar */
+    z-index: 999;
 }
-
 .about-content {
     padding: 2rem 0;
     color: #2c3e50;
@@ -482,12 +493,12 @@ body {
 /* ============================
    SECTION: Map Layer Options
    ============================ */
-.map-layer-options {
+   .map-layer-options {
     position: absolute;
-    top: 10px;
+    top: 76px; /* Increased to account for navbar */
     right: 10px;
-    z-index: 10;
-    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.9);
     padding: 8px;
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -1373,7 +1384,7 @@ body {
     
 <!-- Updated navbar with collapsible About section -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="#">BikeMap</a>
+    <a class="navbar-brand" href="#"><i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelMap</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -1408,7 +1419,7 @@ body {
                     <h2>About BikeMap</h2>
                     <p class="lead">Mapping the best bike paths and trails in your area.</p>
                     <div class="row mt-4">
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <p>Gravel Atlas is designed to be a tool that helps you navigate to the quieter roads of the world by bike (with a focus on gravel)..</p> 
                             <p>We want to share with you the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can think of.</p>
                             <p>So please go ahead and explore, this site was designed & coded by me (Vince Masci) of BikeRoutes.com.au - get in touch if you have a bug, a question, something to share or you would like a map like this designed for yourself.</p>
@@ -1728,11 +1739,32 @@ body {
                 await new Promise(resolve => map.on('load', resolve));
             }
             console.log('Map loaded successfully');
-    
+
             // Initialize core
             await initCore();
             console.log('Application initialized successfully');
-            
+
+            // Add About toggle functionality
+            const aboutToggle = document.getElementById('aboutToggle');
+            const aboutSection = document.getElementById('aboutSection');
+            const mapContainer = document.getElementById('map');
+
+            if (aboutToggle) {
+                aboutToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    aboutSection.classList.toggle('show');
+                    mapContainer.classList.toggle('about-open');
+                    
+                    // Toggle active state on nav item
+                    this.parentElement.classList.toggle('active');
+                    
+                    // Log for debugging
+                    console.log('About toggle clicked');
+                    console.log('About section classes:', aboutSection.classList);
+                    console.log('Map container classes:', mapContainer.classList);
+                });
+            }
+
             // Comprehensive function check
             console.log('Final function check:', {
                 // Map functions
@@ -1755,7 +1787,7 @@ body {
             console.error('Error initializing application:', error);
         }
     });
-    </script>
+</script>
 <script>
 // ============================
 // SECTION: Close Modal
