@@ -1463,6 +1463,78 @@ body {
     font-size: 10px;
     color: #666;
 }
+
+/* ============================
+   SECTION: Form Controls Global Fix
+   ============================ */
+   .form-control {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;  /* Explicit text color */
+    background-color: #fff;  /* Explicit background */
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    margin: 0;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    color: #212529;
+    background-color: #fff;
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Map Layer Select Specific Styles */
+#tileLayerSelect.form-control {
+    min-width: 140px;
+    width: auto;
+    display: inline-block;
+    margin: 0 10px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+}
+
+/* Route Name Input Specific Styles */
+#routeNameInput.form-control {
+    width: 100%;
+    margin: 10px 0;
+    background: #fff;
+    color: #212529;
+}
+
+/* Modal form controls */
+.modal .form-control {
+    background: #fff !important;
+    color: #212529 !important;
+}
+
+/* Make sure placeholder text is visible */
+.form-control::placeholder {
+    color: #6c757d;
+    opacity: 0.65;
+}
+
+/* Ensure select options are visible */
+select.form-control option {
+    color: #212529;
+    background: #fff;
+    padding: 8px;
+}
     </style>
     
 <!-- Updated navbar -->
