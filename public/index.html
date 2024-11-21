@@ -190,22 +190,33 @@ body {
 /* ============================
    SECTION: Navbar About
    ============================ */
-/* About Section Styles */
 .about-section {
-    background-color: #212529; /* Same as navbar bg-dark color */
+    background-color: #212529; /* Exact navbar color */
     color: white;
     font-family: 'DM Sans', sans-serif;
     position: absolute;
     width: 100%;
-    top: 56px; /* Height of navbar */
+    top: 56px;
     z-index: 999;
+    transform-origin: top;
+    transition: transform 0.3s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
+.about-section.collapse:not(.show) {
+    transform: scaleY(0);
+    display: block;
+}
+
+.about-section.collapse.show {
+    transform: scaleY(1);
+}
+
 .about-content {
-    padding: 1.5rem 0; /* Reduced padding */
-    max-width: 800px;
+    padding: 1.5rem;
+    max-width: 1200px; /* Wider container */
     margin: 0 auto;
+    padding-left: 4rem; /* Move content left */
 }
 
 .about-content h2 {
@@ -226,6 +237,36 @@ body {
     margin-bottom: 1rem;
     font-size: 0.95rem;
     line-height: 1.5;
+}
+
+/* Contact Form Styles */
+.contact-form {
+    margin-top: 2rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 1.5rem;
+    max-width: 500px;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    background-color: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.5rem;
+}
+
+.form-control:focus {
+    background-color: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: white;
+    box-shadow: none;
+}
+
+.form-control::placeholder {
+    color: rgba(255,255,255,0.5);
 }
 
 /* Adjust map position when about section is open */
@@ -1363,44 +1404,59 @@ body {
 }
     </style>
     
-<!-- Updated navbar with collapsible About section -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="#">
-        <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
-    </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    
-    <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-                <a class="nav-link" href="#">Map</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" id="aboutToggle">About</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#help">Help</a>
-            </li>
-        </ul>
-        <div id="auth-container" class="navbar-nav">
-            <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
-            <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
-            <span id="userInfo" style="display: none; color: white; margin-left: 10px;"></span>
+    <!-- Updated navbar with collapsible About section -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">
+            <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Map</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="aboutToggle">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#help">Help</a>
+                </li>
+            </ul>
+            <div id="auth-container" class="navbar-nav">
+                <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
+                <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
+                <span id="userInfo" style="display: none; color: white; margin-left: 10px;"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+    <div id="aboutSection" class="about-section collapse">
+        <div class="about-content">
+            <h2>GravelAtlas</h2>
+            <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
+            <p>We want to revel with you in the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can dream of.</p>
+            <p>So go fourth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
+            <!-- Contact Form -->
+            <div class="contact-form">
+                <h3 class="mb-3" style="font-size: 1.2rem;">Get in Touch</h3>
+                <form id="contactForm">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="name" placeholder="Your Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" class="form-control" id="email" placeholder="Your Email" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline-light">Send Message</button>
+                </form>
+            </div>
         </div>
     </div>
-</nav>
-
-<!-- About Section -->
-<div id="aboutSection" class="about-section collapse">
-    <div class="about-content">
-        <h2>GravelAtlas</h2>
-        <p>Gravel Atlas is designed to be a tool that helps you navigate to the quieter roads of the world by bike (with a focus on gravel).</p>
-        <p>We want to share with you the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can think of.</p>
-        <p>So please go ahead and explore, this site was designed & coded by me (Vince Masci) of BikeRoutes.com.au - get in touch if you have a bug, a question, something to share or you would like a map like this designed for yourself.</p>
-    </div>
-</div>
     
 <!-- Map container should be empty -->
 <div id="map"></div>
@@ -1710,12 +1766,12 @@ body {
                 await new Promise(resolve => map.on('load', resolve));
             }
             console.log('Map loaded successfully');
-
+    
             // Initialize core
             await initCore();
             console.log('Application initialized successfully');
-
-            // Add About toggle functionality
+            
+            // Add the About toggle functionality here
             const aboutToggle = document.getElementById('aboutToggle');
             const aboutSection = document.getElementById('aboutSection');
             const mapContainer = document.getElementById('map');
@@ -1736,7 +1792,44 @@ body {
                 });
             }
 
-            // Comprehensive function check
+            // Add contact form handler
+            document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                
+                try {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                    
+                    // Get form data
+                    const formData = {
+                        name: document.getElementById('name').value,
+                        email: document.getElementById('email').value,
+                        message: document.getElementById('message').value
+                    };
+                    
+                    // Here you would normally send the data to your server
+                    // For now, let's just simulate a success
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Clear form
+                    e.target.reset();
+                    
+                    // Show success message
+                    alert('Message sent successfully!');
+                    
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    alert('Failed to send message. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            });
+            
+            // Your existing function checks
             console.log('Final function check:', {
                 // Map functions
                 loadSegments: typeof window.loadSegments === 'function',
