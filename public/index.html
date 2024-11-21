@@ -240,6 +240,21 @@ body {
     line-height: 1.5;
 }
 
+.section-content .row {
+    margin: 0;
+}
+
+.section-content .col-md-6 {
+    padding: 15px;
+}
+
+@media (max-width: 768px) {
+    .section-content .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
 /* Contact Form Styles */
 .contact-form {
     margin-top: 2rem;
@@ -270,8 +285,8 @@ body {
     color: rgba(255,255,255,0.5);
 }
 
-/* Common styles for all nav sections */
 .nav-section {
+    /* Common styles for all nav sections */
     background-color: #212529;
     color: white;
     font-family: 'DM Sans', sans-serif;
@@ -282,6 +297,15 @@ body {
     transform-origin: top;
     transition: transform 0.3s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.nav-section.collapse:not(.show) {
+    transform: scaleY(0);
+    display: block;
+}
+
+.nav-section.collapse.show {
+    transform: scaleY(1);
 }
 
 .section-content {
@@ -1602,16 +1626,15 @@ body {
     <a class="navbar-brand" href="#">
         <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
     </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">
+            <!-- Only "About" and "FAQ" remain -->
             <li class="nav-item">
                 <a class="nav-link" href="#" id="aboutToggle">About</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" id="contactToggle">Contact</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="#" id="faqToggle">FAQ</a>
@@ -1637,30 +1660,32 @@ body {
 <!-- About Section -->
 <div id="aboutSection" class="nav-section collapse">
     <div class="section-content">
-        <h2>About GravelAtlas</h2>
-        <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
-        <p>We want to revel with you in the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can dream of.</p>
-        <p>So go forth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
-    </div>
-</div>
-
-<!-- Contact Section -->
-<div id="contactSection" class="nav-section collapse">
-    <div class="section-content">
-        <h2>Get in Touch</h2>
-        <div class="contact-form">
-            <form id="contactForm">
-                <div class="form-group">
-                    <input type="text" class="form-control" id="name" placeholder="Your Name" required>
+        <div class="row">
+            <!-- Left Column: About Content -->
+            <div class="col-md-6">
+                <h2>About GravelAtlas</h2>
+                <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
+                <p>We want to revel with you in the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can dream of.</p>
+                <p>So go forth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
+            </div>
+            <!-- Right Column: Contact Form -->
+            <div class="col-md-6">
+                <h2>Get in Touch</h2>
+                <div class="contact-form">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" class="form-control" id="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-outline-light">Send Message</button>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <input type="email" class="form-control" id="email" placeholder="Your Email" required>
-                </div>
-                <div class="form-group">
-                    <textarea class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-outline-light">Send Message</button>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -1995,7 +2020,7 @@ body {
             console.log('Application initialized successfully');
             
     // Handle all nav section toggles
-    const sections = ['about', 'contact', 'faq'];
+    const sections = ['about', 'faq'];
     
     sections.forEach(section => {
         const toggle = document.getElementById(`${section}Toggle`);
