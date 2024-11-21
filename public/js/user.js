@@ -527,15 +527,11 @@ window.handleProfileImageChange = handleProfileImageChange;
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     debugLog('DOM loaded, initializing profile module');
-    initialize().catch(error => {
+    // Run both initialization and verification
+    Promise.all([
+        initialize(),
+        verifyCurrentUser()
+    ]).catch(error => {
         console.error('Initialization failed:', error);
     });
-});
-
-// ============================
-// SECTION: Document Ready Handler
-// ============================
-// Add this at the bottom of user.js
-document.addEventListener('DOMContentLoaded', () => {
-    verifyCurrentUser().catch(console.error);
 });
