@@ -7,6 +7,40 @@ function debugLog(...args) {
     }
 }
 
+// ============================
+// SECTION: User Verification
+// ============================
+async function verifyCurrentUser() {
+    try {
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        
+        if (!isAuthenticated) {
+            localStorage.removeItem('userProfile');
+            return null;
+        }
+
+        const user = await auth0.getUser();
+        if (!user || !user.sub) {
+            throw new Error('Invalid user data');
+        }
+
+        const storedProfile = localStorage.getItem('userProfile');
+        if (storedProfile) {
+            const profile = JSON.parse(storedProfile);
+            if (profile.auth0Id !== user.sub) {
+                localStorage.removeItem('userProfile');
+                await initializeProfile(); 
+            }
+        }
+        return user;
+    } catch (error) {
+        console.error('Error verifying user:', error);
+        localStorage.removeItem('userProfile');
+        return null;
+    }
+}
+
 // Keep your existing waitForAuth0 function
 function waitForAuth0() {
     debugLog('Waiting for Auth0...');
@@ -181,12 +215,15 @@ function updateProfilePictureDisplay(imageUrl) {
 }
 
 
-// =========================
-// SECTION: Initialise Profile
-// =========================
+// ============================
+// SECTION: Initialize Profile
+// ============================
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
+        // Clear any existing profile data first
+        localStorage.removeItem('userProfile');
+        
         const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
         debugLog('Authentication check:', isAuthenticated);
@@ -199,17 +236,14 @@ async function initializeProfile() {
         const user = await auth0.getUser();
         debugLog('Auth0 user data:', user);
 
+        if (!user || !user.sub) {
+            throw new Error('Invalid user data returned from Auth0');
+        }
+
         // Display the auth0Id
         const idDisplay = document.getElementById('profile-auth0id');
         if (idDisplay) {
             idDisplay.textContent = user.sub;
-        }
-
-        // Set initial profile picture from Auth0
-        const profileImage = document.getElementById('current-profile-image');
-        if (profileImage && user.picture) {
-            profileImage.src = user.picture;
-            debugLog('Set initial Auth0 profile picture');
         }
 
         try {
@@ -218,53 +252,69 @@ async function initializeProfile() {
             if (response.ok) {
                 const profile = await response.json();
                 debugLog('Loaded profile from MongoDB:', profile);
-                localStorage.setItem('userProfile', JSON.stringify(profile));
-                populateForm(profile);
-                // Update profile image if exists
-                if (profile.picture) {
-                    updateProfilePictureDisplay(profile.picture);
-                } else if (user.picture) {
-                    // If no MongoDB picture but Auth0 picture exists, use that
-                    profile.picture = user.picture;
-                    localStorage.setItem('userProfile', JSON.stringify(profile));
-                }
+                
+                // Ensure profile has all required fields
+                const updatedProfile = {
+                    auth0Id: user.sub,
+                    bioName: profile.bioName || user.name || user.nickname || '',
+                    email: user.email || '',
+                    website: profile.website || '',
+                    picture: profile.picture || user.picture || '',
+                    socialLinks: profile.socialLinks || {
+                        instagram: '',
+                        strava: '',
+                        facebook: ''
+                    }
+                };
+
+                localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+                populateForm(updatedProfile);
+                updateProfilePictureDisplay(updatedProfile.picture);
                 return;
             }
         } catch (error) {
-            debugLog('MongoDB fetch failed, falling back to localStorage:', error);
+            debugLog('MongoDB fetch failed, creating new profile:', error);
         }
 
-        // Try localStorage as fallback
-        let profile = localStorage.getItem('userProfile');
-        if (profile) {
-            profile = JSON.parse(profile);
-            debugLog('Found existing profile in localStorage:', profile);
-        } else {
-            // Initialize new profile with Auth0 data
-            profile = {
-                auth0Id: user.sub,
-                bioName: user.name || user.nickname || '',
-                email: user.email || '',
-                website: '',
-                picture: user.picture || '', // Add initial picture from Auth0
-                socialLinks: {
-                    instagram: '',
-                    strava: '',
-                    facebook: ''
-                }
-            };
-            localStorage.setItem('userProfile', JSON.stringify(profile));
-            debugLog('Initialized new profile:', profile);
+        // Create new profile
+        const newProfile = {
+            auth0Id: user.sub,
+            bioName: user.name || user.nickname || '',
+            email: user.email || '',
+            website: '',
+            picture: user.picture || '',
+            socialLinks: {
+                instagram: '',
+                strava: '',
+                facebook: ''
+            }
+        };
+
+        // Save to MongoDB first
+        try {
+            const saveResponse = await fetch('/api/user', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newProfile)
+            });
+
+            if (!saveResponse.ok) {
+                throw new Error('Failed to save profile to MongoDB');
+            }
+        } catch (error) {
+            debugLog('Error saving new profile to MongoDB:', error);
         }
 
-        populateForm(profile);
-        // Update profile image if exists
-        if (profile.picture) {
-            updateProfilePictureDisplay(profile.picture);
-        }
+        // Save to localStorage and update UI
+        localStorage.setItem('userProfile', JSON.stringify(newProfile));
+        populateForm(newProfile);
+        updateProfilePictureDisplay(newProfile.picture);
+        debugLog('New profile initialized and saved');
+
     } catch (error) {
         console.error('Error initializing profile:', error);
         debugLog('Profile initialization error:', error);
+        localStorage.removeItem('userProfile');
     }
 }
 
@@ -480,4 +530,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initialize().catch(error => {
         console.error('Initialization failed:', error);
     });
+});
+
+// ============================
+// SECTION: Document Ready Handler
+// ============================
+// Add this at the bottom of user.js
+document.addEventListener('DOMContentLoaded', () => {
+    verifyCurrentUser().catch(console.error);
 });

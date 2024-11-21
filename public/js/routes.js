@@ -578,28 +578,41 @@ function resetRoute() {
 
 
 // ============================
-// SECTION: Save Drawn Route (with route name prompt)
+// SECTION: Save Drawn Route
 // ============================
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
+    
     if (drawnSegmentsGeoJSON.features.length === 0) {
         alert('No route to save.');
         return;
     }
 
-    // Check if user is authenticated
-    let isAuthenticated = false;
-    let auth0;
+    // Enhanced auth check with user validation
+    let currentUser;
     try {
-        auth0 = await waitForAuth0();
-        isAuthenticated = await auth0.isAuthenticated();
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
         console.log("Authentication status:", isAuthenticated);
+        
+        if (!isAuthenticated) {
+            alert("Please log in to save your route.");
+            return;
+        }
+
+        currentUser = await auth0.getUser();
+        console.log("Current user:", currentUser);
+
+        if (!currentUser || !currentUser.sub) {
+            throw new Error("Invalid user data");
+        }
+
+        // Verify current user matches stored profile
+        await verifyCurrentUser();
+
     } catch (authError) {
         console.error("Error checking authentication status:", authError);
-    }
-
-    if (!isAuthenticated) {
-        alert("Please log in to save your route.");
+        alert("Authentication error. Please try logging out and back in.");
         return;
     }
 
@@ -607,19 +620,16 @@ async function saveDrawnRoute() {
     const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
     console.log("Selected gravel types:", gravelTypes);
 
-    // Assign gravel types to each feature's properties
     drawnSegmentsGeoJSON.features.forEach(feature => {
         feature.properties.gravelType = gravelTypes;
     });
 
-    // Convert GeoJSON to GPX
     const gpxData = togpx ? togpx(drawnSegmentsGeoJSON) : null;
     if (!gpxData) {
-        console.error("GPX conversion failed. 'togpx' is not defined or returned null.");
+        console.error("GPX conversion failed");
         return;
     }
 
-    // Calculate bounds before anything gets reset
     const coordinates = drawnSegmentsGeoJSON.features.flatMap(feature => 
         feature.geometry.coordinates
     );
@@ -627,21 +637,17 @@ async function saveDrawnRoute() {
         return bounds.extend(coord);
     }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
 
-    // Open the modal
     openRouteNameModal();
 
-    // Set up event listener for the confirm button
     const confirmSaveBtn = document.getElementById('confirmSaveBtn');
     if (!confirmSaveBtn) {
         console.error("Confirm save button not found.");
         return;
     }
 
-    // Remove any existing event listeners
     confirmSaveBtn.replaceWith(confirmSaveBtn.cloneNode(true));
     const newConfirmBtn = document.getElementById('confirmSaveBtn');
 
-    // Add new event listener
     newConfirmBtn.addEventListener('click', async () => {
         const routeNameInput = document.getElementById('routeNameInput');
         const title = routeNameInput.value.trim();
@@ -658,11 +664,16 @@ async function saveDrawnRoute() {
             const routeData = {
                 metadata: {
                     title: title,
-                    gravelType: drawnSegmentsGeoJSON.features[0].properties.gravelType
+                    gravelType: drawnSegmentsGeoJSON.features[0].properties.gravelType,
+                    createdBy: {
+                        auth0Id: currentUser.sub,
+                        email: currentUser.email,
+                        name: currentUser.name || currentUser.email
+                    }
                 },
                 geojson: drawnSegmentsGeoJSON,
                 gpxData: gpxData,
-                auth0Id: (await auth0.getUser()).sub
+                auth0Id: currentUser.sub
             };
 
             const response = await fetch('/api/save-drawn-route', {
@@ -675,16 +686,9 @@ async function saveDrawnRoute() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Close modal first
             closeRouteNameModal();
-
-            // Important: Execute these steps in sequence
-            console.log("Executing post-save sequence...");
-            
-            // 1. Reset the drawing
             resetRoute();
             
-            // 2. Reset the segments source
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData({
@@ -693,11 +697,8 @@ async function saveDrawnRoute() {
                 });
             }
 
-            // 3. Reload segments with a small delay to ensure proper loading
             setTimeout(async () => {
                 await loadSegments();
-                
-                // 4. Zoom to bounds with more generous padding
                 map.fitBounds(bounds, {
                     padding: {
                         top: 100,
