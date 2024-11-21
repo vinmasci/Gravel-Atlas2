@@ -1,0 +1,30 @@
+// pages/api/migrate-user-routes.js
+import { connectDB } from '../../lib/mongodb';
+import { Route } from '../../models/Route';
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        await connectDB();
+        const { auth0Id, oldUsername, newUsername } = req.body;
+        
+        await Route.updateMany(
+            { 
+                'metadata.createdBy.auth0Id': auth0Id 
+            },
+            { 
+                $set: { 
+                    'metadata.createdBy.name': newUsername 
+                } 
+            }
+        );
+
+        res.status(200).json({ message: 'Routes updated successfully' });
+    } catch (error) {
+        console.error('Error updating routes:', error);
+        res.status(500).json({ error: 'Failed to update routes' });
+    }
+}

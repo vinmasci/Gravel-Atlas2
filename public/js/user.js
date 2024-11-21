@@ -7,6 +7,115 @@ function debugLog(...args) {
     }
 }
 
+// ============================
+// SECTION: Migrate User Profiles
+// ============================
+
+async function migrateUserProfile(profile, user) {
+    debugLog('Checking if profile needs migration');
+    
+    let needsMigration = false;
+    let updatedProfile = { ...profile };
+
+    // Check if bioName is an email address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailRegex.test(profile.bioName)) {
+        debugLog('Bio name is an email, needs migration');
+        updatedProfile.bioName = createPrivateUsername(profile.bioName, user.name);
+        needsMigration = true;
+    }
+
+    if (needsMigration) {
+        debugLog('Migrating profile:', updatedProfile);
+        try {
+            // Update MongoDB profile
+            const response = await fetch('/api/user', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedProfile)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update profile in MongoDB');
+            }
+
+            // Update content (photos and routes)
+            await Promise.all([
+                migrateUserPhotos(profile.auth0Id, profile.bioName, updatedProfile.bioName),
+                migrateUserRoutes(profile.auth0Id, profile.bioName, updatedProfile.bioName)
+            ]);
+
+            // Update localStorage
+            localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+            
+            // Update UI
+            const userInfo = document.getElementById('userInfo');
+            if (userInfo) {
+                userInfo.innerHTML = `Welcome, ${updatedProfile.bioName}`;
+            }
+
+            debugLog('Migration completed successfully');
+        } catch (error) {
+            console.error('Migration failed:', error);
+            debugLog('Migration error:', error);
+        }
+    }
+
+    return updatedProfile;
+}
+
+async function migrateUserPhotos(auth0Id, oldUsername, newUsername) {
+    try {
+        const response = await fetch('/api/migrate-user-photos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                auth0Id,
+                oldUsername,
+                newUsername
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to migrate photos');
+        }
+
+        debugLog('Photos migrated successfully');
+    } catch (error) {
+        console.error('Error migrating photos:', error);
+        throw error;
+    }
+}
+
+async function migrateUserRoutes(auth0Id, oldUsername, newUsername) {
+    try {
+        const response = await fetch('/api/migrate-user-routes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                auth0Id,
+                oldUsername,
+                newUsername
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to migrate routes');
+        }
+
+        debugLog('Routes migrated successfully');
+    } catch (error) {
+        console.error('Error migrating routes:', error);
+        throw error;
+    }
+}
+
 // Helper function to create privacy-friendly username
 function createPrivateUsername(email, name) {
     if (name && name !== email) {
@@ -246,8 +355,11 @@ async function initializeProfile() {
         try {
             const response = await fetch(`/api/user?id=${encodeURIComponent(user.sub)}`);
             if (response.ok) {
-                const profile = await response.json();
+                let profile = await response.json();
                 debugLog('Loaded profile from MongoDB:', profile);
+                
+                // Add migration check here
+                profile = await migrateUserProfile(profile, user);
                 
                 const updatedProfile = {
                     auth0Id: user.sub,
@@ -266,7 +378,7 @@ async function initializeProfile() {
                 populateForm(updatedProfile);
                 updateProfilePictureDisplay(updatedProfile.picture);
 
-                // Update welcome message with private username
+                // Update welcome message with profile name
                 const userInfo = document.getElementById('userInfo');
                 if (userInfo) {
                     userInfo.innerHTML = `Welcome, ${updatedProfile.bioName}`;
@@ -277,6 +389,7 @@ async function initializeProfile() {
             debugLog('MongoDB fetch failed, creating new profile:', error);
         }
 
+        // Create new profile if none exists
         const newProfile = {
             auth0Id: user.sub,
             bioName: privateUsername,
