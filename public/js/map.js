@@ -64,10 +64,36 @@ function setupSegmentInteraction() {
 // Function to reset to original Mapbox style
 // ===========================
 function resetToOriginalStyle() {
+    // Store current data
+    let existingSegmentsData = null;
+    let photoMarkersData = null;
+    
+    if (map.getSource('existingSegments')) {
+        existingSegmentsData = map.getSource('existingSegments').serialize();
+    }
+    if (map.getSource('photoMarkers')) {
+        photoMarkersData = map.getSource('photoMarkers').serialize();
+    }
+
+    // Reset style
     map.setStyle(originalMapboxStyle);
+
+    // After style loads, restore data
     map.once('style.load', () => {
-        initGeoJSONSource();
-        addSegmentLayers();
+        if (existingSegmentsData) {
+            window.initGeoJSONSources();
+            window.addSegmentLayers();
+            window.setupSegmentInteraction();
+            
+            const source = map.getSource('existingSegments');
+            if (source) {
+                source.setData(existingSegmentsData.data);
+            }
+        }
+
+        if (photoMarkersData) {
+            window.loadPhotoMarkers();
+        }
     });
 }
 
@@ -80,24 +106,55 @@ function setTileLayer(tileUrl) {
         return;
     }
 
+    // Store current data before removing layers
+    let existingSegmentsData = null;
+    let photoMarkersData = null;
+    
+    if (map.getSource('existingSegments')) {
+        existingSegmentsData = map.getSource('existingSegments').serialize();
+    }
+    if (map.getSource('photoMarkers')) {
+        photoMarkersData = map.getSource('photoMarkers').serialize();
+    }
+
+    // Remove existing custom tiles layer if it exists
     if (map.getSource('custom-tiles')) {
         map.removeLayer('custom-tiles-layer');
         map.removeSource('custom-tiles');
     }
 
-    // Add new tile layer as a source and overlay on the map
+    // Add new tile layer as a source
     map.addSource('custom-tiles', {
         'type': 'raster',
         'tiles': [tileUrl],
         'tileSize': 256
     });
 
+    // Add the new layer at the bottom of the layer stack
     map.addLayer({
         'id': 'custom-tiles-layer',
         'type': 'raster',
         'source': 'custom-tiles',
-        'layout': { 'visibility': 'visible' }  // Ensure visibility
-    });
+        'layout': { 'visibility': 'visible' }
+    }, map.getStyle().layers[0].id); // Insert at the bottom
+
+    // Restore segments and photos if they existed
+    if (existingSegmentsData) {
+        // Ensure sources and layers are recreated
+        window.initGeoJSONSources();
+        window.addSegmentLayers();
+        window.setupSegmentInteraction();
+        
+        // Restore data
+        const source = map.getSource('existingSegments');
+        if (source) {
+            source.setData(existingSegmentsData.data);
+        }
+    }
+
+    if (photoMarkersData) {
+        window.loadPhotoMarkers();
+    }
 }
 
 
@@ -424,4 +481,6 @@ window.setupSegmentInteraction = setupSegmentInteraction;
 window.initDrawingSource = initDrawingSource;
 window.addSegmentLayers = addSegmentLayers;
 window.loadPhotoMarkers = loadPhotoMarkers; // Add this line
+window.setTileLayer = setTileLayer;
+window.resetToOriginalStyle = resetToOriginalStyle;
 
