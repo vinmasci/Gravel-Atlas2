@@ -146,7 +146,7 @@ function addSegmentLayers() {
             },
             'paint': {
                 'line-color': '#000000',  // White background
-                'line-width': 7           // Slightly wider than the main line
+                'line-width': 5           // Slightly wider than the main line
             } 
         }); 
     }
@@ -163,8 +163,8 @@ function addSegmentLayers() {
             },
             'paint': {
                 'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
-                'line-width': 5,                 // Thinner than background
-                'line-opacity': 0.9,             // Added 90% opacity
+                'line-width': 3,                 // Thinner than background
+                'line-opacity': 0.7,             // Added 90% opacity
                 'line-dasharray': [
                     'case',
                     ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
@@ -187,7 +187,7 @@ function addSegmentLayers() {
             },
             'paint': {
                 'line-color': '#000000',  // White background
-                'line-width': 7           // Slightly wider than the main line
+                'line-width': 5           // Slightly wider than the main line
             } 
         }); 
     }
@@ -204,8 +204,8 @@ function addSegmentLayers() {
             },
             'paint': {
                 'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
-                'line-width': 5,                 // Thinner than background
-                'line-opacity': 0.9,             // Added 90% opacity
+                'line-width': 3,                 // Thinner than background
+                'line-opacity': 0.7,             // Added 90% opacity
                 'line-dasharray': [
                     'case',
                     ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
