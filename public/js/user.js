@@ -7,6 +7,23 @@ function debugLog(...args) {
     }
 }
 
+// Helper function to create privacy-friendly username
+function createPrivateUsername(email, name) {
+    if (name && name !== email) {
+        return name; // Use name if it exists and isn't the email
+    }
+    
+    // If we only have an email, strip the domain
+    if (email) {
+        return email.split('@')[0]
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '') // Remove special characters
+            .slice(0, 20); // Limit length
+    }
+    
+    return 'user'; // Fallback
+}
+
 // ============================
 // SECTION: User Verification
 // ============================
@@ -41,7 +58,6 @@ async function verifyCurrentUser() {
     }
 }
 
-// Keep your existing waitForAuth0 function
 function waitForAuth0() {
     debugLog('Waiting for Auth0...');
     return new Promise((resolve) => {
@@ -57,17 +73,14 @@ function waitForAuth0() {
     });
 }
 
-// Add new profile image handling function
 async function handleProfileImageChange(event) {
     const fileInput = event.target.files[0];
     if (!fileInput) return;
 
     try {
-        // Show loading state
         const profileImage = document.getElementById('current-profile-image');
         profileImage.style.opacity = '0.5';
 
-        // Compress and upload image
         const arrayBuffer = await fileInput.arrayBuffer();
         const file = new File([arrayBuffer], fileInput.name, { type: fileInput.type });
         
@@ -87,7 +100,6 @@ async function handleProfileImageChange(event) {
             });
         });
 
-        // Upload to S3
         const response = await fetch(
             `/api/get-upload-url?fileType=${encodeURIComponent(compressedFile.type)}&fileName=${encodeURIComponent(compressedFile.name)}`
         );
@@ -113,12 +125,10 @@ async function handleProfileImageChange(event) {
 
         console.log('Upload successful:', fileUrl);
 
-        // Get current user and profile data
         const auth0 = await waitForAuth0();
         const user = await auth0.getUser();
         const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
-        // Prepare profile data
         const profileData = {
             ...currentProfile,
             auth0Id: user.sub,
@@ -128,7 +138,6 @@ async function handleProfileImageChange(event) {
 
         console.log('Updating profile with data:', profileData);
 
-        // Try to update profile with retries
         let retryCount = 0;
         const maxRetries = 3;
         let profileUpdateSuccess = false;
@@ -151,7 +160,7 @@ async function handleProfileImageChange(event) {
                     console.error(`Profile update attempt ${retryCount + 1} failed:`, errorText);
                     retryCount++;
                     if (retryCount < maxRetries) {
-                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
                     }
                 }
             } catch (error) {
@@ -164,19 +173,15 @@ async function handleProfileImageChange(event) {
         }
 
         if (!profileUpdateSuccess) {
-            // Even if MongoDB update failed, we can still update the UI and localStorage
             console.warn('MongoDB update failed, updating local state only');
         }
 
-        // Update UI regardless of MongoDB success
         profileImage.src = fileUrl;
         profileImage.style.opacity = '1';
 
-        // Update localStorage
         currentProfile.picture = fileUrl;
         localStorage.setItem('userProfile', JSON.stringify(currentProfile));
 
-        // Update profile pictures across UI
         updateProfilePictureDisplay(fileUrl);
 
         if (!profileUpdateSuccess) {
@@ -187,41 +192,31 @@ async function handleProfileImageChange(event) {
         console.error('Error updating profile image:', error);
         alert('Failed to update profile image. Please try again.');
         
-        // Reset opacity
         const profileImage = document.getElementById('current-profile-image');
         profileImage.style.opacity = '1';
     }
 }
 
-// Add new UI update function
 function updateProfilePictureDisplay(imageUrl) {
-    // Update main profile section
     const profileImage = document.getElementById('current-profile-image');
     if (profileImage) {
         profileImage.src = imageUrl;
     }
 
-    // Update profile pictures in the header/nav if they exist
     const headerProfilePics = document.querySelectorAll('.profile-pic img');
     headerProfilePics.forEach(pic => {
         pic.src = imageUrl;
     });
 
-    // Update photo popups if they exist
     const photoPopupProfilePics = document.querySelectorAll('.photo-popup .profile-pic img');
     photoPopupProfilePics.forEach(pic => {
         pic.src = imageUrl;
     });
 }
 
-
-// ============================
-// SECTION: Initialize Profile
-// ============================
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
-        // Clear any existing profile data first
         localStorage.removeItem('userProfile');
         
         const auth0 = await waitForAuth0();
@@ -240,23 +235,23 @@ async function initializeProfile() {
             throw new Error('Invalid user data returned from Auth0');
         }
 
-        // Display the auth0Id
+        // Create private username
+        const privateUsername = createPrivateUsername(user.email, user.name);
+
         const idDisplay = document.getElementById('profile-auth0id');
         if (idDisplay) {
             idDisplay.textContent = user.sub;
         }
 
         try {
-            // Try to get profile from MongoDB first
             const response = await fetch(`/api/user?id=${encodeURIComponent(user.sub)}`);
             if (response.ok) {
                 const profile = await response.json();
                 debugLog('Loaded profile from MongoDB:', profile);
                 
-                // Ensure profile has all required fields
                 const updatedProfile = {
                     auth0Id: user.sub,
-                    bioName: profile.bioName || user.name || user.nickname || '',
+                    bioName: profile.bioName || privateUsername,
                     email: user.email || '',
                     website: profile.website || '',
                     picture: profile.picture || user.picture || '',
@@ -270,16 +265,21 @@ async function initializeProfile() {
                 localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
                 populateForm(updatedProfile);
                 updateProfilePictureDisplay(updatedProfile.picture);
+
+                // Update welcome message with private username
+                const userInfo = document.getElementById('userInfo');
+                if (userInfo) {
+                    userInfo.innerHTML = `Welcome, ${updatedProfile.bioName}`;
+                }
                 return;
             }
         } catch (error) {
             debugLog('MongoDB fetch failed, creating new profile:', error);
         }
 
-        // Create new profile
         const newProfile = {
             auth0Id: user.sub,
-            bioName: user.name || user.nickname || '',
+            bioName: privateUsername,
             email: user.email || '',
             website: '',
             picture: user.picture || '',
@@ -290,7 +290,6 @@ async function initializeProfile() {
             }
         };
 
-        // Save to MongoDB first
         try {
             const saveResponse = await fetch('/api/user', {
                 method: 'PUT',
@@ -305,10 +304,16 @@ async function initializeProfile() {
             debugLog('Error saving new profile to MongoDB:', error);
         }
 
-        // Save to localStorage and update UI
         localStorage.setItem('userProfile', JSON.stringify(newProfile));
         populateForm(newProfile);
         updateProfilePictureDisplay(newProfile.picture);
+
+        // Update welcome message with private username
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.innerHTML = `Welcome, ${privateUsername}`;
+        }
+
         debugLog('New profile initialized and saved');
 
     } catch (error) {
@@ -317,10 +322,6 @@ async function initializeProfile() {
         localStorage.removeItem('userProfile');
     }
 }
-
-// =========================
-// SECTION: Populate Form 
-// =========================
 
 function populateForm(profile) {
     const form = document.getElementById('profile-form');
@@ -331,7 +332,6 @@ function populateForm(profile) {
         form.querySelector('#strava').value = profile.socialLinks?.strava || '';
         form.querySelector('#facebook').value = profile.socialLinks?.facebook || '';
         
-        // Update profile image if it exists
         if (profile.picture) {
             const profileImage = document.getElementById('current-profile-image');
             if (profileImage) {
@@ -342,30 +342,6 @@ function populateForm(profile) {
     }
 }
 
-function updateProfilePictureDisplay(imageUrl) {
-    // Update main profile section
-    const profileImage = document.getElementById('current-profile-image');
-    if (profileImage) {
-        profileImage.src = imageUrl || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
-    }
-
-    // Update profile pictures in the header/nav if they exist
-    const headerProfilePics = document.querySelectorAll('.profile-pic img');
-    headerProfilePics.forEach(pic => {
-        pic.src = imageUrl;
-    });
-
-    // Update photo popups if they exist
-    const photoPopupProfilePics = document.querySelectorAll('.photo-popup .profile-pic img');
-    photoPopupProfilePics.forEach(pic => {
-        pic.src = imageUrl;
-    });
-}
-
-// =========================
-// SECTION: Get Current User 
-// =========================
-
 async function getCurrentUser() {
     debugLog('Getting current user');
     try {
@@ -373,9 +349,12 @@ async function getCurrentUser() {
         const auth0User = await auth0.getUser();
         debugLog('Auth0 user:', auth0User);
 
+        // Create private username
+        const privateUsername = createPrivateUsername(auth0User.email, auth0User.name);
+        auth0User.privateUsername = privateUsername;
+
         try {
-            // Try to get profile from MongoDB first
-            const response = await fetch(`/api/user?id=${encodeURIComponent(user.sub)}`);
+            const response = await fetch(`/api/user?id=${encodeURIComponent(auth0User.sub)}`);
             if (response.ok) {
                 const userData = await response.json();
                 debugLog('Profile data from MongoDB:', userData);
@@ -388,7 +367,6 @@ async function getCurrentUser() {
             debugLog('MongoDB fetch failed, falling back to localStorage:', error);
         }
 
-        // Fallback to localStorage
         const profile = localStorage.getItem('userProfile');
         const userData = profile ? JSON.parse(profile) : null;
         debugLog('Profile data from localStorage:', userData);
@@ -404,21 +382,15 @@ async function getCurrentUser() {
     }
 }
 
-// =========================
-// SECTION: Setup Profile Form 
-// =========================
-
 function setupProfileForm() {
     debugLog('Setting up profile form - START');
     const profileForm = document.getElementById('profile-form');
     debugLog('Found profile form:', profileForm);
 
     if (profileForm) {
-        // Remove any existing listeners
         const newForm = profileForm.cloneNode(true);
         profileForm.parentNode.replaceChild(newForm, profileForm);
         
-        // Add submit handler to form
         newForm.addEventListener('submit', async (e) => {
             debugLog('Form submit triggered');
             e.preventDefault();
@@ -433,16 +405,18 @@ function setupProfileForm() {
                     throw new Error('Not authenticated');
                 }
                 
-                // Get existing profile to preserve picture URL
                 const existingProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-                
                 const formData = new FormData(newForm);
+
+                // Get bioName from form, fallback to private username if empty
+                const bioName = formData.get('bioName').trim() || createPrivateUsername(user.email, user.name);
+                
                 const profileData = {
                     auth0Id: user.sub,
-                    bioName: formData.get('bioName'),
+                    bioName: bioName,
                     website: formData.get('website'),
                     picture: existingProfile.picture || user.picture,
-                    email: user.email, // Add this line
+                    email: user.email,
                     socialLinks: {
                         instagram: formData.get('socialLinks.instagram'),
                         strava: formData.get('socialLinks.strava'),
@@ -452,11 +426,9 @@ function setupProfileForm() {
                 
                 debugLog('Form data to be saved:', profileData);
 
-                // Save to localStorage
                 localStorage.setItem('userProfile', JSON.stringify(profileData));
                 debugLog('Saved to localStorage');
 
-                // Try to save to MongoDB
                 try {
                     const response = await fetch('/api/user', {
                         method: 'PUT',
@@ -472,10 +444,8 @@ function setupProfileForm() {
                     debugLog('Saved to MongoDB successfully');
                 } catch (error) {
                     debugLog('MongoDB save error:', error);
-                    // Continue since we saved to localStorage
                 }
                 
-                // Update UI
                 const userInfo = document.getElementById('userInfo');
                 if (userInfo) {
                     userInfo.innerHTML = `Welcome, ${profileData.bioName}`;
@@ -499,7 +469,6 @@ function setupProfileForm() {
     }
 }
 
-// Keep your existing initialization and exports
 async function initialize() {
     debugLog('Starting initialization');
     try {
