@@ -255,6 +255,17 @@ body {
     }
 }
 
+/* Make headings in About section orange */
+#aboutSection h2,
+#aboutSection h3 {
+    color: #FF652F;
+}
+
+/* Make the 'Frequently Asked Questions' heading orange */
+#faqSection h2 {
+    color: #FF652F;
+}
+
 /* Contact Form Styles */
 .contact-form {
     margin-top: 2rem;
@@ -350,6 +361,16 @@ body {
     padding: 0.5rem 1rem;
 }
 
+/* Ensure navbar items wrap on small screens */
+.navbar-nav {
+    flex-wrap: wrap;
+}
+
+/* Adjust navbar items' spacing */
+.navbar-nav .nav-item {
+    margin-right: 15px;
+}
+
 /* FAQ specific styles */
 .faq-list {
     max-width: 800px;
@@ -366,13 +387,22 @@ body {
 }
 
 .faq-item p {
-    font-size: 0.95rem;
-    line-height: 1.6;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Ensure columns stack on smaller screens */
+@media (max-width: 768px) {
+    #faqSection .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
 }
 
 /* Adjust map position when about section is open */
 #map.about-open {
     margin-top: 0;
+
 }
 
 
@@ -1646,7 +1676,7 @@ body {
     </style>
     
 <!-- Updated navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand navbar-dark bg-dark">
     <a class="navbar-brand" href="#">
         <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
     </a>
@@ -1687,7 +1717,7 @@ body {
         <div class="row">
             <!-- Left Column: About Content -->
             <div class="col-md-6">
-                <h3>About GravelAtlas</h3>
+                <h2>About GravelAtlas</h2>
                 <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
                 <p>We want to revel with you in the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can dream of.</p>
                 <p>So go forth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
@@ -1695,7 +1725,7 @@ body {
             </div>
             <!-- Right Column: Contact Form -->
             <div class="col-md-6">
-                <h3>Get in Touch</h3>
+                <h2>Get in Touch</h2>
                 <div class="contact-form">
                     <form id="contactForm" action="https://formspree.io/f/mqaklggl" method="POST">
                         <div class="form-group">
@@ -1721,28 +1751,50 @@ body {
 <div id="faqSection" class="nav-section collapse">
     <div class="section-content">
         <h2>Frequently Asked Questions</h2>
-        <div class="faq-list">
-            <div class="faq-item">
-                <h3>How do I add a route?</h3>
-                <p>Click the Contribute button at the bottom of the map and select "Draw Route". Choose your gravel type and start drawing your route on the map.</p>
+        <div class="row">
+            <!-- First Column -->
+            <div class="col-md-6">
+                <!-- FAQ Item 1 -->
+                <div class="faq-item">
+                    <h3>How do I add a route?</h3>
+                    <p>
+                        Click the Contribute button at the bottom of the map and select "Draw Route".<br>
+                        Choose your gravel type and start drawing your route on the map.<br>
+                        You can change the difficulty of the segment as you draw, just select another colour and continue to draw.<br>
+                        Elevation data will update as you draw to help you grade your route.<br>
+                        <em>Please only draw one road / path or lane per save.</em>
+                    </p>
+                </div>
+                <!-- FAQ Item 2 -->
+                <div class="faq-item">
+                    <h3>What do the different colors mean?</h3>
+                    <p>
+                        The colours represent different gravel or trail technical difficulty:<br>
+                        <strong>Green</strong> - Easiest (Smooth hardpack gravel, easy riding).<br>
+                        <strong>Yellow</strong> - Intermediate (Rougher, slippery, or slightly rocky gravel and/or a moderately steep incline).<br>
+                        <strong>Red</strong> - Difficult (Technical gravel with slippery sections, washouts, tyre ruts, or large rocks to navigate and/or a very steep incline).<br>
+                        <strong>Dark Red</strong> - Extreme (Hike-a-bike or MTB territory).<br>
+                        <strong>Blue</strong> - Rail Trail or Bike Path (Rail trail or bike path off the road that isn't specifically gravel).<br>
+                        <strong>Black</strong> - Closed road or private property. Do not enter!
+                    </p>
+                </div>
             </div>
-            <div class="faq-item">
-                <h3>What do the different colors mean?</h3>
-                <p>The colors indicate different gravel/trail types:
-                   <br>• Green - Easiest
-                   <br>• Yellow - Intermediate
-                   <br>• Red - Difficult
-                   <br>• Dark Red - Extreme
-                   <br>• Blue - Rail Trail
-                </p>
-            </div>
-            <div class="faq-item">
-                <h3>Can I add photos?</h3>
-                <p>Yes! Photos with GPS data can be added through the Contribute menu. They will appear as camera icons on the map.</p>
+            <!-- Second Column -->
+            <div class="col-md-6">
+                <!-- FAQ Item 3 -->
+                <div class="faq-item">
+                    <h3>Can I add photos?</h3>
+                    <p>
+                        Yes! Photos with GPS data can be added through the Contribute menu. They will appear as camera icons on the map.<br>
+                        Navigate to the Contribute tab and select the Upload Photo button.<br>
+                        Upload as many photos as you like at a time.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
     
 <!-- Map container should be empty -->
 <div id="map"></div>
