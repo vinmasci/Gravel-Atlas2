@@ -147,7 +147,6 @@ function addSegmentLayers() {
             'paint': {
                 'line-color': '#000000',  // White background
                 'line-width': 7           // Slightly wider than the main line
-                'line-opacity': 0.9       // Added 90% opacity
             } 
         }); 
     }
@@ -187,9 +186,8 @@ function addSegmentLayers() {
                 'line-cap': 'round'
             },
             'paint': {
-                'line-color': '#FFFFFF',  // White background
+                'line-color': '#000000',  // White background
                 'line-width': 7           // Slightly wider than the main line
-                'line-opacity': 0.9       // Added 90% opacity
             } 
         }); 
     }
