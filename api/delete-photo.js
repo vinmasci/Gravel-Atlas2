@@ -45,25 +45,31 @@ module.exports = async (req, res) => {
         // Extract the key from the URL
         const key = photo.url.split('/').pop();
 
-        // Delete from S3
-        try {
-            await s3.deleteObject({
-                Bucket: process.env.AWS_BUCKET_NAME,
-                Key: key
-            }).promise();
-        } catch (s3Error) {
-            console.error('Error deleting from S3:', s3Error);
-            // Continue with MongoDB deletion even if S3 deletion fails
-        }
+// Delete from S3
+try {
+    console.log(`Attempting to delete from S3 - Bucket: ${process.env.AWS_BUCKET_NAME}, Key: ${key}`);
+    await s3.deleteObject({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key
+    }).promise();
+    console.log('Successfully deleted from S3');
+} catch (s3Error) {
+    console.error('Error deleting from S3:', s3Error);
+    // Return error instead of continuing
+    return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to delete from S3',
+        error: s3Error.message 
+    });
+}
 
-        // Delete from MongoDB
-        const result = await collection.deleteOne({ _id: new ObjectId(photoId) });
-        
-        if (result.deletedCount === 1) {
-            res.status(200).json({ success: true, message: 'Photo deleted successfully!' });
-        } else {
-            res.status(404).json({ success: false, message: 'Photo not found.' });
-        }
+// Only proceed with MongoDB deletion if S3 deletion was successful
+const result = await collection.deleteOne({ _id: new ObjectId(photoId) });
+if (result.deletedCount === 1) {
+    res.status(200).json({ success: true, message: 'Photo deleted successfully!' });
+} else {
+    res.status(404).json({ success: false, message: 'Photo not found.' });
+}
     } catch (error) {
         console.error('Error deleting photo:', error);
         res.status(500).json({ success: false, message: 'Failed to delete photo.' });
