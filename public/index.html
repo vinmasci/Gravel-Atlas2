@@ -1696,16 +1696,18 @@ body {
             <div class="col-md-6">
                 <h2>Get in Touch</h2>
                 <div class="contact-form">
-                    <form id="contactForm">
+                    <form id="contactForm" action="https://formspree.io/f/mqaklggl" method="POST">
                         <div class="form-group">
-                            <input type="text" class="form-control" id="name" placeholder="Your Name" required>
+                            <input type="text" name="name" class="form-control" id="name" placeholder="Your Name" required>
                         </div>
                         <div class="form-group">
-                            <input type="email" class="form-control" id="email" placeholder="Your Email" required>
+                            <input type="email" name="_replyto" class="form-control" id="email" placeholder="Your Email" required>
                         </div>
                         <div class="form-group">
-                            <textarea class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
+                            <textarea name="message" class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
                         </div>
+                        <!-- Include a hidden field to redirect the user after submission (optional) -->
+                        <input type="hidden" name="_next" value="https://yourwebsite.com/thank-you">
                         <button type="submit" class="btn btn-outline-light">Send Message</button>
                     </form>
                 </div>
@@ -2038,74 +2040,37 @@ body {
                 await new Promise(resolve => map.on('load', resolve));
             }
             console.log('Map loaded successfully');
-    
+
             // Initialize core
             await initCore();
             console.log('Application initialized successfully');
             
-    // Handle all nav section toggles
-    const sections = ['about', 'faq'];
-    
-    sections.forEach(section => {
-        const toggle = document.getElementById(`${section}Toggle`);
-        const sectionEl = document.getElementById(`${section}Section`);
-        
-        if (toggle && sectionEl) {
-            toggle.addEventListener('click', function(e) {
-                e.preventDefault();
+            // Handle all nav section toggles
+            const sections = ['about', 'faq'];
+            
+            sections.forEach(section => {
+                const toggle = document.getElementById(`${section}Toggle`);
+                const sectionEl = document.getElementById(`${section}Section`);
                 
-                // Close other sections
-                sections.forEach(otherSection => {
-                    if (otherSection !== section) {
-                        document.getElementById(`${otherSection}Section`)?.classList.remove('show');
-                        document.getElementById(`${otherSection}Toggle`)?.parentElement.classList.remove('active');
-                    }
-                });
-                
-                // Toggle this section
-                sectionEl.classList.toggle('show');
-                this.parentElement.classList.toggle('active');
-            });
-        }
-    });
-
-            // Add contact form handler
-            document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                
-                try {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-                    
-                    // Get form data
-                    const formData = {
-                        name: document.getElementById('name').value,
-                        email: document.getElementById('email').value,
-                        message: document.getElementById('message').value
-                    };
-                    
-                    // Here you would normally send the data to your server
-                    // For now, let's just simulate a success
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Clear form
-                    e.target.reset();
-                    
-                    // Show success message
-                    alert('Message sent successfully!');
-                    
-                } catch (error) {
-                    console.error('Error sending message:', error);
-                    alert('Failed to send message. Please try again.');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
+                if (toggle && sectionEl) {
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Close other sections
+                        sections.forEach(otherSection => {
+                            if (otherSection !== section) {
+                                document.getElementById(`${otherSection}Section`)?.classList.remove('show');
+                                document.getElementById(`${otherSection}Toggle`)?.parentElement.classList.remove('active');
+                            }
+                        });
+                        
+                        // Toggle this section
+                        sectionEl.classList.toggle('show');
+                        this.parentElement.classList.toggle('active');
+                    });
                 }
             });
-            
+
             // Your existing function checks
             console.log('Final function check:', {
                 // Map functions
@@ -2129,6 +2094,7 @@ body {
         }
     });
 </script>
+
 
 <script>
 // ============================
