@@ -297,6 +297,11 @@ body {
     font-size: 1.5rem;
 }
 
+.navbar .map-layer-options {
+    margin-left: auto;
+    padding: 0.5rem 1rem;
+}
+
 /* FAQ specific styles */
 .faq-list {
     max-width: 800px;
@@ -615,6 +620,52 @@ body {
 
 .map-layer-options label {
     display: none;
+}
+
+.navbar .map-layer-options select {
+    background-color: #343a40;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+    min-width: 140px;
+    display: inline-block;
+}
+
+.navbar .map-layer-options select:hover {
+    background-color: #444;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.navbar .map-layer-options select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    background-color: #444;
+    color: #fff;
+}
+
+/* Option styles for the navbar select */
+.navbar .map-layer-options select option {
+    background-color: #343a40;
+    color: #fff;
+    padding: 8px;
+}
+
+.navbar .map-layer-options {
+    margin-left: auto;
+    padding: 0.5rem 1rem;
 }
 
 /* ============================
@@ -1347,6 +1398,16 @@ body {
     font-size: 14px;
 }
 
+#routeNameModal .form-control {
+    background-color: #fff !important;
+    color: #212529 !important;
+}
+
+#routeNameModal .form-control::placeholder {
+    color: #6c757d;
+    opacity: 0.65;
+}
+
 /* ============================
    SECTION: Route Name Modal
    ============================ */
@@ -1470,6 +1531,24 @@ body {
 .stat-box > div:last-child {
     font-size: 10px;
     color: #666;
+}
+
+/* ============================
+   SECTION: General Form Controls
+   ============================ */
+   .form-control {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 
