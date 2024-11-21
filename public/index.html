@@ -188,7 +188,7 @@ body {
 }
 
 /* ============================
-   SECTION: Navbar About
+   SECTION: Navbar
    ============================ */
 .about-section {
     background-color: #212529; /* Exact navbar color */
@@ -267,6 +267,53 @@ body {
 
 .form-control::placeholder {
     color: rgba(255,255,255,0.5);
+}
+
+/* Common styles for all nav sections */
+.nav-section {
+    background-color: #212529;
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    position: absolute;
+    width: 100%;
+    top: 56px;
+    z-index: 999;
+    transform-origin: top;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.section-content {
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 4rem;
+}
+
+.section-content h2 {
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+/* FAQ specific styles */
+.faq-list {
+    max-width: 800px;
+}
+
+.faq-item {
+    margin-bottom: 1.5rem;
+}
+
+.faq-item h3 {
+    font-size: 1.1rem;
+    color: #FF652F;
+    margin-bottom: 0.5rem;
+}
+
+.faq-item p {
+    font-size: 0.95rem;
+    line-height: 1.6;
 }
 
 /* Adjust map position when about section is open */
@@ -1404,59 +1451,94 @@ body {
 }
     </style>
     
-    <!-- Updated navbar with collapsible About section -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">
-            <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
-        </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="#">Map</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="aboutToggle">About</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#help">Help</a>
-                </li>
-            </ul>
-            <div id="auth-container" class="navbar-nav">
-                <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
-                <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
-                <span id="userInfo" style="display: none; color: white; margin-left: 10px;"></span>
-            </div>
+<!-- Updated navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+        <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="#">Map</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="aboutToggle">About</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="contactToggle">Contact</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="faqToggle">FAQ</a>
+            </li>
+        </ul>
+        <div id="auth-container" class="navbar-nav">
+            <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
+            <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
+            <span id="userInfo" style="display: none; color: white; margin-left: 10px;"></span>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <!-- About Section -->
-    <div id="aboutSection" class="about-section collapse">
-        <div class="about-content">
-            <h2>GravelAtlas</h2>
-            <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
-            <p>We want to revel with you in the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can dream of.</p>
-            <p>So go fourth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
-            <!-- Contact Form -->
-            <div class="contact-form">
-                <h3 class="mb-3" style="font-size: 1.2rem;">Get in Touch</h3>
-                <form id="contactForm">
-                    <div class="form-group">
-                        <input type="text" class="form-control" id="name" placeholder="Your Name" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="email" class="form-control" id="email" placeholder="Your Email" required>
-                    </div>
-                    <div class="form-group">
-                        <textarea class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-outline-light">Send Message</button>
-                </form>
+<!-- About Section -->
+<div id="aboutSection" class="nav-section collapse">
+    <div class="section-content">
+        <h2>About GravelAtlas</h2>
+        <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
+        <p>We want to revel with you in the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can dream of.</p>
+        <p>So go forth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
+    </div>
+</div>
+
+<!-- Contact Section -->
+<div id="contactSection" class="nav-section collapse">
+    <div class="section-content">
+        <h2>Get in Touch</h2>
+        <div class="contact-form">
+            <form id="contactForm">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="name" placeholder="Your Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" class="form-control" id="email" placeholder="Your Email" required>
+                </div>
+                <div class="form-group">
+                    <textarea class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-outline-light">Send Message</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section -->
+<div id="faqSection" class="nav-section collapse">
+    <div class="section-content">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-list">
+            <div class="faq-item">
+                <h3>How do I add a route?</h3>
+                <p>Click the Contribute button at the bottom of the map and select "Draw Route". Choose your gravel type and start drawing your route on the map.</p>
+            </div>
+            <div class="faq-item">
+                <h3>What do the different colors mean?</h3>
+                <p>The colors indicate different gravel/trail types:
+                   <br>• Green - Easiest
+                   <br>• Yellow - Intermediate
+                   <br>• Red - Difficult
+                   <br>• Dark Red - Extreme
+                   <br>• Blue - Rail Trail
+                </p>
+            </div>
+            <div class="faq-item">
+                <h3>Can I add photos?</h3>
+                <p>Yes! Photos with GPS data can be added through the Contribute menu. They will appear as camera icons on the map.</p>
             </div>
         </div>
     </div>
+</div>
     
 <!-- Map container should be empty -->
 <div id="map"></div>
@@ -1771,26 +1853,31 @@ body {
             await initCore();
             console.log('Application initialized successfully');
             
-            // Add the About toggle functionality here
-            const aboutToggle = document.getElementById('aboutToggle');
-            const aboutSection = document.getElementById('aboutSection');
-            const mapContainer = document.getElementById('map');
-
-            if (aboutToggle) {
-                aboutToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    aboutSection.classList.toggle('show');
-                    mapContainer.classList.toggle('about-open');
-                    
-                    // Toggle active state on nav item
-                    this.parentElement.classList.toggle('active');
-                    
-                    // Log for debugging
-                    console.log('About toggle clicked');
-                    console.log('About section classes:', aboutSection.classList);
-                    console.log('Map container classes:', mapContainer.classList);
+    // Handle all nav section toggles
+    const sections = ['about', 'contact', 'faq'];
+    
+    sections.forEach(section => {
+        const toggle = document.getElementById(`${section}Toggle`);
+        const sectionEl = document.getElementById(`${section}Section`);
+        
+        if (toggle && sectionEl) {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Close other sections
+                sections.forEach(otherSection => {
+                    if (otherSection !== section) {
+                        document.getElementById(`${otherSection}Section`)?.classList.remove('show');
+                        document.getElementById(`${otherSection}Toggle`)?.parentElement.classList.remove('active');
+                    }
                 });
-            }
+                
+                // Toggle this section
+                sectionEl.classList.toggle('show');
+                this.parentElement.classList.toggle('active');
+            });
+        }
+    });
 
             // Add contact form handler
             document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
