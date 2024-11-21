@@ -563,28 +563,46 @@ body {
    SECTION: Map Layer Options
    ============================ */
    .map-layer-options {
-    position: absolute;
-    top: 76px; /* Increased to account for navbar */
-    right: 10px;
+    position: static;  /* Remove absolute positioning */
+    margin-left: 10px;  /* Add some spacing */
     z-index: 1000;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 8px;
-    border-radius: 5px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    background: none;  /* Remove background */
+    padding: 0;
+    box-shadow: none;  /* Remove shadow */
+}
+
+.map-layer-options select:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+    background-color: #f8f9fa;
+}
+
+.map-layer-options select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .map-layer-options label {
-    font-size: 12px;
-    margin-bottom: 2px;
-    display: block;
+    display: none;  /* Hide the label since it's in the navbar */
 }
 
 .map-layer-options select {
-    font-size: 11px;
-    padding: 4px 6px;
-    height: auto;
-    width: auto;
-    min-width: 120px;
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    appearance: none;  /* Remove default select styling */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;  /* Make room for the arrow */
+    min-width: 140px;
 }
 
 .map-layer-options button {
@@ -1474,6 +1492,15 @@ body {
                 <a class="nav-link" href="#" id="faqToggle">FAQ</a>
             </li>
         </ul>
+        <div class="map-layer-options">
+            <select id="tileLayerSelect" class="form-control">
+                <option value="reset">Classic Setting</option>
+                <option value="googleMap">Google Map</option>
+                <option value="googleSatellite">Google Satellite</option>
+                <option value="googleHybrid">Google Hybrid</option>
+                <option value="osmCycle">OSM Cycle</option>
+            </select>
+        </div>
         <div id="auth-container" class="navbar-nav">
             <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
             <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
@@ -1567,17 +1594,6 @@ body {
 </div>
 
 <div id="dropArea"></div> <!-- Maake sure this is present in your HTML -->
-
-<div class="map-layer-options">
-    <label for="tileLayerSelect">Select Map Layer:</label>
-    <select id="tileLayerSelect" class="form-control">
-        <option value="reset">Classic Setting</option>
-        <option value="googleMap">Google Map</option>
-        <option value="googleSatellite">Google Satellite</option>
-        <option value="googleHybrid">Google Hybrid</option>
-        <option value="osmCycle">OSM Cycle</option>
-    </select>
-</div>
 
 <!-- Segment Info Modal -->
 <div id="segment-modal" class="modal">
