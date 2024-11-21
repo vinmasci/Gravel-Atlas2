@@ -164,7 +164,7 @@ function addSegmentLayers() {
             'paint': {
                 'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
                 'line-width': 3,                 // Thinner than background
-                'line-opacity': 0.8,             // Added 90% opacity
+                'line-opacity': 0.9,             // Added 90% opacity
                 'line-dasharray': [
                     'case',
                     ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
@@ -205,7 +205,7 @@ function addSegmentLayers() {
             'paint': {
                 'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
                 'line-width': 3,                 // Thinner than background
-                'line-opacity': 0.8,             // Added 90% opacity
+                'line-opacity': 0.9,             // Added 90% opacity
                 'line-dasharray': [
                     'case',
                     ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
