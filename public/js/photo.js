@@ -441,7 +441,7 @@ async function loadPhotoMarkers() {
             filter: ['has', 'point_count'],
             layout: {
                 'icon-image': 'camera-icon-cluster',
-                'icon-size': 0.4,
+                'icon-size': 0.2,
                 'icon-allow-overlap': true
             },
             paint: {
@@ -457,7 +457,7 @@ async function loadPhotoMarkers() {
             filter: ['!', ['has', 'point_count']],
             layout: {
                 'icon-image': 'camera-icon',
-                'icon-size': 0.3,
+                'icon-size': 0.2,
                 'icon-allow-overlap': true
             },
             paint: {
