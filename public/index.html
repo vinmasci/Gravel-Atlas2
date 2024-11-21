@@ -263,6 +263,30 @@ body {
     max-width: 500px;
 }
 
+/* Adjust form-group if needed */
+.contact-form .form-group {
+    margin-bottom: 1rem;
+}
+
+/* Update form-control styles */
+.contact-form .form-control {
+    background-color: rgba(0, 0, 0, 0.7); /* Dark background */
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.5rem;
+}
+
+.contact-form .form-control:focus {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+    box-shadow: none;
+}
+
+.contact-form .form-control::placeholder {
+    color: rgba(255,255,255,0.7); /* Lighter placeholder text */
+}
+
 .form-group {
     margin-bottom: 1rem;
 }
