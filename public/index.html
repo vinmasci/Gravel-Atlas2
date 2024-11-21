@@ -152,12 +152,10 @@ body {
 
 #map {
     position: absolute;
-    top: 56px; /* Match the body padding-top */
+    top: 56px;
     bottom: 50px;
-    height: calc(100vh - 106px); /* Account for navbar and bottom tabs */
     width: 100%;
     z-index: 0;
-    transition: all 0.3s ease;
 }
 
 /* Map position when about is open */
@@ -194,62 +192,45 @@ body {
    ============================ */
 /* About Section Styles */
 .about-section {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    background-color: #212529; /* Same as navbar bg-dark color */
+    color: white;
     font-family: 'DM Sans', sans-serif;
-    position: fixed;
+    position: absolute;
     width: 100%;
     top: 56px; /* Height of navbar */
     z-index: 999;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
+
 .about-content {
-    padding: 2rem 0;
-    color: #2c3e50;
+    padding: 1.5rem 0; /* Reduced padding */
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .about-content h2 {
     font-weight: 600;
     margin-bottom: 1rem;
-    color: #2c3e50;
+    color: white;
+    font-size: 1.5rem;
 }
 
 .about-content .lead {
     font-size: 1.1rem;
-    color: #666;
-    margin-bottom: 2rem;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 1.5rem;
 }
 
-.about-content h4 {
-    font-size: 1.2rem;
-    font-weight: 500;
+.about-content p {
+    color: rgba(255,255,255,0.9);
     margin-bottom: 1rem;
-    color: #2c3e50;
-}
-
-.about-content ul {
-    list-style-type: none;
-    padding-left: 0;
-}
-
-.about-content ul li {
-    margin-bottom: 0.5rem;
-    position: relative;
-    padding-left: 1.5rem;
-}
-
-.about-content ul li:before {
-    content: "•";
-    color: #3498db;
-    position: absolute;
-    left: 0;
-    font-weight: bold;
+    font-size: 0.95rem;
+    line-height: 1.5;
 }
 
 /* Adjust map position when about section is open */
 #map.about-open {
-    top: calc(56px + 300px); /* Adjust the 300px based on your about section height */
-    height: calc(100vh - 356px); /* Adjust accordingly */
-    transition: all 0.3s ease;
+    margin-top: 0;
 }
 
 
@@ -1384,7 +1365,9 @@ body {
     
 <!-- Updated navbar with collapsible About section -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="#"><i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelMap</a>
+    <a class="navbar-brand" href="#">
+        <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
+    </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -1401,7 +1384,6 @@ body {
                 <a class="nav-link" href="#help">Help</a>
             </li>
         </ul>
-        
         <div id="auth-container" class="navbar-nav">
             <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
             <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
@@ -1410,24 +1392,13 @@ body {
     </div>
 </nav>
 
-<!-- Add this after the navbar -->
+<!-- About Section -->
 <div id="aboutSection" class="about-section collapse">
     <div class="about-content">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-8 offset-md-2">
-                    <h2>About BikeMap</h2>
-                    <p class="lead">Mapping the best bike paths and trails in your area.</p>
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <p>Gravel Atlas is designed to be a tool that helps you navigate to the quieter roads of the world by bike (with a focus on gravel)..</p> 
-                            <p>We want to share with you the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can think of.</p>
-                            <p>So please go ahead and explore, this site was designed & coded by me (Vince Masci) of BikeRoutes.com.au - get in touch if you have a bug, a question, something to share or you would like a map like this designed for yourself.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <h2>GravelAtlas</h2>
+        <p>Gravel Atlas is designed to be a tool that helps you navigate to the quieter roads of the world by bike (with a focus on gravel).</p>
+        <p>We want to share with you the wild and wonderful, the choose your own adventure, the hike-a-bike, the type 2 fun and anything else you can think of.</p>
+        <p>So please go ahead and explore, this site was designed & coded by me (Vince Masci) of BikeRoutes.com.au - get in touch if you have a bug, a question, something to share or you would like a map like this designed for yourself.</p>
     </div>
 </div>
     
@@ -1788,6 +1759,7 @@ body {
         }
     });
 </script>
+
 <script>
 // ============================
 // SECTION: Close Modal
