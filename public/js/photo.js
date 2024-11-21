@@ -445,7 +445,7 @@ async function loadPhotoMarkers() {
                 'icon-allow-overlap': true
             },
             paint: {
-                'icon-opacity': 0.7  // Add this line for transparency (0.7 = 70% opacity)
+                'icon-opacity': 0.8  // Add this line for transparency (0.7 = 70% opacity)
             }
         });
 
@@ -461,7 +461,7 @@ async function loadPhotoMarkers() {
                 'icon-allow-overlap': true
             },
             paint: {
-                'icon-opacity': 0.7  // Add this line for transparency (0.7 = 70% opacity)
+                'icon-opacity': 0.8  // Add this line for transparency (0.7 = 70% opacity)
             }
         });
 
