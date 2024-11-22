@@ -60,6 +60,9 @@ function setupSegmentInteraction() {
 }
 
 
+// ===========================
+// Function to reset to original Mapbox style
+// ===========================
 async function resetToOriginalStyle() {
     try {
         console.log('Resetting to original style');
@@ -105,7 +108,6 @@ async function resetToOriginalStyle() {
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
-        initPhotoMarkers(); // Re-add photoMarkers source and layer
 
         // Restore data with proper visibility
         if (existingSegmentsData && layerStates.segments) {
@@ -116,13 +118,7 @@ async function resetToOriginalStyle() {
         }
         
         if (photoMarkersData && layerStates.photos) {
-            const source = map.getSource('photoMarkers');
-            if (source) {
-                source.setData(photoMarkersData.data);
-            }
-            map.setLayoutProperty('photoMarkers', 'visibility', 'visible');
-        } else {
-            map.setLayoutProperty('photoMarkers', 'visibility', 'none');
+            await loadPhotoMarkers();
         }
 
         console.log('Reset to original style completed');
@@ -137,6 +133,9 @@ async function resetToOriginalStyle() {
     }
 }
 
+// ===========================
+// Function to switch between tile layers
+// ===========================
 async function setTileLayer(tileUrl) {
     try {
         console.log('Setting new tile layer:', tileUrl);
@@ -163,7 +162,7 @@ async function setTileLayer(tileUrl) {
             photoMarkersData = map.getSource('photoMarkers').serialize();
         }
 
-        // Remove existing layers except for custom tile layer
+        // Remove existing layers
         const layers = map.getStyle().layers;
         layers.forEach(layer => {
             if (layer.id !== 'custom-tiles-layer') {
@@ -206,7 +205,6 @@ async function setTileLayer(tileUrl) {
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
-        initPhotoMarkers(); // Re-add photoMarkers source and layer
 
         // Restore data with proper visibility
         if (existingSegmentsData && layerStates.segments) {
@@ -216,15 +214,17 @@ async function setTileLayer(tileUrl) {
             }
         }
         
-        if (photoMarkersData && layerStates.photos) {
-            const source = map.getSource('photoMarkers');
-            if (source) {
-                source.setData(photoMarkersData.data);
+        // Always attempt to reload photos after a slight delay
+        setTimeout(async () => {
+            if (layerStates.photos) {
+                try {
+                    await loadPhotoMarkers();
+                    console.log('Photos reloaded successfully');
+                } catch (error) {
+                    console.error('Error reloading photos:', error);
+                }
             }
-            map.setLayoutProperty('photoMarkers', 'visibility', 'visible');
-        } else {
-            map.setLayoutProperty('photoMarkers', 'visibility', 'none');
-        }
+        }, 500); // Half second delay to ensure other operations are complete
 
         console.log('Tile layer updated successfully');
     } catch (error) {
@@ -234,6 +234,32 @@ async function setTileLayer(tileUrl) {
     }
 }
 
+// Update the event listener
+document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
+    const select = event.target;
+    const selectedLayer = select.value;
+    
+    // Disable select and show loading state
+    select.disabled = true;
+    const originalText = select.options[select.selectedIndex].text;
+    select.options[select.selectedIndex].text = 'Loading...';
+    
+    try {
+        if (selectedLayer === 'reset') {
+            await resetToOriginalStyle();
+        } else if (tileLayers[selectedLayer]) {
+            await setTileLayer(tileLayers[selectedLayer]);
+        }
+    } catch (error) {
+        console.error('Error changing layer:', error);
+        alert('Failed to change map style. Resetting to default.');
+        await resetToOriginalStyle();
+    } finally {
+        // Restore select state
+        select.disabled = false;
+        select.options[select.selectedIndex].text = originalText;
+    }
+});
 
 // ============================
 // SECTION: Initialize GeoJSON Sources for Segments
