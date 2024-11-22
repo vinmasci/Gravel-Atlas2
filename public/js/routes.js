@@ -576,8 +576,9 @@ function resetRoute() {
     console.log("Route and elevation preview reset.");
 }
 
+
 // ============================
-// SECTION: Save Drawn Route 
+// SECTION: Save Drawn Route
 // ============================
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
@@ -658,9 +659,11 @@ async function saveDrawnRoute() {
 
         newConfirmBtn.disabled = true;
         newConfirmBtn.innerText = "Saving...";
-        document.body.style.cursor = 'wait';
 
         try {
+                // Add loading cursor at the start of the save operation
+    document.body.style.cursor = 'wait';
+
             const routeData = {
                 metadata: {
                     title: title,
@@ -716,11 +719,11 @@ async function saveDrawnRoute() {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
         } finally {
-            document.body.style.cursor = 'default';
             newConfirmBtn.disabled = false;
             newConfirmBtn.innerText = "Save Route";
         }
     }, { once: true });
+    
 }
 
 
