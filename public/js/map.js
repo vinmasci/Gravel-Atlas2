@@ -245,48 +245,35 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     select.options[select.selectedIndex].text = 'Loading...';
     
     try {
+        // Store the current photo visibility state
+        const wasPhotosVisible = window.layerVisibility?.photos || false;
+        
+        // If photos were visible, remove them before style change
+        if (wasPhotosVisible) {
+            removePhotoMarkers();
+        }
+
+        // Change the map style
         if (selectedLayer === 'reset') {
             await resetToOriginalStyle();
-            // Add specific photo reload for reset
-            setTimeout(async () => {
-                if (window.layerVisibility?.photos) {
-                    try {
-                        await loadPhotoMarkers();
-                        console.log('Photos reloaded after reset');
-                    } catch (error) {
-                        console.error('Error reloading photos after reset:', error);
-                    }
-                }
-            }, 500);
         } else if (tileLayers[selectedLayer]) {
             await setTileLayer(tileLayers[selectedLayer]);
-            // Add specific photo reload for layer change
-            setTimeout(async () => {
-                if (window.layerVisibility?.photos) {
-                    try {
-                        await loadPhotoMarkers();
-                        console.log('Photos reloaded after layer change');
-                    } catch (error) {
-                        console.error('Error reloading photos after layer change:', error);
-                    }
-                }
-            }, 500);
         }
+
+        // Wait for style change to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // If photos were visible, reload them
+        if (wasPhotosVisible) {
+            window.layerVisibility.photos = false; // Reset state
+            togglePhotoLayer(); // This will turn them back on and reload
+            console.log('Reloaded photo layer');
+        }
+
     } catch (error) {
         console.error('Error changing layer:', error);
         alert('Failed to change map style. Resetting to default.');
         await resetToOriginalStyle();
-        // Add photo reload for error recovery
-        setTimeout(async () => {
-            if (window.layerVisibility?.photos) {
-                try {
-                    await loadPhotoMarkers();
-                    console.log('Photos reloaded after error recovery');
-                } catch (error) {
-                    console.error('Error reloading photos after error recovery:', error);
-                }
-            }
-        }, 500);
     } finally {
         // Restore select state
         select.disabled = false;
