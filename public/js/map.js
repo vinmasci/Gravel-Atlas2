@@ -260,7 +260,7 @@ async function setTileLayer(tileUrl) {
     }
 }
 
-// Then update the event listener
+// Update the event listener
 document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
     const select = event.target;
     const selectedLayer = select.value;
@@ -280,36 +280,74 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     select.options[select.selectedIndex].text = 'Loading...';
     
     try {
-        // Change the map style
         if (selectedLayer === 'reset') {
-            console.log('Resetting to original style...');
-            await resetToOriginalStyle();
+            console.log('Refreshing page for classic map...');
+            // Store the visibility state in session storage
+            sessionStorage.setItem('mapStyle', 'reset');
+            sessionStorage.setItem('layerVisibility', JSON.stringify(visibilityState));
+            // Refresh the page
+            window.location.reload();
+            return; // Exit early since we're refreshing
         } else if (tileLayers[selectedLayer]) {
             console.log('Setting new tile layer...');
             await setTileLayer(tileLayers[selectedLayer]);
+            
+            // Restore visibility state
+            window.layerVisibility = visibilityState;
+            
+            // Wait a moment for the style to settle
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Reload photos if they were visible
+            if (visibilityState.photos) {
+                console.log('Reloading photos...');
+                await loadPhotoMarkers();
+            }
         }
-
-        // Restore visibility state
-        window.layerVisibility = visibilityState;
-        
-        // Wait a moment for the style to settle
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Reload photos if they were visible
-        if (visibilityState.photos) {
-            console.log('Reloading photos...');
-            await loadPhotoMarkers();
-        }
-
     } catch (error) {
         console.error('Error in layer change:', error);
         alert('Failed to change map style. Resetting to default.');
-        await resetToOriginalStyle();
+        // Refresh on error
+        window.location.reload();
     } finally {
-        // Restore select state
-        select.disabled = false;
-        select.options[select.selectedIndex].text = originalText;
-        console.log('Final layer visibility state:', window.layerVisibility);
+        // Only restore select state if we haven't refreshed
+        if (selectedLayer !== 'reset') {
+            select.disabled = false;
+            select.options[select.selectedIndex].text = originalText;
+            console.log('Final layer visibility state:', window.layerVisibility);
+        }
+    }
+});
+
+// Add this to your initialization code
+document.addEventListener('DOMContentLoaded', function() {
+    const savedMapStyle = sessionStorage.getItem('mapStyle');
+    const savedVisibility = sessionStorage.getItem('layerVisibility');
+    
+    if (savedMapStyle === 'reset') {
+        // Clear the stored values
+        sessionStorage.removeItem('mapStyle');
+        sessionStorage.removeItem('layerVisibility');
+        
+        // Set the select back to reset option
+        const select = document.getElementById('tileLayerSelect');
+        if (select) {
+            select.value = 'reset';
+        }
+        
+        // Restore visibility state if it was saved
+        if (savedVisibility) {
+            const visibilityState = JSON.parse(savedVisibility);
+            window.layerVisibility = visibilityState;
+            
+            // Reload layers based on saved state
+            if (visibilityState.photos) {
+                loadPhotoMarkers();
+            }
+            if (visibilityState.segments) {
+                loadSegments();
+            }
+        }
     }
 });
 
