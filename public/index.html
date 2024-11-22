@@ -1626,6 +1626,15 @@ body {
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
+/* ============================
+   SECTION: Cursor
+   ============================ */
+/* CSS to change cursor to a spinner */
+.body-loading, .body-loading * {
+    cursor: wait !important;
+}
+
+
 
     </style>
     
@@ -2103,6 +2112,18 @@ body {
     });
 </script>
 
+<script>
+    // ============================
+// SECTION: Cursor
+// ============================
+    function showLoadingCursor() {
+    document.body.classList.add('body-loading');
+}
+
+function hideLoadingCursor() {
+    document.body.classList.remove('body-loading');
+}
+</script>
 
 <script>
 // ============================
