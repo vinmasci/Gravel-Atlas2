@@ -62,28 +62,18 @@ export default async function handler(req, res) {
                         );
                         console.log('Photo reassigned successfully');
                     } else {
-                        // First update the main route document
-                        await db.collection('routes').updateOne(
-                            { _id: new mongoose.Types.ObjectId(data.contentId) },
-                            {
-                                $set: {
-                                    auth0Id: newUser.auth0Id,
-                                    'metadata.createdBy': {
-                                        auth0Id: newUser.auth0Id,
-                                        name: newUser.bioName || newUser.email
-                                    },
-                                    updatedAt: new Date()
-                                }
-                            }
-                        );
-
-                        // Then update all features in the geojson
+                        // Get the existing route
                         const route = await db.collection('routes').findOne(
                             { _id: new mongoose.Types.ObjectId(data.contentId) }
                         );
 
-                        if (route && route.geojson && route.geojson.features) {
-                            const updatedFeatures = route.geojson.features.map(feature => ({
+                        if (!route) {
+                            throw new Error('Route not found');
+                        }
+
+                        // Update features with new auth0Id
+                        if (route.geojson && route.geojson.features) {
+                            route.geojson.features = route.geojson.features.map(feature => ({
                                 ...feature,
                                 properties: {
                                     ...feature.properties,
@@ -92,18 +82,30 @@ export default async function handler(req, res) {
                                     gravelType: feature.properties.gravelType || []
                                 }
                             }));
-
-                            await db.collection('routes').updateOne(
-                                { _id: new mongoose.Types.ObjectId(data.contentId) },
-                                {
-                                    $set: {
-                                        'geojson.features': updatedFeatures
-                                    }
-                                }
-                            );
                         }
 
-                        console.log('Route reassigned successfully');
+                        // Update the entire route document
+                        const updateResult = await db.collection('routes').updateOne(
+                            { _id: new mongoose.Types.ObjectId(data.contentId) },
+                            {
+                                $set: {
+                                    auth0Id: newUser.auth0Id,
+                                    'metadata.createdBy': {
+                                        auth0Id: newUser.auth0Id,
+                                        name: newUser.bioName || newUser.email
+                                    },
+                                    geojson: route.geojson,
+                                    updatedAt: new Date()
+                                }
+                            }
+                        );
+
+                        console.log('Route reassignment details:', {
+                            routeId: data.contentId,
+                            newUser: newUser.auth0Id,
+                            featuresCount: route.geojson.features.length,
+                            updateResult: updateResult
+                        });
                     }
 
                     console.log('Content reassigned to:', {
