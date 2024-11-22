@@ -62,7 +62,7 @@ export default async function handler(req, res) {
                         );
                         console.log('Photo reassigned successfully');
                     } else {
-                        // For routes, update all necessary fields
+                        // First update the main route document
                         await db.collection('routes').updateOne(
                             { _id: new mongoose.Types.ObjectId(data.contentId) },
                             {
@@ -72,12 +72,37 @@ export default async function handler(req, res) {
                                         auth0Id: newUser.auth0Id,
                                         name: newUser.bioName || newUser.email
                                     },
-                                    // Update auth0Id in all features
-                                    'geojson.features.$[].properties.auth0Id': newUser.auth0Id,
                                     updatedAt: new Date()
                                 }
                             }
                         );
+
+                        // Then update all features in the geojson
+                        const route = await db.collection('routes').findOne(
+                            { _id: new mongoose.Types.ObjectId(data.contentId) }
+                        );
+
+                        if (route && route.geojson && route.geojson.features) {
+                            const updatedFeatures = route.geojson.features.map(feature => ({
+                                ...feature,
+                                properties: {
+                                    ...feature.properties,
+                                    auth0Id: newUser.auth0Id,
+                                    title: feature.properties.title || '',
+                                    gravelType: feature.properties.gravelType || []
+                                }
+                            }));
+
+                            await db.collection('routes').updateOne(
+                                { _id: new mongoose.Types.ObjectId(data.contentId) },
+                                {
+                                    $set: {
+                                        'geojson.features': updatedFeatures
+                                    }
+                                }
+                            );
+                        }
+
                         console.log('Route reassigned successfully');
                     }
 
@@ -100,7 +125,6 @@ export default async function handler(req, res) {
                         throw new Error('User not found');
                     }
 
-                    // Update user profile
                     const updatedUser = await User.findOneAndUpdate(
                         { auth0Id: data.userId },
                         { 
