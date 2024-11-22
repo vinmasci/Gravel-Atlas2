@@ -356,11 +356,6 @@ body {
     font-size: 1.5rem;
 }
 
-.navbar .map-layer-options {
-    margin-left: auto;
-    padding: 0.5rem 1rem;
-}
-
 /* FAQ specific styles */
 .faq-list {
     max-width: 800px;
@@ -655,63 +650,18 @@ body {
 }
 
 /* ============================
-   SECTION: Map Layer Options
-   ============================ */
-   .map-layer-options {
-    position: static;
-    margin-left: 10px;
-    margin-right: 10px;  /* Added to give space before auth buttons */
+ SECTION: Map Layer Options
+ ============================ */
+ .map-layer-options {
+    position: fixed;
+    top: 70px; /* Positioned below navbar */
+    right: 10px;
     z-index: 1000;
     background: none;
     padding: 0;
-    box-shadow: none;
-    display: flex;  /* Added to help with alignment */
-    align-items: center;  /* Added to help with alignment */
 }
 
 .map-layer-options select {
-    background-color: white;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-size: 14px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 16px;
-    padding-right: 32px;
-    min-width: 140px;
-    height: 38px;  /* Added to match navbar button heights */
-}
-
-.map-layer-options select option {
-    background-color: #343a40;
-    color: #fff;
-    padding: 8px;
-}
-
-
-.map-layer-options select:hover {
-    background-color: #444;
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-.map-layer-options select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.map-layer-options label {
-    display: none;
-}
-
-.navbar .map-layer-options select {
     background-color: #343a40;
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -729,32 +679,25 @@ body {
     background-size: 16px;
     padding-right: 32px;
     min-width: 140px;
-    display: inline-block;
+    height: 38px;
 }
 
-.navbar .map-layer-options select:hover {
+.map-layer-options select:hover {
     background-color: #444;
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-.navbar .map-layer-options select:focus {
+.map-layer-options select:focus {
     outline: none;
     border-color: #007bff;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     background-color: #444;
-    color: #fff;
 }
 
-/* Option styles for the navbar select */
-.navbar .map-layer-options select option {
+.map-layer-options select option {
     background-color: #343a40;
     color: #fff;
     padding: 8px;
-}
-
-.navbar .map-layer-options {
-    margin-left: auto;
-    padding: 0.5rem 1rem;
 }
 
 /* ============================
@@ -1705,15 +1648,6 @@ body {
                 <a class="nav-link" href="#" id="faqToggle">FAQ</a>
             </li>
         </ul>
-        <div class="map-layer-options">
-            <select id="tileLayerSelect" class="form-control">
-                <option value="reset">Classic Setting</option>
-                <option value="googleMap">Google Map</option>
-                <option value="googleSatellite">Google Satellite</option>
-                <option value="googleHybrid">Google Hybrid</option>
-                <option value="osmCycle">OSM Cycle</option>
-            </select>
-        </div>
         <div id="auth-container" class="navbar-nav">
             <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
             <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
@@ -1809,6 +1743,16 @@ body {
     
 <!-- Map container should be empty -->
 <div id="map"></div>
+
+<div class="map-layer-options">
+    <select id="tileLayerSelect" class="form-control">
+        <option value="reset">Classic Setting</option>
+        <option value="googleMap">Google Map</option>
+        <option value="googleSatellite">Google Satellite</option>
+        <option value="googleHybrid">Google Hybrid</option>
+        <option value="osmCycle">OSM Cycle</option>
+    </select>
+</div>
 
 <!-- Elevation Preview -->
 <div id="elevation-preview" class="elevation-preview">
