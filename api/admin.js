@@ -62,31 +62,40 @@ export default async function handler(req, res) {
                         );
                         console.log('Photo reassigned successfully');
                     } else {
-                        // Get the existing route
-                        const route = await db.collection('routes').findOne(
+                        console.log('Attempting to find route with ID:', data.contentId);
+                        
+                        // First try to find the route
+                        const routeCheck = await db.collection('routes').findOne(
                             { _id: new mongoose.Types.ObjectId(data.contentId) }
                         );
 
-                        if (!route) {
-                            throw new Error('Route not found');
+                        console.log('Route check result:', {
+                            found: !!routeCheck,
+                            id: data.contentId,
+                            auth0Id: routeCheck?.auth0Id
+                        });
+
+                        if (!routeCheck) {
+                            // Try to find by string ID in case it's not being converted properly
+                            const routeCheckString = await db.collection('routes').findOne(
+                                { _id: data.contentId }
+                            );
+                            console.log('Secondary route check:', {
+                                found: !!routeCheckString,
+                                id: data.contentId
+                            });
+                            
+                            if (!routeCheckString) {
+                                throw new Error(`Route not found with ID: ${data.contentId}`);
+                            }
                         }
 
-                        // Update features with new auth0Id
-                        if (route.geojson && route.geojson.features) {
-                            route.geojson.features = route.geojson.features.map(feature => ({
-                                ...feature,
-                                properties: {
-                                    ...feature.properties,
-                                    auth0Id: newUser.auth0Id,
-                                    title: feature.properties.title || '',
-                                    gravelType: feature.properties.gravelType || []
-                                }
-                            }));
-                        }
+                        // Proceed with update using the found route
+                        const route = routeCheck || routeCheckString;
 
-                        // Update the entire route document
+                        // Update the route document
                         const updateResult = await db.collection('routes').updateOne(
-                            { _id: new mongoose.Types.ObjectId(data.contentId) },
+                            { _id: route._id },
                             {
                                 $set: {
                                     auth0Id: newUser.auth0Id,
@@ -94,18 +103,39 @@ export default async function handler(req, res) {
                                         auth0Id: newUser.auth0Id,
                                         name: newUser.bioName || newUser.email
                                     },
-                                    geojson: route.geojson,
                                     updatedAt: new Date()
                                 }
                             }
                         );
 
-                        console.log('Route reassignment details:', {
-                            routeId: data.contentId,
-                            newUser: newUser.auth0Id,
-                            featuresCount: route.geojson.features.length,
-                            updateResult: updateResult
-                        });
+                        console.log('Initial route update result:', updateResult);
+
+                        // Update features if they exist
+                        if (route.geojson && route.geojson.features) {
+                            const updatedFeatures = route.geojson.features.map(feature => ({
+                                ...feature,
+                                properties: {
+                                    ...feature.properties,
+                                    auth0Id: newUser.auth0Id
+                                }
+                            }));
+
+                            const featuresUpdateResult = await db.collection('routes').updateOne(
+                                { _id: route._id },
+                                {
+                                    $set: {
+                                        'geojson.features': updatedFeatures
+                                    }
+                                }
+                            );
+
+                            console.log('Features update result:', {
+                                featuresCount: updatedFeatures.length,
+                                updateResult: featuresUpdateResult
+                            });
+                        }
+
+                        console.log('Route reassignment completed');
                     }
 
                     console.log('Content reassigned to:', {
