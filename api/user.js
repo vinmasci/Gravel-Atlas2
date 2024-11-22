@@ -1,9 +1,16 @@
-import { connectDB } from '../../lib/mongodb';
-const User = require('../../models/User');
+import mongoose from 'mongoose';
+const User = require('../models/User');
 
 export default async function handler(req, res) {
     try {
-        await connectDB();
+        // Connect to MongoDB directly
+        if (!mongoose.connections[0].readyState) {
+            await mongoose.connect(process.env.MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         const { method } = req;
         
         switch (method) {

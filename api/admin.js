@@ -1,10 +1,18 @@
 import mongoose from 'mongoose';
 const User = require('../models/User');
 
-const ADMIN_IDS = ['google-oauth2|104387414892803104975']; 
+const ADMIN_IDS = ['google-oauth2|104387414892803104975'];
 
 async function isAdmin(auth0Id) {
     try {
+        // Connect to MongoDB directly
+        if (!mongoose.connections[0].readyState) {
+            await mongoose.connect(process.env.MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         const user = await User.findOne({ auth0Id });
         return user?.isAdmin || ADMIN_IDS.includes(auth0Id);
     } catch (error) {
@@ -18,6 +26,14 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Connect to MongoDB directly
+        if (!mongoose.connections[0].readyState) {
+            await mongoose.connect(process.env.MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         // Verify admin status
         const adminId = req.headers['x-admin-id'];
         if (!adminId || !(await isAdmin(adminId))) {

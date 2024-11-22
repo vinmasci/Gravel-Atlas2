@@ -6,10 +6,23 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Connect to MongoDB directly
+        if (!mongoose.connections[0].readyState) {
+            await mongoose.connect(process.env.MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+        }
+
         const { auth0Id, oldUsername, newUsername } = req.body;
-        
-        // Use direct MongoDB access
         const db = mongoose.connection.db;
+
+        console.log('Attempting to migrate photos for:', {
+            auth0Id,
+            oldUsername,
+            newUsername
+        });
+
         const result = await db.collection('photos').updateMany(
             { 
                 auth0Id: auth0Id,
@@ -23,10 +36,14 @@ export default async function handler(req, res) {
         console.log('Photos migration result:', result);
         res.status(200).json({
             message: 'Photos updated successfully',
-            modifiedCount: result.modifiedCount
+            modifiedCount: result.modifiedCount,
+            matchedCount: result.matchedCount
         });
     } catch (error) {
         console.error('Error updating photos:', error);
-        res.status(500).json({ error: 'Failed to update photos' });
+        res.status(500).json({ 
+            error: 'Failed to update photos',
+            details: error.message 
+        });
     }
 }
