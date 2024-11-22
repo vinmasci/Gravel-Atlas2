@@ -259,8 +259,6 @@ async function initCore() {
     console.log('Initializing core...');
     
     try {
-        showLoadingCursor();  // Show the loading cursor
-
         // Start auth0 initialization early
         const auth0Promise = waitForAuth0();
         
@@ -412,8 +410,6 @@ async function initCore() {
         utils.hideTabLoading('segments-tab');
         utils.hideTabLoading('photos-tab');
         throw error;
-    } finally {
-        hideLoadingCursor();  // Hide the loading cursor
     }
 }
 

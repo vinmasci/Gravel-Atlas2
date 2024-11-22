@@ -80,10 +80,10 @@ async function resetToOriginalStyle() {
         const bearing = map.getBearing();
         const pitch = map.getPitch();
         
-        // Store layer visibility states
+        // Store layer visibility states and check actual layer presence
         const layerStates = {
             segments: window.layerVisibility?.segments || false,
-            photos: window.layerVisibility?.photos || false
+            photos: window.layerVisibility?.photos || map.getLayer('clusters') || map.getLayer('unclustered-photo')
         };
 
         // Store current data
@@ -96,11 +96,23 @@ async function resetToOriginalStyle() {
             photoMarkersData = map.getSource('photoMarkers').serialize();
         }
 
+        // Remove existing layers first
+        if (map.getStyle().layers) {
+            map.getStyle().layers.forEach(layer => {
+                if (map.getLayer(layer.id)) {
+                    map.removeLayer(layer.id);
+                }
+            });
+        }
+
         // Reset style
         map.setStyle(originalMapboxStyle);
 
         // Wait for style to load
         await new Promise(resolve => map.once('style.load', resolve));
+
+        // Wait a moment for the style to settle
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Restore view state
         map.setCenter(center);
@@ -108,34 +120,48 @@ async function resetToOriginalStyle() {
         map.setBearing(bearing);
         map.setPitch(pitch);
 
-        // Wait a moment for the style to settle
-        await new Promise(resolve => setTimeout(resolve, 100));
-
         // Reinitialize base layers
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore data with proper visibility
+        // Restore segments first
         if (existingSegmentsData && layerStates.segments) {
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData(existingSegmentsData.data);
             }
         }
-        
-        if (photoMarkersData && layerStates.photos) {
-            await loadPhotoMarkers();
+
+        // Then reload photos with a delay
+        if (layerStates.photos) {
+            // Remove any existing photo markers first
+            removePhotoMarkers();
+            
+            // Wait before reloading photos
+            setTimeout(async () => {
+                try {
+                    await loadPhotoMarkers();
+                    console.log('Photos reloaded successfully after reset');
+                } catch (error) {
+                    console.error('Error reloading photos after reset:', error);
+                }
+            }, 1000);
         }
 
         console.log('Reset to original style completed');
+        return true; // Indicate successful completion
+
     } catch (error) {
         console.error('Error resetting to original style:', error);
         // Attempt emergency reset if something goes wrong
         try {
-            map.setStyle(originalMapboxStyle);
+            await map.setStyle(originalMapboxStyle);
+            console.log('Emergency reset completed');
+            return true;
         } catch (e) {
             console.error('Emergency reset failed:', e);
+            return false;
         }
     }
 }
