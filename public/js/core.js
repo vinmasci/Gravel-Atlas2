@@ -16,98 +16,11 @@ function waitForAuth0() {
 // Make it globally available
 window.waitForAuth0 = waitForAuth0;
 
-// LoadingManager Implementation
-class LoadingManager {
-    constructor() {
-        this.loadingCount = 0;
-        this.setupFetchInterceptor();
-        this.setupPromiseInterceptor();
-        this.setupMapLoadingInterceptor();
-    }
-
-    setupFetchInterceptor() {
-        const originalFetch = window.fetch;
-        window.fetch = async (...args) => {
-            this.startLoading();
-            try {
-                const response = await originalFetch(...args);
-                return response;
-            } finally {
-                this.stopLoading();
-            }
-        };
-    }
-
-    setupPromiseInterceptor() {
-        const originalThen = Promise.prototype.then;
-        Promise.prototype.then = function(...args) {
-            window.loadingManager.startLoading();
-            return originalThen.call(this, ...args).finally(() => {
-                window.loadingManager.stopLoading();
-            });
-        };
-    }
-
-    setupMapLoadingInterceptor() {
-        if (mapboxgl) {
-            const originalAddLayer = mapboxgl.Map.prototype.addLayer;
-            mapboxgl.Map.prototype.addLayer = function(...args) {
-                window.loadingManager.startLoading();
-                try {
-                    return originalAddLayer.apply(this, args);
-                } finally {
-                    window.loadingManager.stopLoading();
-                }
-            };
-
-            ['setData', 'loadImage', 'addSource'].forEach(method => {
-                if (mapboxgl.Map.prototype[method]) {
-                    const original = mapboxgl.Map.prototype[method];
-                    mapboxgl.Map.prototype[method] = function(...args) {
-                        window.loadingManager.startLoading();
-                        try {
-                            return original.apply(this, args);
-                        } finally {
-                            window.loadingManager.stopLoading();
-                        }
-                    };
-                }
-            });
-        }
-    }
-
-    startLoading() {
-        this.loadingCount++;
-        if (this.loadingCount > 0) {
-            document.body.style.cursor = 'wait';
-        }
-    }
-
-    stopLoading() {
-        this.loadingCount--;
-        if (this.loadingCount <= 0) {
-            this.loadingCount = 0;
-            document.body.style.cursor = 'default';
-        }
-    }
-
-    manualStart() {
-        this.startLoading();
-    }
-
-    manualStop() {
-        this.stopLoading();
-    }
-}
-
-// Initialize LoadingManager
-window.loadingManager = new LoadingManager();
-
 // Your existing core.js code
 let map;
 let layerVisibility = {
-    segments: true,
-    photos: true,
+    segments: true,  // Changed to true
+    photos: true,   // Changed to true
     pois: false
 };
 
@@ -115,7 +28,7 @@ let layerVisibility = {
 const config = {
     mapboxToken: 'pk.eyJ1IjoidmlubWFzY2kiLCJhIjoiY20xY3B1ZmdzMHp5eDJwcHBtMmptOG8zOSJ9.Ayn_YEjOCCqujIYhY9PiiA',
     defaultCenter: [144.9631, -37.8136],
-    defaultZoom: 8,
+    defaultZoom: ,
     mapStyle: 'mapbox://styles/mapbox/streets-v11',
     profileButton: {
         id: 'profileBtn',
@@ -170,6 +83,7 @@ const utils = {
         }
     },
 
+    //update profile section 
     toggleProfileSection: async () => {
         const profileSection = document.getElementById('profile-section');
         const auth0 = await waitForAuth0();
@@ -177,19 +91,24 @@ const utils = {
         
         if (profileSection) {
             if (isAuthenticated) {
+                // Hide any open contribute dropdown if it exists
                 const contributeDropdown = document.getElementById('contribute-dropdown');
                 if (contributeDropdown) {
                     contributeDropdown.classList.add('hidden');
                 }
                 
+                // Toggle profile section
                 profileSection.classList.toggle('hidden');
                 
+                // Setup the profile form
                 if (!profileSection.classList.contains('hidden')) {
+                    // Only setup the form if the profile section is now visible
                     if (window.userModule && typeof window.userModule.setupProfileForm === 'function') {
                         window.userModule.setupProfileForm();
                     }
                 }
             } else {
+                // Ensure it's hidden if not authenticated
                 profileSection.classList.add('hidden');
             }
         }
@@ -222,7 +141,7 @@ const layers = {
             const tabId = `${layerType}-tab`;
             utils.showTabLoading(tabId);
             
-            window.loadingManager.manualStart(); // Added loading manager
+            showLoadingSpinner(`Loading ${layerType}...`);
             
             if (!map.loaded()) {
                 await new Promise(resolve => map.on('load', resolve));
@@ -287,7 +206,7 @@ const layers = {
             layerVisibility[layerType] = !layerVisibility[layerType];
             utils.updateTabHighlight(`${layerType}-tab`, layerVisibility[layerType]);
         } finally {
-            window.loadingManager.manualStop(); // Added loading manager
+            hideLoadingSpinner();
             utils.hideTabLoading(`${layerType}-tab`);
         }
     }
@@ -321,7 +240,7 @@ const handlers = {
     
     handleContributeClick: async () => {
         console.log('Contribute tab clicked');
-        utils.hideProfileSection();
+        utils.hideProfileSection(); // Hide profile section when contribute is clicked
         if (typeof window.toggleContributeDropdown === 'function') {
             await window.toggleContributeDropdown();
         } else {
@@ -340,8 +259,6 @@ async function initCore() {
     console.log('Initializing core...');
     
     try {
-        window.loadingManager.manualStart(); // Added loading manager for initialization
-
         // Start auth0 initialization early
         const auth0Promise = waitForAuth0();
         
@@ -360,6 +277,7 @@ async function initCore() {
             window.initGeoJSONSources();
             window.addSegmentLayers();
             window.setupSegmentInteraction();
+            // Give the map a moment to process the source/layer additions
             setTimeout(resolve, 100);
         });
 
@@ -376,6 +294,7 @@ async function initCore() {
             const segmentsPromise = (async () => {
                 try {
                     console.log('Starting segments load...');
+                    // Add small delay to ensure sources are ready
                     await new Promise(resolve => setTimeout(resolve, 200));
                     await window.loadSegments();
                     layerVisibility.segments = true;
@@ -491,8 +410,6 @@ async function initCore() {
         utils.hideTabLoading('segments-tab');
         utils.hideTabLoading('photos-tab');
         throw error;
-    } finally {
-        window.loadingManager.manualStop(); // Added loading manager to ensure cursor is reset
     }
 }
 
