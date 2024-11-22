@@ -7,6 +7,8 @@ function debugLog(...args) {
     }
 }
 
+const ADMIN_IDS = ['google-oauth2|104387414892803104975']; // Replace with your actual Auth0 ID
+
 // ============================
 // SECTION: Migrate User Profiles
 // ============================
@@ -323,11 +325,179 @@ function updateProfilePictureDisplay(imageUrl) {
     });
 }
 
+// ============================
+// SECTION: Admin Controls
+// ============================
+function initAdminControls() {
+    if (!document.getElementById('adminControls')) {
+        const adminPanel = document.createElement('div');
+        adminPanel.id = 'adminControls';
+        adminPanel.classList.add('admin-panel');
+        adminPanel.innerHTML = `
+            <div class="admin-header">
+                <h3>Admin Controls</h3>
+                <button onclick="toggleAdminPanel()">×</button>
+            </div>
+            <div class="admin-content">
+                <div class="admin-section">
+                    <h4>Reassign Content</h4>
+                    <select id="contentType">
+                        <option value="photo">Photo</option>
+                        <option value="route">Route</option>
+                    </select>
+                    <input type="text" id="contentId" placeholder="Content ID">
+                    <input type="text" id="newUserId" placeholder="New User ID">
+                    <button onclick="reassignContent()">Reassign</button>
+                </div>
+                <div class="admin-section">
+                    <h4>Update User Profile</h4>
+                    <input type="text" id="targetUserId" placeholder="User ID">
+                    <input type="text" id="newBioName" placeholder="New Bio Name">
+                    <button onclick="updateUserProfile()">Update</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(adminPanel);
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .admin-panel {
+                position: fixed;
+                top: 60px;
+                right: 20px;
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                z-index: 1000;
+                display: none;
+            }
+            .admin-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            .admin-section {
+                margin-bottom: 15px;
+            }
+            .admin-section input,
+            .admin-section select {
+                margin: 5px 0;
+                padding: 5px;
+                width: 100%;
+            }
+            .admin-section button {
+                width: 100%;
+                padding: 5px;
+                margin-top: 5px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+async function reassignContent() {
+    const contentType = document.getElementById('contentType').value;
+    const contentId = document.getElementById('contentId').value;
+    const newUserId = document.getElementById('newUserId').value;
+
+    try {
+        // Get current user for admin check
+        const currentUser = await getCurrentUser();
+        if (!currentUser?.sub) {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch('/api/admin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-admin-id': currentUser.sub
+            },
+            body: JSON.stringify({
+                action: 'reassignContent',
+                data: { contentType, contentId, newUserId }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to reassign content');
+        }
+
+        alert('Content reassigned successfully');
+
+        // Refresh content
+        if (contentType === 'photo') {
+            await loadPhotoMarkers();
+        } else {
+            await loadSegments();
+        }
+    } catch (error) {
+        console.error('Reassignment error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+async function updateUserProfile() {
+    const userId = document.getElementById('targetUserId').value;
+    const bioName = document.getElementById('newBioName').value;
+
+    try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser?.sub) {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch('/api/admin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-admin-id': currentUser.sub
+            },
+            body: JSON.stringify({
+                action: 'updateUserProfile',
+                data: { 
+                    userId,
+                    profileData: { bioName }
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update profile');
+        }
+
+        alert('Profile updated successfully');
+    } catch (error) {
+        console.error('Profile update error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+function toggleAdminPanel() {
+    const panel = document.getElementById('adminControls');
+    if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Make admin functions globally available
+window.reassignContent = reassignContent;
+window.updateUserProfile = updateUserProfile;
+window.toggleAdminPanel = toggleAdminPanel;
+
+// ============================
+// SECTION: Initialise Profile
+// ============================
 async function initializeProfile() {
     debugLog('Initializing profile');
     try {
         localStorage.removeItem('userProfile');
-        
         const auth0 = await waitForAuth0();
         const isAuthenticated = await auth0.isAuthenticated();
         debugLog('Authentication check:', isAuthenticated);
@@ -340,13 +510,26 @@ async function initializeProfile() {
         const user = await auth0.getUser();
         debugLog('Auth0 user data:', user);
 
+        // Add admin check here
+        if (ADMIN_IDS.includes(user.sub)) {
+            initAdminControls();
+            // Add admin button to navbar
+            const navbar = document.querySelector('.navbar-nav');
+            if (navbar) {
+                const adminBtn = document.createElement('button');
+                adminBtn.className = 'btn btn-outline-light my-2 my-sm-0';
+                adminBtn.onclick = toggleAdminPanel;
+                adminBtn.textContent = 'Admin';
+                navbar.appendChild(adminBtn);
+            }
+        }
+
         if (!user || !user.sub) {
             throw new Error('Invalid user data returned from Auth0');
         }
 
         // Create private username
         const privateUsername = createPrivateUsername(user.email, user.name);
-
         const idDisplay = document.getElementById('profile-auth0id');
         if (idDisplay) {
             idDisplay.textContent = user.sub;
@@ -357,16 +540,16 @@ async function initializeProfile() {
             if (response.ok) {
                 let profile = await response.json();
                 debugLog('Loaded profile from MongoDB:', profile);
-                
                 // Add migration check here
                 profile = await migrateUserProfile(profile, user);
-                
+
                 const updatedProfile = {
                     auth0Id: user.sub,
                     bioName: profile.bioName || privateUsername,
                     email: user.email || '',
                     website: profile.website || '',
                     picture: profile.picture || user.picture || '',
+                    isAdmin: ADMIN_IDS.includes(user.sub), // Add this line
                     socialLinks: profile.socialLinks || {
                         instagram: '',
                         strava: '',
@@ -377,8 +560,7 @@ async function initializeProfile() {
                 localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
                 populateForm(updatedProfile);
                 updateProfilePictureDisplay(updatedProfile.picture);
-
-                // Update welcome message with profile name
+                
                 const userInfo = document.getElementById('userInfo');
                 if (userInfo) {
                     userInfo.innerHTML = `Welcome, ${updatedProfile.bioName}`;
@@ -396,6 +578,7 @@ async function initializeProfile() {
             email: user.email || '',
             website: '',
             picture: user.picture || '',
+            isAdmin: ADMIN_IDS.includes(user.sub), // Add this line
             socialLinks: {
                 instagram: '',
                 strava: '',
@@ -421,12 +604,10 @@ async function initializeProfile() {
         populateForm(newProfile);
         updateProfilePictureDisplay(newProfile.picture);
 
-        // Update welcome message with private username
         const userInfo = document.getElementById('userInfo');
         if (userInfo) {
             userInfo.innerHTML = `Welcome, ${privateUsername}`;
         }
-
         debugLog('New profile initialized and saved');
 
     } catch (error) {

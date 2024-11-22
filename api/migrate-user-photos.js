@@ -1,6 +1,4 @@
-// pages/api/migrate-user-photos.js
-import { connectDB } from '../../lib/mongodb';
-import { Photo } from '../../models/Photo';
+import mongoose from 'mongoose';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -8,10 +6,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        await connectDB();
         const { auth0Id, oldUsername, newUsername } = req.body;
         
-        await Photo.updateMany(
+        // Use direct MongoDB access
+        const db = mongoose.connection.db;
+        const result = await db.collection('photos').updateMany(
             { 
                 auth0Id: auth0Id,
                 username: oldUsername 
@@ -21,7 +20,11 @@ export default async function handler(req, res) {
             }
         );
 
-        res.status(200).json({ message: 'Photos updated successfully' });
+        console.log('Photos migration result:', result);
+        res.status(200).json({
+            message: 'Photos updated successfully',
+            modifiedCount: result.modifiedCount
+        });
     } catch (error) {
         console.error('Error updating photos:', error);
         res.status(500).json({ error: 'Failed to update photos' });

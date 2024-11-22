@@ -1,27 +1,11 @@
-import mongoose from 'mongoose';
-const User = require('../models/User');
-
-// MongoDB connection function
-const connectDB = async () => {
-    if (mongoose.connections[0].readyState) return;
-    try {
-        await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            dbName: 'photoApp'
-        });
-        console.log('MongoDB connected successfully to photoApp database');
-    } catch (error) {
-        console.error('MongoDB connection error:', error);
-        throw error;
-    }
-};
+import { connectDB } from '../../lib/mongodb';
+const User = require('../../models/User');
 
 export default async function handler(req, res) {
     try {
         await connectDB();
         const { method } = req;
-
+        
         switch (method) {
             case 'GET':
                 // Get auth0Id from query parameter only
@@ -39,28 +23,27 @@ export default async function handler(req, res) {
                 // Try to find the user profile
                 const userProfile = await User.findOne({ auth0Id });
                 console.log('Database query result:', userProfile);
-
+                
                 if (!userProfile) {
                     return res.status(404).json({
                         error: 'Profile not found',
                         queriedId: auth0Id
                     });
                 }
-
+                
                 return res.json(userProfile);
 
             case 'PUT':
                 const profileData = req.body;
                 console.log('PUT request body:', profileData);
-
+                
                 if (!profileData.auth0Id) {
                     return res.status(400).json({ error: 'No auth0Id provided in request body' });
                 }
-
+                
                 if (!profileData.email) {
                     return res.status(400).json({ error: 'Email is required' });
                 }
-                
 
                 try {
                     // Find and update or create if doesn't exist
@@ -73,6 +56,7 @@ export default async function handler(req, res) {
                                 picture: profileData.picture,
                                 website: profileData.website,
                                 socialLinks: profileData.socialLinks,
+                                isAdmin: profileData.isAdmin, // Added isAdmin field
                                 updatedAt: new Date()
                             }
                         },
@@ -83,10 +67,9 @@ export default async function handler(req, res) {
                             setDefaultsOnInsert: true
                         }
                     );
-
+                    
                     console.log('Profile updated successfully:', updatedProfile);
                     return res.json(updatedProfile);
-
                 } catch (updateError) {
                     console.error('Error updating profile:', updateError);
                     return res.status(500).json({
