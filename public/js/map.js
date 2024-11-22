@@ -63,63 +63,106 @@ function setupSegmentInteraction() {
 // ===========================
 // Function to reset to original Mapbox style
 // ===========================
-function resetToOriginalStyle() {
-    // Store current data
-    let existingSegmentsData = null;
-    let photoMarkersData = null;
-    
-    if (map.getSource('existingSegments')) {
-        existingSegmentsData = map.getSource('existingSegments').serialize();
-    }
-    if (map.getSource('photoMarkers')) {
-        photoMarkersData = map.getSource('photoMarkers').serialize();
-    }
-
-    // Reset style
-    map.setStyle(originalMapboxStyle);
-
-    // After style loads, restore data
-    map.once('style.load', () => {
-        if (existingSegmentsData) {
-            window.initGeoJSONSources();
-            window.addSegmentLayers();
-            window.setupSegmentInteraction();
-            
-            const source = map.getSource('existingSegments');
-            if (source) {
-                source.setData(existingSegmentsData.data);
-            }
-        }
-
-        if (photoMarkersData) {
-            window.loadPhotoMarkers();
-        }
-    });
-}
-
-// ===========================
-// Function to dynamically switch between tile layers
-// ===========================
-// ===========================
-// Function to dynamically switch between tile layers
-// ===========================
-async function setTileLayer(tileUrl) {
+async function resetToOriginalStyle() {
     try {
-        console.log('Setting new tile layer:', tileUrl);
+        console.log('Resetting to original style');
         
-        // Store current center and zoom
+        // Store current view state
         const center = map.getCenter();
         const zoom = map.getZoom();
         const bearing = map.getBearing();
         const pitch = map.getPitch();
-
-        // Store visibility states of layers
+        
+        // Store layer visibility states
         const layerStates = {
             segments: window.layerVisibility?.segments || false,
             photos: window.layerVisibility?.photos || false
         };
 
-        // Remove existing layers and sources specifically
+        // Store current data
+        let existingSegmentsData = null;
+        let photoMarkersData = null;
+        if (map.getSource('existingSegments')) {
+            existingSegmentsData = map.getSource('existingSegments').serialize();
+        }
+        if (map.getSource('photoMarkers')) {
+            photoMarkersData = map.getSource('photoMarkers').serialize();
+        }
+
+        // Reset style
+        map.setStyle(originalMapboxStyle);
+
+        // Wait for style to load
+        await new Promise(resolve => map.once('style.load', resolve));
+
+        // Restore view state
+        map.setCenter(center);
+        map.setZoom(zoom);
+        map.setBearing(bearing);
+        map.setPitch(pitch);
+
+        // Wait a moment for the style to settle
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Reinitialize base layers
+        window.initGeoJSONSources();
+        window.addSegmentLayers();
+        window.setupSegmentInteraction();
+
+        // Restore data with proper visibility
+        if (existingSegmentsData && layerStates.segments) {
+            const source = map.getSource('existingSegments');
+            if (source) {
+                source.setData(existingSegmentsData.data);
+            }
+        }
+        
+        if (photoMarkersData && layerStates.photos) {
+            await loadPhotoMarkers();
+        }
+
+        console.log('Reset to original style completed');
+    } catch (error) {
+        console.error('Error resetting to original style:', error);
+        // Attempt emergency reset if something goes wrong
+        try {
+            map.setStyle(originalMapboxStyle);
+        } catch (e) {
+            console.error('Emergency reset failed:', e);
+        }
+    }
+}
+
+// ===========================
+// Function to switch between tile layers
+// ===========================
+async function setTileLayer(tileUrl) {
+    try {
+        console.log('Setting new tile layer:', tileUrl);
+        
+        // Store current view state
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const bearing = map.getBearing();
+        const pitch = map.getPitch();
+        
+        // Store layer visibility states
+        const layerStates = {
+            segments: window.layerVisibility?.segments || false,
+            photos: window.layerVisibility?.photos || false
+        };
+
+        // Store current data
+        let existingSegmentsData = null;
+        let photoMarkersData = null;
+        if (map.getSource('existingSegments')) {
+            existingSegmentsData = map.getSource('existingSegments').serialize();
+        }
+        if (map.getSource('photoMarkers')) {
+            photoMarkersData = map.getSource('photoMarkers').serialize();
+        }
+
+        // Remove existing layers
         const layers = map.getStyle().layers;
         layers.forEach(layer => {
             if (layer.id !== 'custom-tiles-layer') {
@@ -127,7 +170,7 @@ async function setTileLayer(tileUrl) {
             }
         });
 
-        // Remove old tile layer if it exists
+        // Remove old tile layer
         if (map.getLayer('custom-tiles-layer')) {
             map.removeLayer('custom-tiles-layer');
         }
@@ -147,27 +190,31 @@ async function setTileLayer(tileUrl) {
             'type': 'raster',
             'source': 'custom-tiles',
             'layout': { 'visibility': 'visible' }
-        }, 'custom-tiles-layer');
+        });
 
-        // Restore map view
+        // Restore view state
         map.setCenter(center);
         map.setZoom(zoom);
         map.setBearing(bearing);
         map.setPitch(pitch);
 
-        // Wait a short moment for the new style to settle
+        // Wait a moment for the new style to settle
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Reinitialize map sources and layers
+        // Reinitialize base layers
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore layer visibility based on previous state
-        if (layerStates.segments) {
-            await loadSegments();
+        // Restore data with proper visibility
+        if (existingSegmentsData && layerStates.segments) {
+            const source = map.getSource('existingSegments');
+            if (source) {
+                source.setData(existingSegmentsData.data);
+            }
         }
-        if (layerStates.photos) {
+        
+        if (photoMarkersData && layerStates.photos) {
             await loadPhotoMarkers();
         }
 
@@ -175,65 +222,19 @@ async function setTileLayer(tileUrl) {
     } catch (error) {
         console.error('Error setting tile layer:', error);
         // Attempt recovery
-        resetToOriginalStyle();
+        await resetToOriginalStyle();
     }
 }
 
-// Function to reset to original style
-async function resetToOriginalStyle() {
-    try {
-        console.log('Resetting to original style');
-        
-        // Store current state
-        const center = map.getCenter();
-        const zoom = map.getZoom();
-        const bearing = map.getBearing();
-        const pitch = map.getPitch();
-        const layerStates = {
-            segments: window.layerVisibility?.segments || false,
-            photos: window.layerVisibility?.photos || false
-        };
-
-        // Set original style
-        await map.setStyle('mapbox://styles/mapbox/outdoors-v12');
-
-        // Wait for style to load
-        await new Promise(resolve => map.once('style.load', resolve));
-
-        // Restore view
-        map.setCenter(center);
-        map.setZoom(zoom);
-        map.setBearing(bearing);
-        map.setPitch(pitch);
-
-        // Wait a moment for the style to settle
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Reinitialize sources and layers
-        window.initGeoJSONSources();
-        window.addSegmentLayers();
-        window.setupSegmentInteraction();
-
-        // Restore layers
-        if (layerStates.segments) {
-            await loadSegments();
-        }
-        if (layerStates.photos) {
-            await loadPhotoMarkers();
-        }
-
-        console.log('Reset to original style completed');
-    } catch (error) {
-        console.error('Error resetting style:', error);
-    }
-}
-
-// Update the event listener for the tile layer select
+// Update the event listener
 document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
-    const selectedLayer = event.target.value;
+    const select = event.target;
+    const selectedLayer = select.value;
     
-    // Disable the select while changing layers
-    event.target.disabled = true;
+    // Disable select and show loading state
+    select.disabled = true;
+    const originalText = select.options[select.selectedIndex].text;
+    select.options[select.selectedIndex].text = 'Loading...';
     
     try {
         if (selectedLayer === 'reset') {
@@ -243,21 +244,14 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
         }
     } catch (error) {
         console.error('Error changing layer:', error);
+        alert('Failed to change map style. Resetting to default.');
+        await resetToOriginalStyle();
     } finally {
-        // Re-enable the select
-        event.target.disabled = false;
+        // Restore select state
+        select.disabled = false;
+        select.options[select.selectedIndex].text = originalText;
     }
 });
-
-// Add error handling for tile loading
-map.on('error', function(e) {
-    console.error('Map error:', e);
-    if (e.error.status === 404) {
-        console.log('Tile not found, attempting recovery...');
-        resetToOriginalStyle();
-    }
-});
-
 
 // ============================
 // SECTION: Initialize GeoJSON Sources for Segments
