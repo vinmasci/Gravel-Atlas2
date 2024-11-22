@@ -153,21 +153,11 @@ async function setTileLayer(tileUrl) {
         const bearing = map.getBearing();
         const pitch = map.getPitch();
         
-        // Store layer visibility states
+        // Store layer visibility states and check actual layer presence
         const layerStates = {
             segments: window.layerVisibility?.segments || false,
-            photos: window.layerVisibility?.photos || false
+            photos: window.layerVisibility?.photos || map.getLayer('clusters') || map.getLayer('unclustered-photo')
         };
-
-        // Store current data
-        let existingSegmentsData = null;
-        let photoMarkersData = null;
-        if (map.getSource('existingSegments')) {
-            existingSegmentsData = map.getSource('existingSegments').serialize();
-        }
-        if (map.getSource('photoMarkers')) {
-            photoMarkersData = map.getSource('photoMarkers').serialize();
-        }
 
         // Remove existing layers
         const layers = map.getStyle().layers;
@@ -205,38 +195,41 @@ async function setTileLayer(tileUrl) {
         map.setBearing(bearing);
         map.setPitch(pitch);
 
-        // Wait a moment for the new style to settle
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait longer for the new style to settle
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Reinitialize base layers
         window.initGeoJSONSources();
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore data with proper visibility
-        if (existingSegmentsData && layerStates.segments) {
+        // Restore segments first
+        if (layerStates.segments) {
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData(existingSegmentsData.data);
             }
         }
         
-        // Always attempt to reload photos after a slight delay
-        setTimeout(async () => {
-            if (layerStates.photos) {
+        // Then reload photos with a longer delay
+        if (layerStates.photos) {
+            // Remove existing photo markers first
+            removePhotoMarkers();
+            
+            // Wait a bit longer before reloading
+            setTimeout(async () => {
                 try {
                     await loadPhotoMarkers();
                     console.log('Photos reloaded successfully');
                 } catch (error) {
                     console.error('Error reloading photos:', error);
                 }
-            }
-        }, 500); // Half second delay to ensure other operations are complete
+            }, 1000); // Increased delay to 1 second
+        }
 
         console.log('Tile layer updated successfully');
     } catch (error) {
         console.error('Error setting tile layer:', error);
-        // Attempt recovery
         await resetToOriginalStyle();
     }
 }
