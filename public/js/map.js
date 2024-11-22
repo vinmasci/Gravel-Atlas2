@@ -239,45 +239,59 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     const select = event.target;
     const selectedLayer = select.value;
     
+    console.log('=== Layer Change Started ===');
+    console.log('Selected layer:', selectedLayer);
+    console.log('Current photo visibility:', window.layerVisibility?.photos);
+    console.log('Current photo markers:', map.getSource('photoMarkers') ? 'exist' : 'do not exist');
+    
     // Disable select and show loading state
     select.disabled = true;
     const originalText = select.options[select.selectedIndex].text;
     select.options[select.selectedIndex].text = 'Loading...';
     
     try {
-        // Store the current photo visibility state
-        const wasPhotosVisible = window.layerVisibility?.photos || false;
-        
-        // If photos were visible, remove them before style change
-        if (wasPhotosVisible) {
-            removePhotoMarkers();
-        }
+        // Store the current state
+        const wasPhotosVisible = window.layerVisibility?.photos;
+        console.log('Photos were visible:', wasPhotosVisible);
 
         // Change the map style
         if (selectedLayer === 'reset') {
+            console.log('Resetting to original style...');
             await resetToOriginalStyle();
         } else if (tileLayers[selectedLayer]) {
+            console.log('Setting new tile layer...');
             await setTileLayer(tileLayers[selectedLayer]);
         }
 
-        // Wait for style change to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Force a small delay
+        console.log('Waiting for style to settle...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // If photos were visible, reload them
+        // Check map state
+        console.log('=== After Style Change ===');
+        console.log('Map sources:', Object.keys(map.getStyle().sources));
+        console.log('Map layers:', map.getStyle().layers.map(l => l.id));
+        console.log('Photo visibility:', window.layerVisibility?.photos);
+
         if (wasPhotosVisible) {
-            window.layerVisibility.photos = false; // Reset state
-            togglePhotoLayer(); // This will turn them back on and reload
-            console.log('Reloaded photo layer');
+            console.log('Attempting to reload photos...');
+            try {
+                await loadPhotoMarkers();
+                console.log('Photo markers loaded successfully');
+            } catch (error) {
+                console.error('Failed to load photo markers:', error);
+            }
         }
 
     } catch (error) {
-        console.error('Error changing layer:', error);
+        console.error('Error in layer change:', error);
         alert('Failed to change map style. Resetting to default.');
         await resetToOriginalStyle();
     } finally {
         // Restore select state
         select.disabled = false;
         select.options[select.selectedIndex].text = originalText;
+        console.log('=== Layer Change Completed ===');
     }
 });
 
