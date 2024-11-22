@@ -15,6 +15,13 @@ const segmentPopup = new mapboxgl.Popup({
     closeOnClick: false
 });
 
+if (!window.layerVisibility) {
+    window.layerVisibility = {
+        segments: false,
+        photos: false
+    };
+}
+
 // ============================
 // SECTION: Segment Interaction (Hover & Click)
 // ============================
@@ -234,15 +241,19 @@ async function setTileLayer(tileUrl) {
     }
 }
 
-// Update the event listener
+// Then update the event listener
 document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
     const select = event.target;
     const selectedLayer = select.value;
     
     console.log('=== Layer Change Started ===');
-    console.log('Selected layer:', selectedLayer);
-    console.log('Current photo visibility:', window.layerVisibility?.photos);
-    console.log('Current photo markers:', map.getSource('photoMarkers') ? 'exist' : 'do not exist');
+    console.log('Current layer visibility:', window.layerVisibility);
+    
+    // Store the current visibility state
+    const visibilityState = {
+        photos: window.layerVisibility.photos,
+        segments: window.layerVisibility.segments
+    };
     
     // Disable select and show loading state
     select.disabled = true;
@@ -250,10 +261,6 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     select.options[select.selectedIndex].text = 'Loading...';
     
     try {
-        // Store the current state
-        const wasPhotosVisible = window.layerVisibility?.photos;
-        console.log('Photos were visible:', wasPhotosVisible);
-
         // Change the map style
         if (selectedLayer === 'reset') {
             console.log('Resetting to original style...');
@@ -263,24 +270,16 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
             await setTileLayer(tileLayers[selectedLayer]);
         }
 
-        // Force a small delay
-        console.log('Waiting for style to settle...');
+        // Restore visibility state
+        window.layerVisibility = visibilityState;
+        
+        // Wait a moment for the style to settle
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Check map state
-        console.log('=== After Style Change ===');
-        console.log('Map sources:', Object.keys(map.getStyle().sources));
-        console.log('Map layers:', map.getStyle().layers.map(l => l.id));
-        console.log('Photo visibility:', window.layerVisibility?.photos);
-
-        if (wasPhotosVisible) {
-            console.log('Attempting to reload photos...');
-            try {
-                await loadPhotoMarkers();
-                console.log('Photo markers loaded successfully');
-            } catch (error) {
-                console.error('Failed to load photo markers:', error);
-            }
+        // Reload photos if they were visible
+        if (visibilityState.photos) {
+            console.log('Reloading photos...');
+            await loadPhotoMarkers();
         }
 
     } catch (error) {
@@ -291,7 +290,7 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
         // Restore select state
         select.disabled = false;
         select.options[select.selectedIndex].text = originalText;
-        console.log('=== Layer Change Completed ===');
+        console.log('Final layer visibility state:', window.layerVisibility);
     }
 });
 
