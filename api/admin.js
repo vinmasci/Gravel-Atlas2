@@ -5,14 +5,12 @@ const ADMIN_IDS = ['google-oauth2|104387414892803104975'];
 
 async function isAdmin(auth0Id) {
     try {
-        // Connect to MongoDB directly
         if (!mongoose.connections[0].readyState) {
             await mongoose.connect(process.env.MONGODB_URI, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true
             });
         }
-
         const user = await User.findOne({ auth0Id });
         return user?.isAdmin || ADMIN_IDS.includes(auth0Id);
     } catch (error) {
@@ -26,7 +24,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Connect to MongoDB directly
         if (!mongoose.connections[0].readyState) {
             await mongoose.connect(process.env.MONGODB_URI, {
                 useNewUrlParser: true,
@@ -34,7 +31,6 @@ export default async function handler(req, res) {
             });
         }
 
-        // Verify admin status
         const adminId = req.headers['x-admin-id'];
         if (!adminId || !(await isAdmin(adminId))) {
             return res.status(403).json({ error: 'Unauthorized' });
@@ -53,7 +49,7 @@ export default async function handler(req, res) {
 
                     if (data.contentType === 'photo') {
                         await db.collection('photos').updateOne(
-                            { _id: mongoose.Types.ObjectId(data.contentId) },
+                            { _id: new mongoose.Types.ObjectId(data.contentId) }, // Fixed ObjectId construction
                             {
                                 $set: {
                                     auth0Id: newUser.auth0Id,
@@ -63,7 +59,7 @@ export default async function handler(req, res) {
                         );
                     } else {
                         await db.collection('routes').updateOne(
-                            { _id: mongoose.Types.ObjectId(data.contentId) },
+                            { _id: new mongoose.Types.ObjectId(data.contentId) }, // Fixed ObjectId construction
                             {
                                 $set: {
                                     'metadata.createdBy.auth0Id': newUser.auth0Id,
@@ -73,6 +69,7 @@ export default async function handler(req, res) {
                         );
                     }
                 } catch (error) {
+                    console.error('Reassignment error:', error);
                     throw new Error(`Reassignment failed: ${error.message}`);
                 }
                 break;
@@ -94,6 +91,7 @@ export default async function handler(req, res) {
                         throw new Error('Failed to update user profile');
                     }
                 } catch (error) {
+                    console.error('Profile update error:', error);
                     throw new Error(`Profile update failed: ${error.message}`);
                 }
                 break;
