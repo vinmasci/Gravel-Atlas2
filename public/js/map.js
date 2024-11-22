@@ -79,16 +79,6 @@ async function resetToOriginalStyle() {
             photos: window.layerVisibility?.photos || false
         };
 
-        // Store current data
-        let existingSegmentsData = null;
-        let photoMarkersData = null;
-        if (map.getSource('existingSegments')) {
-            existingSegmentsData = map.getSource('existingSegments').serialize();
-        }
-        if (map.getSource('photoMarkers')) {
-            photoMarkersData = map.getSource('photoMarkers').serialize();
-        }
-
         // Reset style
         map.setStyle(originalMapboxStyle);
 
@@ -109,27 +99,32 @@ async function resetToOriginalStyle() {
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore data with proper visibility
-        if (existingSegmentsData && layerStates.segments) {
-            const source = map.getSource('existingSegments');
-            if (source) {
-                source.setData(existingSegmentsData.data);
-            }
+        // Force reload segments and photos if they were visible
+        if (layerStates.segments) {
+            window.layerVisibility.segments = true;
+            await loadSegments();
+            // Ensure segment layers are visible
+            ['segmentLines', 'segmentPoints'].forEach(layerId => {
+                if (map.getLayer(layerId)) {
+                    map.setLayoutProperty(layerId, 'visibility', 'visible');
+                }
+            });
         }
         
-        if (photoMarkersData && layerStates.photos) {
+        if (layerStates.photos) {
+            window.layerVisibility.photos = true;
             await loadPhotoMarkers();
+            // Ensure photo layers are visible
+            ['clusters', 'unclustered-photo'].forEach(layerId => {
+                if (map.getLayer(layerId)) {
+                    map.setLayoutProperty(layerId, 'visibility', 'visible');
+                }
+            });
         }
 
         console.log('Reset to original style completed');
     } catch (error) {
         console.error('Error resetting to original style:', error);
-        // Attempt emergency reset if something goes wrong
-        try {
-            map.setStyle(originalMapboxStyle);
-        } catch (e) {
-            console.error('Emergency reset failed:', e);
-        }
     }
 }
 
@@ -152,31 +147,15 @@ async function setTileLayer(tileUrl) {
             photos: window.layerVisibility?.photos || false
         };
 
-        // Store current data
-        let existingSegmentsData = null;
-        let photoMarkersData = null;
-        if (map.getSource('existingSegments')) {
-            existingSegmentsData = map.getSource('existingSegments').serialize();
-        }
-        if (map.getSource('photoMarkers')) {
-            photoMarkersData = map.getSource('photoMarkers').serialize();
-        }
-
-        // Remove existing layers
-        const layers = map.getStyle().layers;
-        layers.forEach(layer => {
-            if (layer.id !== 'custom-tiles-layer') {
-                map.removeLayer(layer.id);
-            }
+        // Clear existing layers but keep the container
+        map.setStyle({
+            version: 8,
+            sources: {},
+            layers: []
         });
 
-        // Remove old tile layer
-        if (map.getLayer('custom-tiles-layer')) {
-            map.removeLayer('custom-tiles-layer');
-        }
-        if (map.getSource('custom-tiles')) {
-            map.removeSource('custom-tiles');
-        }
+        // Wait for style to load
+        await new Promise(resolve => map.once('style.load', resolve));
 
         // Add new tile layer
         map.addSource('custom-tiles', {
@@ -206,22 +185,35 @@ async function setTileLayer(tileUrl) {
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore data with proper visibility
-        if (existingSegmentsData && layerStates.segments) {
-            const source = map.getSource('existingSegments');
-            if (source) {
-                source.setData(existingSegmentsData.data);
-            }
+        // Force reload segments and photos if they were visible
+        if (layerStates.segments) {
+            window.layerVisibility.segments = true;
+            await loadSegments();
+            // Ensure segment layers are visible
+            ['segmentLines', 'segmentPoints'].forEach(layerId => {
+                if (map.getLayer(layerId)) {
+                    map.setLayoutProperty(layerId, 'visibility', 'visible');
+                }
+            });
         }
         
-        if (photoMarkersData && layerStates.photos) {
+        if (layerStates.photos) {
+            window.layerVisibility.photos = true;
             await loadPhotoMarkers();
+            // Force cluster layers to be visible
+            ['clusters', 'unclustered-photo'].forEach(layerId => {
+                if (map.getLayer(layerId)) {
+                    map.setLayoutProperty(layerId, 'visibility', 'visible');
+                }
+            });
+            // Reload cluster images
+            await loadMapImage('camera-icon-cluster');
+            await loadMapImage('camera-icon');
         }
 
         console.log('Tile layer updated successfully');
     } catch (error) {
         console.error('Error setting tile layer:', error);
-        // Attempt recovery
         await resetToOriginalStyle();
     }
 }
@@ -239,6 +231,13 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     try {
         if (selectedLayer === 'reset') {
             await resetToOriginalStyle();
+            // Force reload visible layers after reset
+            if (window.layerVisibility?.segments) {
+                await loadSegments();
+            }
+            if (window.layerVisibility?.photos) {
+                await loadPhotoMarkers();
+            }
         } else if (tileLayers[selectedLayer]) {
             await setTileLayer(tileLayers[selectedLayer]);
         }
