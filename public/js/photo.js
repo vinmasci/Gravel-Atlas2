@@ -242,21 +242,53 @@ async function handlePhotoClick(e) {
             _id: photoId, 
             auth0Id,
             username,
-            picture, // Initial picture from photo metadata
+            picture,
             uploadedAt 
         } = e.features[0].properties;
 
-        // Create initial popup with placeholder image
+        // First fetch user profile before showing anything
+        let userProfile;
+        try {
+            const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
+            if (profileResponse.ok) {
+                userProfile = await profileResponse.json();
+            }
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+        }
+
+        // Use profile data if available, fall back to defaults if not
+        const displayName = userProfile?.bioName || username;
+        const profilePicture = userProfile?.picture || picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
+        
+        // Build social links HTML if available
+        let socialLinksHtml = '';
+        if (userProfile?.socialLinks) {
+            const { instagram, strava, facebook } = userProfile.socialLinks;
+            socialLinksHtml = `
+                <div class="social-links">
+                    ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+                    ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+                    ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+                    ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
+                </div>
+            `;
+        }
+
+        // Now create popup with pre-fetched data
         let popupContent = `
         <div class="photo-popup">
             <div class="photo-header">
                 <div class="user-info">
-                    <img src="${picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}" 
+                    <img src="${profilePicture}" 
                          class="profile-pic" 
-                         id="profile-pic-${photoId}" />
+                         id="profile-pic-${photoId}"
+                         onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'" />
                     <div class="name-social-line">
-                        <strong>${username}</strong>
-                        <div id="socialLinks-${photoId}"></div>
+                        <strong>${displayName}</strong>
+                        <div id="socialLinks-${photoId}">
+                            ${socialLinksHtml}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -278,51 +310,6 @@ async function handlePhotoClick(e) {
             .setLngLat(coordinates)
             .setHTML(popupContent)
             .addTo(map);
-
-        // Fetch user's latest profile data and update the popup
-        try {
-            const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
-            if (profileResponse.ok) {
-                const userProfile = await profileResponse.json();
-                console.log('Fetched user profile:', userProfile); // Debug log
-                
-                // Update profile picture if it exists
-                if (userProfile.picture) {
-                    const profilePicElement = popup.getElement().querySelector(`#profile-pic-${photoId}`);
-                    if (profilePicElement) {
-                        profilePicElement.src = userProfile.picture;
-                    }
-                }
-
-                // Update name if bioName exists
-                if (userProfile.bioName) {
-                    const nameElement = popup.getElement().querySelector('.name-social-line strong');
-                    if (nameElement) {
-                        nameElement.textContent = userProfile.bioName;
-                    }
-                }
-
-                // Update social links
-                if (userProfile.socialLinks) {
-                    const { instagram, strava, facebook } = userProfile.socialLinks;
-                    const socialLinksHtml = `
-                        <div class="social-links">
-                            ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
-                            ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
-                            ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
-                            ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
-                        </div>
-                    `;
-                    
-                    const socialLinksDiv = popup.getElement().querySelector(`#socialLinks-${photoId}`);
-                    if (socialLinksDiv) {
-                        socialLinksDiv.innerHTML = socialLinksHtml;
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-        }
 
         // Add delete handler
         setTimeout(() => {
