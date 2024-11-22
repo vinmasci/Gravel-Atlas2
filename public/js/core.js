@@ -28,7 +28,7 @@ let layerVisibility = {
 const config = {
     mapboxToken: 'pk.eyJ1IjoidmlubWFzY2kiLCJhIjoiY20xY3B1ZmdzMHp5eDJwcHBtMmptOG8zOSJ9.Ayn_YEjOCCqujIYhY9PiiA',
     defaultCenter: [144.9631, -37.8136],
-    defaultZoom: ,
+    defaultZoom: 8,
     mapStyle: 'mapbox://styles/mapbox/streets-v11',
     profileButton: {
         id: 'profileBtn',
