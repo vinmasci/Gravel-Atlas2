@@ -62,80 +62,67 @@ export default async function handler(req, res) {
                         );
                         console.log('Photo reassigned successfully');
                     } else {
-                        console.log('Attempting to find route with ID:', data.contentId);
-                        
-                        // First try to find the route
-                        const routeCheck = await db.collection('routes').findOne(
-                            { _id: new mongoose.Types.ObjectId(data.contentId) }
-                        );
+                        // Get the route ID in the correct format
+                        console.log('Attempting to find route:', data.contentId);
+                        const routeObjectId = new mongoose.Types.ObjectId(data.contentId);
 
-                        console.log('Route check result:', {
-                            found: !!routeCheck,
-                            id: data.contentId,
-                            auth0Id: routeCheck?.auth0Id
+                        // Get the existing route document
+                        const route = await db.collection('routes').findOne({ _id: routeObjectId });
+
+                        if (!route) {
+                            throw new Error(`Route not found: ${data.contentId}`);
+                        }
+
+                        console.log('Found route:', {
+                            id: route._id,
+                            currentAuth0Id: route.auth0Id,
+                            features: route.geojson?.features?.length || 0
                         });
 
-                        if (!routeCheck) {
-                            // Try to find by string ID in case it's not being converted properly
-                            const routeCheckString = await db.collection('routes').findOne(
-                                { _id: data.contentId }
-                            );
-                            console.log('Secondary route check:', {
-                                found: !!routeCheckString,
-                                id: data.contentId
-                            });
-                            
-                            if (!routeCheckString) {
-                                throw new Error(`Route not found with ID: ${data.contentId}`);
+                        // Create updated route document
+                        const updatedRoute = {
+                            ...route,
+                            auth0Id: newUser.auth0Id,
+                            metadata: {
+                                ...route.metadata,
+                                createdBy: {
+                                    auth0Id: newUser.auth0Id,
+                                    email: newUser.email,
+                                    name: newUser.bioName || newUser.email
+                                }
+                            },
+                            geojson: {
+                                ...route.geojson,
+                                features: route.geojson.features.map(feature => ({
+                                    ...feature,
+                                    properties: {
+                                        ...feature.properties,
+                                        auth0Id: newUser.auth0Id
+                                    }
+                                }))
                             }
-                        }
-
-                        // Proceed with update using the found route
-                        const route = routeCheck || routeCheckString;
+                        };
 
                         // Update the route document
-                        const updateResult = await db.collection('routes').updateOne(
-                            { _id: route._id },
-                            {
-                                $set: {
-                                    auth0Id: newUser.auth0Id,
-                                    'metadata.createdBy': {
-                                        auth0Id: newUser.auth0Id,
-                                        name: newUser.bioName || newUser.email
-                                    },
-                                    updatedAt: new Date()
-                                }
-                            }
+                        const result = await db.collection('routes').updateOne(
+                            { _id: routeObjectId },
+                            { $set: updatedRoute }
                         );
 
-                        console.log('Initial route update result:', updateResult);
+                        console.log('Route update result:', {
+                            matchedCount: result.matchedCount,
+                            modifiedCount: result.modifiedCount
+                        });
 
-                        // Update features if they exist
-                        if (route.geojson && route.geojson.features) {
-                            const updatedFeatures = route.geojson.features.map(feature => ({
-                                ...feature,
-                                properties: {
-                                    ...feature.properties,
-                                    auth0Id: newUser.auth0Id
-                                }
-                            }));
-
-                            const featuresUpdateResult = await db.collection('routes').updateOne(
-                                { _id: route._id },
-                                {
-                                    $set: {
-                                        'geojson.features': updatedFeatures
-                                    }
-                                }
-                            );
-
-                            console.log('Features update result:', {
-                                featuresCount: updatedFeatures.length,
-                                updateResult: featuresUpdateResult
-                            });
+                        if (result.matchedCount === 0) {
+                            throw new Error('Route update failed - no document matched');
                         }
 
-                        console.log('Route reassignment completed');
+                        if (result.modifiedCount === 0) {
+                            throw new Error('Route update failed - document not modified');
+                        }
+
+                        console.log('Route reassigned successfully');
                     }
 
                     console.log('Content reassigned to:', {
