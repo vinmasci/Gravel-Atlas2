@@ -100,27 +100,34 @@ function resetToOriginalStyle() {
 // ===========================
 // Function to dynamically switch between tile layers
 // ===========================
+// ===========================
+// Function to dynamically switch between tile layers
+// ===========================
 async function setTileLayer(tileUrl) {
-    // Wait for map to be fully loaded
-    if (!map.loaded()) {
-        await new Promise(resolve => map.on('load', resolve));
-    }
-
     try {
         console.log('Setting new tile layer:', tileUrl);
-
-        // Store current data before removing layers
-        let existingSegmentsData = null;
-        let photoMarkersData = null;
         
-        if (map.getSource('existingSegments')) {
-            existingSegmentsData = map.getSource('existingSegments').serialize();
-        }
-        if (map.getSource('photoMarkers')) {
-            photoMarkersData = map.getSource('photoMarkers').serialize();
-        }
+        // Store current center and zoom
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const bearing = map.getBearing();
+        const pitch = map.getPitch();
 
-        // First remove any existing tile layer
+        // Store visibility states of layers
+        const layerStates = {
+            segments: window.layerVisibility?.segments || false,
+            photos: window.layerVisibility?.photos || false
+        };
+
+        // Remove existing layers and sources specifically
+        const layers = map.getStyle().layers;
+        layers.forEach(layer => {
+            if (layer.id !== 'custom-tiles-layer') {
+                map.removeLayer(layer.id);
+            }
+        });
+
+        // Remove old tile layer if it exists
         if (map.getLayer('custom-tiles-layer')) {
             map.removeLayer('custom-tiles-layer');
         }
@@ -128,60 +135,126 @@ async function setTileLayer(tileUrl) {
             map.removeSource('custom-tiles');
         }
 
-        // Clear existing style but keep the container
-        map.setStyle({
-            version: 8,
-            sources: {},
-            layers: []
-        });
-
-        // Wait for the style to load
-        await new Promise(resolve => map.once('style.load', resolve));
-
-        // Add new tile layer as a source
+        // Add new tile layer
         map.addSource('custom-tiles', {
             'type': 'raster',
             'tiles': [tileUrl],
             'tileSize': 256
         });
 
-        // Add the new layer
         map.addLayer({
             'id': 'custom-tiles-layer',
             'type': 'raster',
             'source': 'custom-tiles',
             'layout': { 'visibility': 'visible' }
-        });
+        }, 'custom-tiles-layer');
 
-        // Restore segments and photos if they existed
-        if (existingSegmentsData) {
-            window.initGeoJSONSources();
-            window.addSegmentLayers();
-            window.setupSegmentInteraction();
-            
-            const source = map.getSource('existingSegments');
-            if (source) {
-                source.setData(existingSegmentsData.data);
-            }
+        // Restore map view
+        map.setCenter(center);
+        map.setZoom(zoom);
+        map.setBearing(bearing);
+        map.setPitch(pitch);
+
+        // Wait a short moment for the new style to settle
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Reinitialize map sources and layers
+        window.initGeoJSONSources();
+        window.addSegmentLayers();
+        window.setupSegmentInteraction();
+
+        // Restore layer visibility based on previous state
+        if (layerStates.segments) {
+            await loadSegments();
         }
-
-        if (photoMarkersData) {
-            window.loadPhotoMarkers();
+        if (layerStates.photos) {
+            await loadPhotoMarkers();
         }
 
         console.log('Tile layer updated successfully');
     } catch (error) {
         console.error('Error setting tile layer:', error);
+        // Attempt recovery
+        resetToOriginalStyle();
+    }
+}
+
+// Function to reset to original style
+async function resetToOriginalStyle() {
+    try {
+        console.log('Resetting to original style');
+        
+        // Store current state
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const bearing = map.getBearing();
+        const pitch = map.getPitch();
+        const layerStates = {
+            segments: window.layerVisibility?.segments || false,
+            photos: window.layerVisibility?.photos || false
+        };
+
+        // Set original style
+        await map.setStyle('mapbox://styles/mapbox/outdoors-v12');
+
+        // Wait for style to load
+        await new Promise(resolve => map.once('style.load', resolve));
+
+        // Restore view
+        map.setCenter(center);
+        map.setZoom(zoom);
+        map.setBearing(bearing);
+        map.setPitch(pitch);
+
+        // Wait a moment for the style to settle
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Reinitialize sources and layers
+        window.initGeoJSONSources();
+        window.addSegmentLayers();
+        window.setupSegmentInteraction();
+
+        // Restore layers
+        if (layerStates.segments) {
+            await loadSegments();
+        }
+        if (layerStates.photos) {
+            await loadPhotoMarkers();
+        }
+
+        console.log('Reset to original style completed');
+    } catch (error) {
+        console.error('Error resetting style:', error);
     }
 }
 
 // Update the event listener for the tile layer select
 document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
     const selectedLayer = event.target.value;
-    if (selectedLayer === 'reset') {
+    
+    // Disable the select while changing layers
+    event.target.disabled = true;
+    
+    try {
+        if (selectedLayer === 'reset') {
+            await resetToOriginalStyle();
+        } else if (tileLayers[selectedLayer]) {
+            await setTileLayer(tileLayers[selectedLayer]);
+        }
+    } catch (error) {
+        console.error('Error changing layer:', error);
+    } finally {
+        // Re-enable the select
+        event.target.disabled = false;
+    }
+});
+
+// Add error handling for tile loading
+map.on('error', function(e) {
+    console.error('Map error:', e);
+    if (e.error.status === 404) {
+        console.log('Tile not found, attempting recovery...');
         resetToOriginalStyle();
-    } else if (tileLayers[selectedLayer]) {
-        await setTileLayer(tileLayers[selectedLayer]);
     }
 });
 
