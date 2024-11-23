@@ -578,7 +578,7 @@ function resetRoute() {
 
 
 // ============================
-// SECTION: Save Drawn Route
+// SECTION: Save Drawn Route1
 // ============================
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
@@ -661,8 +661,8 @@ async function saveDrawnRoute() {
         newConfirmBtn.innerText = "Saving...";
 
         try {
-                // Add loading cursor at the start of the save operation
-    document.body.style.cursor = 'wait';
+            // Add loading cursor at the start of the save operation
+            document.body.style.cursor = 'wait';
 
             const routeData = {
                 metadata: {
@@ -687,6 +687,25 @@ async function saveDrawnRoute() {
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            // Add activity tracking
+            if (window.ActivityFeed) {
+                try {
+                    await window.ActivityFeed.recordActivity('segment', 'add', result._id, {
+                        title: title,
+                        location: {
+                            type: 'Point',
+                            coordinates: drawnSegmentsGeoJSON.features[0].geometry.coordinates[0]
+                        },
+                        gravelType: routeData.metadata.gravelType[0]
+                    });
+                } catch (activityError) {
+                    console.error("Error recording activity:", activityError);
+                    // Don't block the save process if activity recording fails
+                }
             }
 
             closeRouteNameModal();
@@ -723,7 +742,6 @@ async function saveDrawnRoute() {
             newConfirmBtn.innerText = "Save Route";
         }
     }, { once: true });
-    
 }
 
 

@@ -1,0 +1,74 @@
+const Activity = require('../models/Activity');
+const { getSession } = require('@auth0/nextjs-auth0');
+
+export default async function handler(req, res) {
+    // Get Auth0 session
+    let session;
+    try {
+        session = await getSession(req, res);
+        if (!session?.user) {
+            console.log('No authenticated session found');
+        }
+    } catch (e) {
+        console.error('Error getting session:', e);
+    }
+
+    if (req.method === 'GET') {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const type = req.query.type; // Optional filter by activity type
+
+            // Build query
+            const query = {};
+            if (type) query.type = type;
+
+            // Get activities with pagination
+            const activities = await Activity.find(query)
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .lean();
+
+            // Get total count for pagination
+            const total = await Activity.countDocuments(query);
+
+            res.json({
+                activities,
+                pagination: {
+                    current: page,
+                    pages: Math.ceil(total / limit),
+                    hasMore: page * limit < total
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching activities:', error);
+            res.status(500).json({ error: 'Failed to fetch activities' });
+        }
+    } else if (req.method === 'POST') {
+        try {
+            // Check authentication
+            if (!session?.user?.sub) {
+                return res.status(401).json({ error: 'Not authenticated' });
+            }
+
+            const { type, action, metadata } = req.body;
+
+            const activity = new Activity({
+                auth0Id: session.user.sub,
+                type,
+                action,
+                metadata
+            });
+
+            await activity.save();
+            res.status(201).json(activity);
+        } catch (error) {
+            console.error('Error creating activity:', error);
+            res.status(500).json({ error: 'Failed to create activity' });
+        }
+    } else {
+        res.setHeader('Allow', ['GET', 'POST']);
+        res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+}

@@ -673,6 +673,8 @@ async function renderComments(routeId) {
     }
 }
 
+// add comment 1
+
 async function addComment() {
     console.log('Adding new comment');
     const submitButton = document.getElementById('submit-comment');
@@ -725,6 +727,23 @@ async function addComment() {
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`HTTP error ${response.status}: ${errorData.error}`);
+        }
+
+        const result = await response.json();
+
+        // Add activity tracking
+        if (window.ActivityFeed) {
+            try {
+                const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
+                await window.ActivityFeed.recordActivity('comment', 'add', result._id, {
+                    title: segmentTitle,
+                    commentText: commentText,
+                    routeId: routeId
+                });
+            } catch (activityError) {
+                console.error("Error recording comment activity:", activityError);
+                // Don't block the comment process if activity recording fails
+            }
         }
 
         // Clear input and refresh comments

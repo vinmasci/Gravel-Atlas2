@@ -98,7 +98,7 @@ async function uploadToS3(file) {
     }
 }
 
-// Main upload handler
+// Main upload handler 1
 async function handlePhotoUpload() {
     const input = document.getElementById('photoFilesInput');
     const files = Array.from(input.files);
@@ -116,62 +116,75 @@ async function handlePhotoUpload() {
     let failCount = 0;
 
     try {
-        for (let i = 0; i < files.length; i += 2) { 
-            
-            
+        for (let i = 0; i < files.length; i += 2) {
             // Process 2 at a time
             const batch = files.slice(i, i + 2);
             
-// In handlePhotoUpload function, modify the metadata saving part:
-for (const file of batch) {
-    try {
-        uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
-        
-        // Get current user first
-        const currentUser = await getCurrentUser();
-        if (!currentUser) {
-            throw new Error('User not authenticated');
-        }
+            for (const file of batch) {
+                try {
+                    uploadButton.innerText = `Processing ${i + 1}/${files.length}`;
+                    
+                    // Get current user first
+                    const currentUser = await getCurrentUser();
+                    if (!currentUser) {
+                        throw new Error('User not authenticated');
+                    }
 
-        // Extract coordinates before compression
-        const coordinates = await extractCoordinates(file);
-        
-        // Compress
-        const compressedFile = await compressImage(file);
-        
-        // Upload to S3
-        const fileUrl = await uploadToS3(compressedFile);
-        
-        // Save metadata with coordinates and user info
-        const metadataResponse = await fetch('/api/save-photo-metadata', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                url: fileUrl,
-                originalName: file.name,
-                latitude: coordinates?.latitude || null,
-                longitude: coordinates?.longitude || null,
-                auth0Id: currentUser.sub,
-                username: currentUser.name || currentUser.email,
-                picture: currentUser.picture || null
-            })
-        });
+                    // Extract coordinates before compression
+                    const coordinates = await extractCoordinates(file);
+                    
+                    // Compress
+                    const compressedFile = await compressImage(file);
+                    
+                    // Upload to S3
+                    const fileUrl = await uploadToS3(compressedFile);
+                    
+                    // Save metadata with coordinates and user info
+                    const metadataResponse = await fetch('/api/save-photo-metadata', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: fileUrl,
+                            originalName: file.name,
+                            latitude: coordinates?.latitude || null,
+                            longitude: coordinates?.longitude || null,
+                            auth0Id: currentUser.sub,
+                            username: currentUser.name || currentUser.email,
+                            picture: currentUser.picture || null
+                        })
+                    });
 
-        const metadataResult = await metadataResponse.json();
-        console.log('Metadata save response:', metadataResult);
+                    const metadataResult = await metadataResponse.json();
+                    console.log('Metadata save response:', metadataResult);
 
-        if (!metadataResponse.ok) {
-            throw new Error('Failed to save photo metadata');
-        }
+                    if (!metadataResponse.ok) {
+                        throw new Error('Failed to save photo metadata');
+                    }
 
-        successCount++;
-    } catch (error) {
-        console.error(`Failed to process ${file.name}:`, error);
-        failCount++;
-    }
-}
+                    // Add activity tracking
+                    if (window.ActivityFeed && coordinates) {
+                        try {
+                            await window.ActivityFeed.recordActivity('photo', 'add', metadataResult._id, {
+                                location: {
+                                    type: 'Point',
+                                    coordinates: [coordinates.longitude, coordinates.latitude]
+                                },
+                                photoUrl: fileUrl
+                            });
+                        } catch (activityError) {
+                            console.error("Error recording photo activity:", activityError);
+                            // Don't block the upload process if activity recording fails
+                        }
+                    }
+
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to process ${file.name}:`, error);
+                    failCount++;
+                }
+            }
 
             // Small delay between batches
             if (i + 2 < files.length) {
@@ -188,20 +201,20 @@ for (const file of batch) {
         }
     
         // Refresh markers if any uploads succeeded
-if (successCount > 0) {
-    console.log('Refreshing markers after successful uploads...');
-    setTimeout(async () => {
-        try {
-            await loadPhotoMarkers();
-            console.log('Markers refreshed successfully');
-            // Force the photo layer to be visible
-            window.layerVisibility.photos = true;
-            updateTabHighlight('photos-tab', true);
-        } catch (error) {
-            console.error('Error refreshing markers:', error);
+        if (successCount > 0) {
+            console.log('Refreshing markers after successful uploads...');
+            setTimeout(async () => {
+                try {
+                    await loadPhotoMarkers();
+                    console.log('Markers refreshed successfully');
+                    // Force the photo layer to be visible
+                    window.layerVisibility.photos = true;
+                    updateTabHighlight('photos-tab', true);
+                } catch (error) {
+                    console.error('Error refreshing markers:', error);
+                }
+            }, 2000);  // 2 second delay
         }
-    }, 2000);  // 2 second delay
-}
     
         // Reset button after delay
         setTimeout(() => {

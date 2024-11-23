@@ -254,7 +254,7 @@ const handlers = {
     }
 };
 
-// Initialize core functionality
+// Initialize core functionality1
 async function initCore() {
     console.log('Initializing core...');
     
@@ -280,6 +280,17 @@ async function initCore() {
             // Give the map a moment to process the source/layer additions
             setTimeout(resolve, 100);
         });
+
+        // Initialize Activity Feed if available
+        if (window.ActivityFeed) {
+            try {
+                await window.ActivityFeed.init();
+                console.log('Activity Feed initialized');
+            } catch (error) {
+                console.error('Error initializing Activity Feed:', error);
+                // Non-blocking - continue initialization if Activity Feed fails
+            }
+        }
 
         // Show loading indicators immediately
         utils.showTabLoading('segments-tab');
