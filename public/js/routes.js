@@ -578,7 +578,7 @@ function resetRoute() {
 
 
 // ============================
-// Loading overlay control functions 1
+// Loading overlay control functions
 // ============================
 function showLoading(message = 'Processing...') {
     const overlay = document.getElementById('loading-overlay');
@@ -594,6 +594,11 @@ function hideLoading() {
     if (overlay) {
         overlay.style.display = 'none';
     }
+}
+
+// Force hide loading after timeout
+function forceHideLoadingAfterDelay(delay = 5000) {
+    setTimeout(hideLoading, delay);
 }
 
 // ============================
@@ -626,7 +631,6 @@ async function saveDrawnRoute() {
             throw new Error("Invalid user data");
         }
 
-        // Verify current user matches stored profile
         await verifyCurrentUser();
 
     } catch (authError) {
@@ -635,7 +639,6 @@ async function saveDrawnRoute() {
         return;
     }
 
-    // Get the selected gravel type
     const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
     console.log("Selected gravel types:", gravelTypes);
 
@@ -680,9 +683,6 @@ async function saveDrawnRoute() {
         newConfirmBtn.innerText = "Saving...";
 
         try {
-            // Add loading cursor at the start of the save operation
-            document.body.style.cursor = 'wait';
-
             const routeData = {
                 metadata: {
                     title: title,
@@ -710,7 +710,6 @@ async function saveDrawnRoute() {
 
             const result = await response.json();
 
-            // Add activity tracking
             if (window.ActivityFeed) {
                 try {
                     await window.ActivityFeed.recordActivity('segment', 'add', result._id, {
@@ -723,13 +722,18 @@ async function saveDrawnRoute() {
                     });
                 } catch (activityError) {
                     console.error("Error recording activity:", activityError);
-                    // Don't block the save process if activity recording fails
                 }
             }
 
             closeRouteNameModal();
             resetRoute();
             
+            alert("Route saved successfully!");
+
+            showLoading('Updating map...');
+            // Start forced timeout to hide loading after 5 seconds
+            forceHideLoadingAfterDelay(5000);
+
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData({
@@ -739,23 +743,26 @@ async function saveDrawnRoute() {
             }
 
             setTimeout(async () => {
-                await loadSegments();
-                map.fitBounds(bounds, {
-                    padding: {
-                        top: 100,
-                        bottom: 100,
-                        left: 100,
-                        right: 100
-                    },
-                    duration: 1000
-                });
+                try {
+                    await loadSegments();
+                    map.fitBounds(bounds, {
+                        padding: {
+                            top: 100,
+                            bottom: 100,
+                            left: 100,
+                            right: 100
+                        },
+                        duration: 1000
+                    });
+                } catch (error) {
+                    console.error("Error updating map:", error);
+                }
             }, 100);
-
-            alert("Route saved successfully!");
 
         } catch (error) {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
+            hideLoading();
         } finally {
             newConfirmBtn.disabled = false;
             newConfirmBtn.innerText = "Save Route";
@@ -763,6 +770,12 @@ async function saveDrawnRoute() {
     }, { once: true });
 }
 
+// Make functions globally available
+if (typeof window !== 'undefined') {
+    window.saveDrawnRoute = saveDrawnRoute;
+    window.showLoading = showLoading;
+    window.hideLoading = hideLoading;
+}
 
 // ============================
 // SECTION: Handle Save Confirmation
