@@ -183,7 +183,7 @@
 /* ============================
    SECTION: Basic Reset & Layout
    ============================ */
-body {
+   body {
     margin: 0;
     padding-top: 56px; /* Height of navbar */
 }
@@ -425,8 +425,42 @@ body {
 /* Adjust map position when about section is open */
 #map.about-open {
     margin-top: 0;
-
 }
+
+/* ============================
+   SECTION: Mobile Adjustments
+   ============================ */
+@media (max-width: 768px) {
+    .nav-section {
+        position: relative;
+        top: 0;
+        z-index: 1;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .nav-section.collapse:not(.show) {
+        display: none;
+        transform: none;
+    }
+
+    .nav-section.collapse.show {
+        display: block;
+        transform: none;
+    }
+
+    /* Adjust the map position */
+    #map {
+        top: 56px; /* Height of the navbar */
+        bottom: 0;
+    }
+
+    /* Adjust the map when a nav-section is open */
+    #map.nav-section-open {
+        margin-top: 0;
+    }
+}
+
 
 
 /* ============================
@@ -1703,8 +1737,8 @@ body {
 }
     </style>
     
-<!-- Updated navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<!-- Updated navbarV2 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <a class="navbar-brand" href="#">
         <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas
     </a>
@@ -2108,6 +2142,7 @@ body {
 <!-- UI Layer -->
 <script src="/js/ui.js"></script>
 
+
 <!-- Initialize -->
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
@@ -2124,6 +2159,7 @@ body {
             
             // Handle all nav section toggles
             const sections = ['about', 'faq'];
+            const mapElement = document.getElementById('map');
             
             sections.forEach(section => {
                 const toggle = document.getElementById(`${section}Toggle`);
@@ -2144,6 +2180,21 @@ body {
                         // Toggle this section
                         sectionEl.classList.toggle('show');
                         this.parentElement.classList.toggle('active');
+
+                        // Check if any section is open
+                        const anySectionOpen = sections.some(sec => document.getElementById(`${sec}Section`).classList.contains('show'));
+                        
+                        // Add or remove class based on section state
+                        if (anySectionOpen) {
+                            mapElement.classList.add('nav-section-open');
+                        } else {
+                            mapElement.classList.remove('nav-section-open');
+                        }
+
+                        // Scroll into view on mobile devices
+                        if (window.innerWidth <= 768 && sectionEl.classList.contains('show')) {
+                            sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
                     });
                 }
             });
@@ -2171,6 +2222,7 @@ body {
         }
     });
 </script>
+
 
 <script>
 // ============================
