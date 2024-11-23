@@ -823,14 +823,34 @@ async function deleteComment(commentId) {
 }
 
 // ============================
-// SECTION: Delete Segment1
+// SECTION: Delete Segment 1
 // ============================
+// Loading overlay control functions
+function showLoading(message = 'Processing...') {
+    const overlay = document.getElementById('loading-overlay');
+    const messageEl = document.getElementById('loading-message');
+    if (overlay && messageEl) {
+        messageEl.textContent = message;
+        overlay.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// Delete Segment Function
+let deleteInProgress = false;
+
 async function deleteSegment() {
     if (deleteInProgress) {
         console.log("Delete already in progress");
         return;
     }
-    
+
     const deleteButton = document.getElementById('delete-segment');
     const routeIdElement = document.getElementById('route-id');
     const routeId = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
@@ -841,15 +861,15 @@ async function deleteSegment() {
         console.error("No route ID found for deletion.");
         return;
     }
-    
+
     if (!confirm("Are you sure you want to delete this segment?")) {
         return;
     }
-    
+
     deleteInProgress = true;
     deleteButton.disabled = true;
     deleteButton.innerHTML = "Deleting...";
-    
+
     try {
         const deleteUrl = `/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`;
         console.log("Making delete request to:", deleteUrl);
@@ -867,26 +887,29 @@ async function deleteSegment() {
         if (result.success) {
             console.log('Segment deleted successfully from MongoDB.');
             closeModal();
+            // Show loading overlay before reloading segments
             showLoading('Updating map...');
             await loadSegments();
+            // Hide loading overlay after segments are loaded
+            hideLoading();
         } else {
             throw new Error(result.message || 'Failed to delete segment');
         }
     } catch (error) {
         console.error('Error deleting segment:', error);
         alert(error.message || 'Failed to delete segment');
-    } finally {
+        // Make sure to hide loading if there's an error
         hideLoading();
+    } finally {
         deleteInProgress = false;
         deleteButton.disabled = false;
         deleteButton.innerHTML = "Delete Segment";
     }
 }
 
-// Export functions to window
+// Make function globally available
 if (typeof window !== 'undefined') {
     window.deleteSegment = deleteSegment;
-    window.saveDrawnRoute = saveDrawnRoute;
     window.showLoading = showLoading;
     window.hideLoading = hideLoading;
 }

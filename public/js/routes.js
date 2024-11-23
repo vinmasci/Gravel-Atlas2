@@ -597,25 +597,8 @@ function hideLoading() {
 }
 
 // ============================
-// SECTION: Save Drawn Route2
+// SECTION: Save Drawn Route1
 // ============================
-function showLoading(message = 'Processing...') {
-    const overlay = document.getElementById('loading-overlay');
-    const messageEl = document.getElementById('loading-message');
-    if (overlay && messageEl) {
-        messageEl.textContent = message;
-        overlay.style.display = 'flex';
-    }
-}
-
-function hideLoading() {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-}
-
-// Modified saveDrawnRoute function
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
     
@@ -651,6 +634,7 @@ async function saveDrawnRoute() {
         return;
     }
 
+    // Get the selected gravel type
     const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
     console.log("Selected gravel types:", gravelTypes);
 
@@ -741,6 +725,8 @@ async function saveDrawnRoute() {
             resetRoute();
             
             alert("Route saved successfully!");
+
+            // Show loading overlay after the success alert
             showLoading('Updating map...');
 
             const source = map.getSource('existingSegments');
@@ -751,6 +737,7 @@ async function saveDrawnRoute() {
                 });
             }
 
+            // Remove setTimeout and use async/await
             await loadSegments();
             map.fitBounds(bounds, {
                 padding: {
@@ -766,6 +753,7 @@ async function saveDrawnRoute() {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
         } finally {
+            // Hide loading overlay
             hideLoading();
             newConfirmBtn.disabled = false;
             newConfirmBtn.innerText = "Save Route";
@@ -773,6 +761,10 @@ async function saveDrawnRoute() {
     }, { once: true });
 }
 
+// Make sure the function is available globally
+if (typeof window !== 'undefined') {
+    window.saveDrawnRoute = saveDrawnRoute;
+}
 
 // ============================
 // SECTION: Handle Save Confirmation
