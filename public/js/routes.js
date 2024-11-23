@@ -626,6 +626,7 @@ async function saveDrawnRoute() {
             throw new Error("Invalid user data");
         }
 
+        // Verify current user matches stored profile
         await verifyCurrentUser();
 
     } catch (authError) {
@@ -679,6 +680,9 @@ async function saveDrawnRoute() {
         newConfirmBtn.innerText = "Saving...";
 
         try {
+            // Add loading cursor at the start of the save operation
+            document.body.style.cursor = 'wait';
+
             const routeData = {
                 metadata: {
                     title: title,
@@ -706,6 +710,7 @@ async function saveDrawnRoute() {
 
             const result = await response.json();
 
+            // Add activity tracking
             if (window.ActivityFeed) {
                 try {
                     await window.ActivityFeed.recordActivity('segment', 'add', result._id, {
@@ -718,17 +723,13 @@ async function saveDrawnRoute() {
                     });
                 } catch (activityError) {
                     console.error("Error recording activity:", activityError);
+                    // Don't block the save process if activity recording fails
                 }
             }
 
             closeRouteNameModal();
             resetRoute();
             
-            alert("Route saved successfully!");
-
-            // Show loading overlay after the success alert
-            showLoading('Updating map...');
-
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData({
@@ -737,34 +738,31 @@ async function saveDrawnRoute() {
                 });
             }
 
-            // Remove setTimeout and use async/await
-            await loadSegments();
-            map.fitBounds(bounds, {
-                padding: {
-                    top: 100,
-                    bottom: 100,
-                    left: 100,
-                    right: 100
-                },
-                duration: 1000
-            });
+            setTimeout(async () => {
+                await loadSegments();
+                map.fitBounds(bounds, {
+                    padding: {
+                        top: 100,
+                        bottom: 100,
+                        left: 100,
+                        right: 100
+                    },
+                    duration: 1000
+                });
+            }, 100);
+
+            alert("Route saved successfully!");
 
         } catch (error) {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
         } finally {
-            // Hide loading overlay
-            hideLoading();
             newConfirmBtn.disabled = false;
             newConfirmBtn.innerText = "Save Route";
         }
     }, { once: true });
 }
 
-// Make sure the function is available globally
-if (typeof window !== 'undefined') {
-    window.saveDrawnRoute = saveDrawnRoute;
-}
 
 // ============================
 // SECTION: Handle Save Confirmation
