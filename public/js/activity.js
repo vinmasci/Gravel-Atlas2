@@ -45,54 +45,80 @@ const ActivityFeed = {
         // Add styles only if they haven't been added
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-                .activity-feed {
-                    position: fixed;
-                    top: 60px;
-                    right: 20px;
-                    width: 300px;
-                    max-height: calc(100vh - 80px);
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    z-index: 1000;
-                    overflow-y: auto;
-                    font-family: 'DM Sans', sans-serif;
-                }
-
-                .activity-feed-header {
-                    padding: 12px;
-                    border-bottom: 1px solid #eee;
-                }
-
-                .activity-item {
-                    padding: 12px;
-                    border-bottom: 1px solid #eee;
-                    cursor: pointer;
-                }
-
-                .activity-item:hover {
-                    background: #f8f9fa;
-                }
-
-                .activity-meta {
-                    font-size: 12px;
-                    color: #666;
-                    margin-top: 4px;
-                }
-
-                .activity-count {
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    background: #FF652F;
-                    color: white;
-                    border-radius: 10px;
-                    padding: 0 6px;
-                    font-size: 10px;
-                    min-width: 16px;
-                    text-align: center;
-                }
-            `;
+            .activity-feed {
+                position: fixed;
+                top: 60px;
+                left: 20px;  /* Changed from right to left */
+                width: 300px;
+                max-height: calc(100vh - 80px);
+                background-color: #212529;  /* Dark background to match navbar */
+                color: #fff;  /* White text */
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                z-index: 1000;
+                overflow-y: auto;
+                font-family: 'DM Sans', sans-serif;
+            }
+        
+            .activity-feed-header {
+                padding: 12px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                background-color: #343a40;  /* Slightly lighter than background */
+            }
+        
+            .activity-item {
+                padding: 12px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                cursor: pointer;
+            }
+        
+            .activity-item:hover {
+                background-color: #343a40;  /* Lighter on hover */
+            }
+        
+            .activity-meta {
+                font-size: 12px;
+                color: rgba(255,255,255,0.6);  /* Lighter gray for meta info */
+                margin-top: 4px;
+            }
+        
+            .activity-count {
+                position: absolute;
+                top: 0;
+                right: 0;
+                background: #FF652F;
+                color: white;
+                border-radius: 10px;
+                padding: 0 6px;
+                font-size: 10px;
+                min-width: 16px;
+                text-align: center;
+            }
+        
+            #activity-feed::-webkit-scrollbar {
+                width: 6px;
+            }
+        
+            #activity-feed::-webkit-scrollbar-track {
+                background: #343a40;
+            }
+        
+            #activity-feed::-webkit-scrollbar-thumb {
+                background: #666;
+                border-radius: 3px;
+            }
+        
+            #activity-feed::-webkit-scrollbar-thumb:hover {
+                background: #888;
+            }
+        
+            #activity-feed-loader {
+                color: rgba(255,255,255,0.8);
+                text-align: center;
+                padding: 10px;
+            }
+        `;
+        
             const styleSheet = document.createElement("style");
             styleSheet.id = 'activity-feed-styles';
             styleSheet.textContent = styles;
@@ -155,41 +181,42 @@ const ActivityFeed = {
 
     async loadActivities(reset = false) {
         if (this.isLoading || (!reset && !this.hasMore)) return;
-
+    
         try {
             console.log('Loading activities, reset:', reset);
             this.isLoading = true;
             const loader = document.getElementById('activity-feed-loader');
             if (loader) loader.style.display = 'block';
-
+    
             if (reset) {
                 this.currentPage = 1;
                 const content = document.getElementById('activity-feed-content');
                 if (content) content.innerHTML = '';
             }
-
+    
             // Get auth token
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
-
+    
             console.log('Fetching activities for page:', this.currentPage);
-            const response = await fetch(`/api/activities?page=${this.currentPage}&limit=20`, {
+            const response = await fetch(`/api/activity?page=${this.currentPage}&limit=20`, { // Changed to activity
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
-
+    
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
+    
             const data = await response.json();
             console.log('Received activities:', data);
-
+    
             this.renderActivities(data.activities);
             this.hasMore = data.pagination.hasMore;
             this.currentPage++;
-
+    
             // Update notification count
             if (reset) {
                 const countEl = document.querySelector('.activity-count');
@@ -197,16 +224,25 @@ const ActivityFeed = {
                     countEl.style.display = 'none';
                 }
             }
-
+    
         } catch (error) {
             console.error('Error loading activities:', error);
+            const content = document.getElementById('activity-feed-content');
+            if (content) {
+                content.innerHTML = `
+                    <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
+                        <i class="fa-solid fa-exclamation-circle" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <div>Error loading activities</div>
+                    </div>
+                `;
+            }
         } finally {
             this.isLoading = false;
             const loader = document.getElementById('activity-feed-loader');
             if (loader) loader.style.display = 'none';
         }
     },
-
+    
     renderActivities(activities) {
         console.log('Rendering activities:', activities);
         const container = document.getElementById('activity-feed-content');
@@ -214,35 +250,65 @@ const ActivityFeed = {
             console.error('Activity feed content container not found');
             return;
         }
-
+    
         if (!activities || activities.length === 0) {
-            container.innerHTML = '<div class="activity-item">No activities yet</div>';
+            container.innerHTML = `
+                <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
+                    <i class="fa-solid fa-inbox" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                    <div>No activities yet</div>
+                    <div style="font-size: 12px; margin-top: 4px;">
+                        Activities will appear here when you add segments, photos, or comments
+                    </div>
+                </div>
+            `;
             return;
         }
-
+    
         activities.forEach(activity => {
             const item = document.createElement('div');
             item.className = 'activity-item';
-            
+    
             const content = this.formatActivityContent(activity);
             const timeAgo = this.formatTimeAgo(activity.createdAt);
-
+            
+            // Add icon based on activity type
+            const icon = activity.type === 'segment' ? 'fa-route' :
+                        activity.type === 'photo' ? 'fa-camera' :
+                        activity.type === 'comment' ? 'fa-comment' : 'fa-circle';
+    
             item.innerHTML = `
-                <div>${content}</div>
-                <div class="activity-meta">${timeAgo}</div>
+                <div style="display: flex; align-items: start; gap: 10px;">
+                    <div style="padding-top: 2px;">
+                        <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
+                    </div>
+                    <div style="flex-grow: 1;">
+                        <div>${content}</div>
+                        <div class="activity-meta">${timeAgo}</div>
+                    </div>
+                </div>
             `;
-
+    
             // Add click handler if activity has location
             if (activity.metadata?.location?.coordinates) {
+                item.style.cursor = 'pointer';
                 item.addEventListener('click', () => {
                     map.flyTo({
                         center: activity.metadata.location.coordinates,
-                        zoom: 14
+                        zoom: 14,
+                        duration: 1000 // Smooth animation
                     });
                     this.toggleFeed();
                 });
+    
+                // Add hover effect for items with location
+                item.addEventListener('mouseenter', () => {
+                    item.style.backgroundColor = '#3b4147'; // Slightly lighter than hover
+                });
+                item.addEventListener('mouseleave', () => {
+                    item.style.backgroundColor = '';
+                });
             }
-
+    
             container.appendChild(item);
         });
     },
