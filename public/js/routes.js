@@ -731,8 +731,8 @@ async function saveDrawnRoute() {
             alert("Route saved successfully!");
 
             showLoading('Updating map...');
-            // Start forced timeout to hide loading after 5 seconds
-            forceHideLoadingAfterDelay(3000);
+            // Start forced timeout to hide loading after 4 seconds
+            forceHideLoadingAfterDelay(4000);
 
             const source = map.getSource('existingSegments');
             if (source) {
