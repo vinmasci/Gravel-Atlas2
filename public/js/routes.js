@@ -680,9 +680,6 @@ async function saveDrawnRoute() {
         newConfirmBtn.innerText = "Saving...";
 
         try {
-            // Add loading cursor at the start of the save operation
-            document.body.style.cursor = 'wait';
-
             const routeData = {
                 metadata: {
                     title: title,
@@ -710,7 +707,6 @@ async function saveDrawnRoute() {
 
             const result = await response.json();
 
-            // Add activity tracking
             if (window.ActivityFeed) {
                 try {
                     await window.ActivityFeed.recordActivity('segment', 'add', result._id, {
@@ -723,22 +719,25 @@ async function saveDrawnRoute() {
                     });
                 } catch (activityError) {
                     console.error("Error recording activity:", activityError);
-                    // Don't block the save process if activity recording fails
                 }
             }
 
             closeRouteNameModal();
             resetRoute();
             
-            const source = map.getSource('existingSegments');
-            if (source) {
-                source.setData({
-                    'type': 'FeatureCollection',
-                    'features': []
-                });
-            }
+            alert("Route saved successfully!");
 
-            setTimeout(async () => {
+            try {
+                showLoading('Updating map...');
+                
+                const source = map.getSource('existingSegments');
+                if (source) {
+                    source.setData({
+                        'type': 'FeatureCollection',
+                        'features': []
+                    });
+                }
+
                 await loadSegments();
                 map.fitBounds(bounds, {
                     padding: {
@@ -749,13 +748,14 @@ async function saveDrawnRoute() {
                     },
                     duration: 1000
                 });
-            }, 100);
-
-            alert("Route saved successfully!");
+            } finally {
+                hideLoading();
+            }
 
         } catch (error) {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
+            hideLoading();
         } finally {
             newConfirmBtn.disabled = false;
             newConfirmBtn.innerText = "Save Route";
@@ -763,6 +763,12 @@ async function saveDrawnRoute() {
     }, { once: true });
 }
 
+// Make functions globally available
+if (typeof window !== 'undefined') {
+    window.saveDrawnRoute = saveDrawnRoute;
+    window.showLoading = showLoading;
+    window.hideLoading = hideLoading;
+}
 
 // ============================
 // SECTION: Handle Save Confirmation
