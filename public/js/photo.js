@@ -246,6 +246,52 @@ function handleClusterClick(e) {
     );
 }
 
+// ============================
+// Loading overlay control functions
+// ============================
+function showLoading(message = 'Processing...') {
+    const overlay = document.getElementById('loading-overlay');
+    const messageEl = document.getElementById('loading-message');
+    if (overlay && messageEl) {
+        messageEl.textContent = message;
+        overlay.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function forceHideLoadingAfterDelay(delay = 5000) {
+    setTimeout(hideLoading, delay);
+}
+
+// ============================
+// Delete Photo
+// ============================
+async function deletePhoto(photoId) {
+    try {
+        const response = await fetch(`/api/delete-photo?photoId=${photoId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete photo');
+        }
+        
+        return response.json();
+    } catch (error) {
+        console.error('Error deleting photo:', error);
+        throw error;
+    }
+}
+
+// ============================
+// Handle Photo Click
+// ============================
 async function handlePhotoClick(e) {
     try {
         const coordinates = e.features[0].geometry.coordinates.slice();
@@ -324,15 +370,29 @@ async function handlePhotoClick(e) {
             .setHTML(popupContent)
             .addTo(map);
 
-        // Add delete handler
+        // Add delete handler with loading states
         setTimeout(() => {
             const deleteText = popup.getElement().querySelector('#deletePhotoText');
             if (deleteText) {
                 deleteText.addEventListener('click', async () => {
                     if (confirm('Are you sure you want to delete this photo?')) {
-                        await deletePhoto(photoId);
-                        popup.remove();
-                        loadPhotoMarkers();
+                        try {
+                            showLoading('Deleting photo...');
+                            forceHideLoadingAfterDelay(5000);
+                            
+                            await deletePhoto(photoId);
+                            popup.remove();
+                            
+                            showLoading('Updating map...');
+                            forceHideLoadingAfterDelay(5000);
+                            
+                            await loadPhotoMarkers();
+                        } catch (error) {
+                            console.error('Error handling photo deletion:', error);
+                            alert('Failed to delete photo. Please try again.');
+                        } finally {
+                            hideLoading();
+                        }
                     }
                 });
             }
@@ -340,23 +400,6 @@ async function handlePhotoClick(e) {
 
     } catch (error) {
         console.error('Error creating photo popup:', error);
-    }
-}
-
-async function deletePhoto(photoId) {
-    try {
-        const response = await fetch(`/api/delete-photo?photoId=${photoId}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to delete photo');
-        }
-        
-        return response.json();
-    } catch (error) {
-        console.error('Error deleting photo:', error);
-        throw error;
     }
 }
 
