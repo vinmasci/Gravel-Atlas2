@@ -2,7 +2,7 @@ const ActivityFeed = {
     currentPage: 1,
     isLoading: false,
     hasMore: true,
-    initialized: false, // Add initialization flag
+    initialized: false,
 
     async init() {
         // Prevent double initialization
@@ -102,30 +102,62 @@ const ActivityFeed = {
         // Add event listeners
         const toggleButton = document.getElementById('activityFeedToggle');
         if (toggleButton) {
-            toggleButton.removeEventListener('click', this.toggleFeed.bind(this));
-            toggleButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.toggleFeed();
-            });
+            console.log('Setting up activity feed toggle button');
+            toggleButton.removeEventListener('click', this.handleToggleClick);
+            toggleButton.addEventListener('click', this.handleToggleClick.bind(this));
         }
 
+        // Handle infinite scroll
         const feedElement = document.getElementById('activity-feed');
         if (feedElement) {
-            feedElement.removeEventListener('scroll', this.handleScroll.bind(this));
-            feedElement.addEventListener('scroll', () => {
-                if (feedElement.scrollHeight - feedElement.scrollTop <= feedElement.clientHeight + 100) {
-                    this.loadMore();
-                }
-            });
+            feedElement.removeEventListener('scroll', this.handleScroll);
+            feedElement.addEventListener('scroll', this.handleScroll.bind(this));
         }
 
         this.initialized = true;
+        console.log('Activity feed initialized successfully');
+    },
+
+    // New method to handle toggle click
+    handleToggleClick(e) {
+        console.log('Toggle button clicked');
+        e.preventDefault();
+        this.toggleFeed();
+    },
+
+    // New method to handle scroll
+    handleScroll(e) {
+        const feed = e.target;
+        if (feed.scrollHeight - feed.scrollTop <= feed.clientHeight + 100) {
+            this.loadMore();
+        }
+    },
+
+    // Added toggleFeed method
+    async toggleFeed() {
+        console.log('Toggling feed visibility');
+        const feed = document.getElementById('activity-feed');
+        if (!feed) {
+            console.error('Feed element not found');
+            return;
+        }
+
+        const isVisible = feed.style.display === 'block';
+        console.log('Current feed visibility:', isVisible);
+        
+        feed.style.display = isVisible ? 'none' : 'block';
+        
+        if (!isVisible) {
+            console.log('Loading activities...');
+            await this.loadActivities(true);
+        }
     },
 
     async loadActivities(reset = false) {
         if (this.isLoading || (!reset && !this.hasMore)) return;
 
         try {
+            console.log('Loading activities, reset:', reset);
             this.isLoading = true;
             const loader = document.getElementById('activity-feed-loader');
             if (loader) loader.style.display = 'block';
@@ -140,6 +172,7 @@ const ActivityFeed = {
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
 
+            console.log('Fetching activities for page:', this.currentPage);
             const response = await fetch(`/api/activities?page=${this.currentPage}&limit=20`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -151,6 +184,7 @@ const ActivityFeed = {
             }
 
             const data = await response.json();
+            console.log('Received activities:', data);
 
             this.renderActivities(data.activities);
             this.hasMore = data.pagination.hasMore;
@@ -173,10 +207,89 @@ const ActivityFeed = {
         }
     },
 
-    // Your existing renderActivities, formatActivityContent, and formatTimeAgo methods remain the same
+    renderActivities(activities) {
+        console.log('Rendering activities:', activities);
+        const container = document.getElementById('activity-feed-content');
+        if (!container) {
+            console.error('Activity feed content container not found');
+            return;
+        }
+
+        if (!activities || activities.length === 0) {
+            container.innerHTML = '<div class="activity-item">No activities yet</div>';
+            return;
+        }
+
+        activities.forEach(activity => {
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            
+            const content = this.formatActivityContent(activity);
+            const timeAgo = this.formatTimeAgo(activity.createdAt);
+
+            item.innerHTML = `
+                <div>${content}</div>
+                <div class="activity-meta">${timeAgo}</div>
+            `;
+
+            // Add click handler if activity has location
+            if (activity.metadata?.location?.coordinates) {
+                item.addEventListener('click', () => {
+                    map.flyTo({
+                        center: activity.metadata.location.coordinates,
+                        zoom: 14
+                    });
+                    this.toggleFeed();
+                });
+            }
+
+            container.appendChild(item);
+        });
+    },
+
+    formatActivityContent(activity) {
+        console.log('Formatting activity:', activity);
+        switch (activity.type) {
+            case 'segment':
+                return `Added new segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+            case 'comment':
+                return `Commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+            case 'photo':
+                return `Added a new photo`;
+            default:
+                return `Unknown activity type: ${activity.type}`;
+        }
+    },
+
+    formatTimeAgo(date) {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + ' years ago';
+        
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + ' months ago';
+        
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + ' days ago';
+        
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + ' hours ago';
+        
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + ' minutes ago';
+        
+        return 'just now';
+    },
+
+    async loadMore() {
+        console.log('Loading more activities...');
+        await this.loadActivities();
+    },
 
     async recordActivity(type, action, metadata) {
         try {
+            console.log('Recording activity:', { type, action, metadata });
             // Get auth token
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
@@ -200,6 +313,7 @@ const ActivityFeed = {
                 countEl.style.display = 'block';
             }
 
+            console.log('Activity recorded successfully');
         } catch (error) {
             console.error('Error recording activity:', error);
         }
