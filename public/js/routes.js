@@ -578,8 +578,44 @@ function resetRoute() {
 
 
 // ============================
-// SECTION: Save Drawn Route1
+// Loading overlay control functions
 // ============================
+function showLoading(message = 'Processing...') {
+    const overlay = document.getElementById('loading-overlay');
+    const messageEl = document.getElementById('loading-message');
+    if (overlay && messageEl) {
+        messageEl.textContent = message;
+        overlay.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// ============================
+// SECTION: Save Drawn Route2
+// ============================
+function showLoading(message = 'Processing...') {
+    const overlay = document.getElementById('loading-overlay');
+    const messageEl = document.getElementById('loading-message');
+    if (overlay && messageEl) {
+        messageEl.textContent = message;
+        overlay.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// Modified saveDrawnRoute function
 async function saveDrawnRoute() {
     console.log("Starting saveDrawnRoute function");
     
@@ -607,7 +643,6 @@ async function saveDrawnRoute() {
             throw new Error("Invalid user data");
         }
 
-        // Verify current user matches stored profile
         await verifyCurrentUser();
 
     } catch (authError) {
@@ -616,7 +651,6 @@ async function saveDrawnRoute() {
         return;
     }
 
-    // Get the selected gravel type
     const gravelTypes = Array.from(document.querySelectorAll('input[name="gravelType"]:checked')).map(input => input.value);
     console.log("Selected gravel types:", gravelTypes);
 
@@ -661,9 +695,6 @@ async function saveDrawnRoute() {
         newConfirmBtn.innerText = "Saving...";
 
         try {
-            // Add loading cursor at the start of the save operation
-            document.body.style.cursor = 'wait';
-
             const routeData = {
                 metadata: {
                     title: title,
@@ -691,7 +722,6 @@ async function saveDrawnRoute() {
 
             const result = await response.json();
 
-            // Add activity tracking
             if (window.ActivityFeed) {
                 try {
                     await window.ActivityFeed.recordActivity('segment', 'add', result._id, {
@@ -704,13 +734,15 @@ async function saveDrawnRoute() {
                     });
                 } catch (activityError) {
                     console.error("Error recording activity:", activityError);
-                    // Don't block the save process if activity recording fails
                 }
             }
 
             closeRouteNameModal();
             resetRoute();
             
+            alert("Route saved successfully!");
+            showLoading('Updating map...');
+
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData({
@@ -719,25 +751,22 @@ async function saveDrawnRoute() {
                 });
             }
 
-            setTimeout(async () => {
-                await loadSegments();
-                map.fitBounds(bounds, {
-                    padding: {
-                        top: 100,
-                        bottom: 100,
-                        left: 100,
-                        right: 100
-                    },
-                    duration: 1000
-                });
-            }, 100);
-
-            alert("Route saved successfully!");
+            await loadSegments();
+            map.fitBounds(bounds, {
+                padding: {
+                    top: 100,
+                    bottom: 100,
+                    left: 100,
+                    right: 100
+                },
+                duration: 1000
+            });
 
         } catch (error) {
             console.error("Error saving route:", error);
             alert("Failed to save route. Please try again.");
         } finally {
+            hideLoading();
             newConfirmBtn.disabled = false;
             newConfirmBtn.innerText = "Save Route";
         }
@@ -891,3 +920,5 @@ window.enableDrawingMode = enableDrawingMode;
 window.disableDrawingMode = disableDrawingMode;
 window.handleSaveConfirmation = handleSaveConfirmation;
 window.addEventListener('resize', updateElevationPreviewVisibility);
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;

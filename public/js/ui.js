@@ -823,33 +823,33 @@ async function deleteComment(commentId) {
 }
 
 // ============================
-// SECTION: Delete Segment
+// SECTION: Delete Segment1
 // ============================
-let deleteInProgress = false;  // Add this at the top of your file
-
 async function deleteSegment() {
     if (deleteInProgress) {
         console.log("Delete already in progress");
         return;
     }
+    
     const deleteButton = document.getElementById('delete-segment');
     const routeIdElement = document.getElementById('route-id');
     const routeId = routeIdElement ? routeIdElement.innerText.replace('Route ID: ', '').trim() : null;
     
-    console.log("Getting routeId from modal:", routeId); // Debug log
-
+    console.log("Getting routeId from modal:", routeId);
+    
     if (!routeId) {
         console.error("No route ID found for deletion.");
         return;
     }
-
+    
     if (!confirm("Are you sure you want to delete this segment?")) {
         return;
     }
-    deleteInProgress = true;  // Set flag
+    
+    deleteInProgress = true;
     deleteButton.disabled = true;
     deleteButton.innerHTML = "Deleting...";
-
+    
     try {
         const deleteUrl = `/api/delete-drawn-route?routeId=${encodeURIComponent(routeId)}`;
         console.log("Making delete request to:", deleteUrl);
@@ -863,11 +863,12 @@ async function deleteSegment() {
         
         const result = await response.json();
         console.log('Delete request result:', result);
-
+        
         if (result.success) {
             console.log('Segment deleted successfully from MongoDB.');
             closeModal();
-            await loadSegments(); // Refresh the map
+            showLoading('Updating map...');
+            await loadSegments();
         } else {
             throw new Error(result.message || 'Failed to delete segment');
         }
@@ -875,14 +876,19 @@ async function deleteSegment() {
         console.error('Error deleting segment:', error);
         alert(error.message || 'Failed to delete segment');
     } finally {
-        deleteInProgress = false;  // Reset flag
+        hideLoading();
+        deleteInProgress = false;
         deleteButton.disabled = false;
         deleteButton.innerHTML = "Delete Segment";
     }
 }
-// Make sure to export the function if you're using modules
+
+// Export functions to window
 if (typeof window !== 'undefined') {
     window.deleteSegment = deleteSegment;
+    window.saveDrawnRoute = saveDrawnRoute;
+    window.showLoading = showLoading;
+    window.hideLoading = hideLoading;
 }
 
 // ============================
