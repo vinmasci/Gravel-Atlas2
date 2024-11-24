@@ -682,7 +682,6 @@ function initEventListeners() {
 // ============================
 // SECTION: Street View
 // ============================
-
 // Global variable for the Street View marker
 let streetViewMarker = null;
 
@@ -701,7 +700,14 @@ function initStreetView() {
             button.className = 'mapboxgl-ctrl-street-view';
             button.innerHTML = '<i class="fa-solid fa-street-view"></i>';
             button.title = 'Street View';
-            button.onclick = () => toggleStreetViewMode();
+            
+            // Modified click handler with more direct approach
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Street View button clicked');
+                toggleStreetViewMode();
+            });
             
             this._container.appendChild(button);
             console.log('Street View button created');
@@ -714,30 +720,44 @@ function initStreetView() {
         }
     }
 
-    // Changed to bottom-right
     map.addControl(new StreetViewControl(), 'bottom-right');
     console.log('Street View control added to map');
 }
 
-// Rest of your functions remain the same
 function toggleStreetViewMode() {
+    console.log('Toggle Street View clicked');
     const button = document.querySelector('.mapboxgl-ctrl-street-view');
     
+    if (!button) {
+        console.error('Street View button not found');
+        return;
+    }
+
+    console.log('Current active state:', button.classList.contains('active'));
+    
     if (button.classList.contains('active')) {
+        console.log('Disabling Street View mode');
         disableStreetViewMode();
         button.classList.remove('active');
     } else {
+        console.log('Enabling Street View mode');
         enableStreetViewMode();
         button.classList.add('active');
     }
 }
 
 function enableStreetViewMode() {
+    console.log('Street View mode enabled');
     map.getCanvas().style.cursor = 'crosshair';
+    
+    // Remove any existing click handlers first
+    map.off('click', handleStreetViewClick);
+    // Add new click handler
     map.on('click', handleStreetViewClick);
 }
 
 function disableStreetViewMode() {
+    console.log('Street View mode disabled');
     map.getCanvas().style.cursor = '';
     map.off('click', handleStreetViewClick);
     if (streetViewMarker) {
@@ -746,8 +766,8 @@ function disableStreetViewMode() {
     }
 }
 
-// Your existing handleStreetViewClick and openStreetView functions remain the same
 async function handleStreetViewClick(e) {
+    console.log('Map clicked for Street View at:', e.lngLat);
     const lat = e.lngLat.lat;
     const lng = e.lngLat.lng;
     
@@ -772,11 +792,13 @@ async function handleStreetViewClick(e) {
 
 async function openStreetView(lat, lng) {
     try {
+        console.log('Opening Street View for:', lat, lng);
         const response = await fetch(`/api/get-street-view-url?lat=${lat}&lng=${lng}`);
         if (!response.ok) {
             throw new Error('Failed to get Street View URL');
         }
         const data = await response.json();
+        console.log('Received Street View URL');
 
         let modal = document.getElementById('street-view-modal');
         if (!modal) {
