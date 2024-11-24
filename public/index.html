@@ -1789,9 +1789,6 @@
 /* ============================
    SECTION: Flag Segment Modal
    ============================ */
-/* ============================
-   SECTION: Flag Segment Modal
-   ============================ */
    #flag-segment-modal {
     display: none;
     position: fixed;
@@ -1801,21 +1798,21 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
+
 #flag-segment-modal .modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background-color: #212529;
     color: #fff;
     padding: 25px;
     width: 90%;
     max-width: 500px;
-    min-width: 320px;
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 8px;
-    margin: 0 20px;
 }
 
 #flag-segment-modal .modal-header {
