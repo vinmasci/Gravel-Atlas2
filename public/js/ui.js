@@ -934,7 +934,6 @@ function closeModal() {
 // ============================
 async function handleFlagSegment(segmentId) {
     console.log('Handling flag for segment:', segmentId);
-    
     try {
         // Check authentication
         const auth0 = await waitForAuth0();
@@ -976,14 +975,12 @@ function closeFlagModal() {
 
 // Add event listeners when the document loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Inject the flag modal HTML into the document
-    document.body.insertAdjacentHTML('beforeend', flagModalHtml);
-    
-    // Add the CSS to the document
-    const style = document.createElement('style');
-    style.textContent = flagModalCss;
-    document.head.appendChild(style);
-    
+    // Hide the flag modal by default
+    const flagModal = document.getElementById('flag-segment-modal');
+    if (flagModal) {
+        flagModal.style.display = 'none';
+    }
+
     // Add click handler for the flag button in the segment modal
     const flagButton = document.getElementById('flag-segment');
     if (flagButton) {
