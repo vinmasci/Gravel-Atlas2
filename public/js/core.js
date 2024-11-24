@@ -272,6 +272,9 @@ async function initCore() {
         });
         console.log('Map loaded successfully');
 
+        // Add Street View initialization here
+        initStreetView();
+
         // Initialize map components with delay
         await new Promise(resolve => {
             window.initGeoJSONSources();

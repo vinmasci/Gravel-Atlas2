@@ -679,6 +679,166 @@ function initEventListeners() {
     }
 }
 
+// ============================
+// SECTION: Street View
+// ============================
+
+// Global variable for the Street View marker
+let streetViewMarker = null;
+
+// Function to add Street View control to map
+function initStreetView() {
+    // Create a button element
+    const streetViewButton = document.createElement('button');
+    streetViewButton.className = 'mapboxgl-ctrl-street-view';
+    streetViewButton.innerHTML = '<i class="fa-solid fa-street-view"></i>';
+    streetViewButton.title = 'Street View';
+    
+    // Create a container for the button
+    const container = document.createElement('div');
+    container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+    container.appendChild(streetViewButton);
+
+    // Add click handler
+    streetViewButton.addEventListener('click', toggleStreetViewMode);
+
+    // Add the control to the map
+    map.addControl({
+        onAdd: function() {
+            return container;
+        },
+        onRemove: function() {
+            container.parentNode.removeChild(container);
+        }
+    });
+}
+
+// Function to toggle Street View mode
+function toggleStreetViewMode() {
+    const button = document.querySelector('.mapboxgl-ctrl-street-view');
+    
+    if (button.classList.contains('active')) {
+        // Disable Street View mode
+        disableStreetViewMode();
+        button.classList.remove('active');
+    } else {
+        // Enable Street View mode
+        enableStreetViewMode();
+        button.classList.add('active');
+    }
+}
+
+// Function to enable Street View mode
+function enableStreetViewMode() {
+    // Change cursor
+    map.getCanvas().style.cursor = 'crosshair';
+    
+    // Add click handler
+    map.on('click', handleStreetViewClick);
+}
+
+// Function to disable Street View mode
+function disableStreetViewMode() {
+    // Reset cursor
+    map.getCanvas().style.cursor = '';
+    
+    // Remove click handler
+    map.off('click', handleStreetViewClick);
+    
+    // Remove marker if it exists
+    if (streetViewMarker) {
+        streetViewMarker.remove();
+        streetViewMarker = null;
+    }
+}
+
+// Function to handle Street View click
+async function handleStreetViewClick(e) {
+    const lat = e.lngLat.lat;
+    const lng = e.lngLat.lng;
+    
+    // Create or update marker
+    if (streetViewMarker) {
+        streetViewMarker.remove();
+    }
+    
+    streetViewMarker = new mapboxgl.Marker({
+        color: '#4285F4',
+        draggable: true
+    })
+    .setLngLat([lng, lat])
+    .addTo(map);
+
+    // Add drag end listener to update Street View
+    streetViewMarker.on('dragend', () => {
+        const pos = streetViewMarker.getLngLat();
+        openStreetView(pos.lat, pos.lng);
+    });
+
+    // Open Street View for clicked location
+    openStreetView(lat, lng);
+}
+
+// Function to open Street View in a modal
+async function openStreetView(lat, lng) {
+    try {
+        // Get Street View URL from API
+        const response = await fetch(`/api/get-street-view-url?lat=${lat}&lng=${lng}`);
+        if (!response.ok) {
+            throw new Error('Failed to get Street View URL');
+        }
+        const data = await response.json();
+
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('street-view-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'street-view-modal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <div id="street-view-container"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Add close button handler
+            modal.querySelector('.close').onclick = function() {
+                modal.style.display = 'none';
+                // Optional: Remove marker when closing modal
+                if (streetViewMarker) {
+                    streetViewMarker.remove();
+                    streetViewMarker = null;
+                }
+            };
+        }
+
+        // Update Street View iframe
+        const container = modal.querySelector('#street-view-container');
+        container.innerHTML = `
+            <iframe
+                width="100%"
+                height="450"
+                frameborder="0"
+                src="${data.url}"
+                allowfullscreen>
+            </iframe>
+        `;
+
+        // Show modal
+        modal.style.display = 'block';
+    } catch (error) {
+        console.error('Error opening Street View:', error);
+        alert('Unable to load Street View for this location');
+        // Clean up marker if Street View fails
+        if (streetViewMarker) {
+            streetViewMarker.remove();
+            streetViewMarker = null;
+        }
+    }
+}
+
 // Make functions globally available
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
@@ -689,3 +849,4 @@ window.addSegmentLayers = addSegmentLayers;
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.setTileLayer = setTileLayer;
 window.resetToOriginalStyle = resetToOriginalStyle;
+window.initStreetView = initStreetView; // Add Street View to global scope

@@ -1968,6 +1968,70 @@
 .flag-photo:hover {
     color: #ffcd39;
 }
+
+/* ============================
+   SECTION: Steet View
+   ============================ */
+
+.mapboxgl-ctrl-street-view {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mapboxgl-ctrl-street-view i {
+    font-size: 16px;
+    color: #333;
+}
+
+.mapboxgl-ctrl-street-view.active {
+    background-color: #eee;
+}
+
+#street-view-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+}
+
+#street-view-modal .modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 800px;
+}
+
+#street-view-modal .close {
+    position: absolute;
+    right: 10px;
+    top: 5px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#street-view-container {
+    width: 100%;
+    height: 450px;
+}
+
+#street-view-container iframe {
+    border: none;
+}
     </style>
     
 <!-- Updated navbarV2 -->
