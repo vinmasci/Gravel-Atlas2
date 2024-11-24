@@ -1227,11 +1227,17 @@
 
 /* Photo Upload Panel */
 #photo-upload-control-panel {
-    display: none;  /* Added this to match control-panel behavior */
+    display: none;
+    position: absolute;
+    bottom: 100px;
+    left: 5px;
     background-color: rgba(255, 255, 255, 0.9);
+    padding: 8px 12px 12px 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    font-family: 'DM Sans', sans-serif;
     border: 1px solid #000;
-    border-radius: 8px;  /* Added to match main control panel */
-    padding: 8px 12px;   /* Added to match main control panel */
 }
 
 .drawing-options {
