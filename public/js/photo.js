@@ -341,15 +341,14 @@ async function handlePhotoClick(e) {
 
         // Now create popup with pre-fetched data
 // Inside the handlePhotoClick function, update the popupContent template:
-// Now create popup with pre-fetched data
 let popupContent = `
     <div class="photo-popup">
         <div class="photo-header">
             <div class="user-info">
-                <img src="${profilePicture}"
-                    class="profile-pic"
-                    id="profile-pic-${photoId}"
-                    onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'" />
+                <img src="${profilePicture}" 
+                     class="profile-pic" 
+                     id="profile-pic-${photoId}"
+                     onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'" />
                 <div class="name-social-line">
                     <strong>${displayName}</strong>
                     <div id="socialLinks-${photoId}">
@@ -367,9 +366,9 @@ let popupContent = `
         <div class="photo-footer">
             <span class="photo-id">Photo ID: ${photoId}</span>
             <div class="photo-actions">
-                ${auth0Id === (await getCurrentUser())?.sub ?
-                    `<span id="deletePhotoText" data-photo-id="${photoId}"
-                        class="delete-photo"><i class="fa-solid fa-trash"></i></span>` :
+                ${auth0Id === (await getCurrentUser())?.sub ? 
+                    `<span id="deletePhotoText" data-photo-id="${photoId}" 
+                        class="delete-photo"><i class="fa-solid fa-trash"></i></span>` : 
                     `<span id="flagPhotoBtn" data-photo-id="${photoId}"
                         class="flag-photo"><i class="fa-solid fa-flag"></i></span>`
                 }
@@ -377,50 +376,45 @@ let popupContent = `
         </div>
     </div>`;
 
-const popup = new mapboxgl.Popup()
-    .setLngLat(coordinates)
-    .setHTML(popupContent)
-    .addTo(map);
+        const popup = new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(popupContent)
+            .addTo(map);
 
-// Add both delete and flag handlers
-setTimeout(() => {
-    // Delete handler
-    const deleteText = popup.getElement().querySelector('#deletePhotoText');
-    if (deleteText) {
-        deleteText.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to delete this photo?')) {
-                try {
-                    showLoading('Deleting photo...');
-                    forceHideLoadingAfterDelay(5000);
-                    await deletePhoto(photoId);
-                    popup.remove();
-                    showLoading('Updating map...');
-                    forceHideLoadingAfterDelay(5000);
-                    await loadPhotoMarkers();
-                } catch (error) {
-                    console.error('Error handling photo deletion:', error);
-                    alert('Failed to delete photo. Please try again.');
-                } finally {
-                    hideLoading();
-                }
+        // Add delete handler with loading states
+        setTimeout(() => {
+            const deleteText = popup.getElement().querySelector('#deletePhotoText');
+            if (deleteText) {
+                deleteText.addEventListener('click', async () => {
+                    if (confirm('Are you sure you want to delete this photo?')) {
+                        try {
+                            showLoading('Deleting photo...');
+                            forceHideLoadingAfterDelay(5000);
+                            
+                            await deletePhoto(photoId);
+                            popup.remove();
+                            
+                            showLoading('Updating map...');
+                            forceHideLoadingAfterDelay(5000);
+                            
+                            await loadPhotoMarkers();
+                        } catch (error) {
+                            console.error('Error handling photo deletion:', error);
+                            alert('Failed to delete photo. Please try again.');
+                        } finally {
+                            hideLoading();
+                        }
+                    }
+                });
             }
-        });
-    }
+        }, 0);
 
-    // Flag handler
-    const flagBtn = popup.getElement().querySelector('#flagPhotoBtn');
-    if (flagBtn) {
-        flagBtn.addEventListener('click', async () => {
-            const photoId = flagBtn.getAttribute('data-photo-id');
-            handleFlagSegment(photoId); // Reuse the same flag modal
-        });
+    } catch (error) {
+        console.error('Error creating photo popup:', error);
     }
-}, 0);
+}
 
-} catch (error) {
-    console.error('Error creating photo popup:', error);
-}
-}
+
 
 // Add this function to photo.js (right before or after loadPhotoMarkers)
 function togglePhotoLayer() {
