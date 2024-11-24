@@ -254,10 +254,9 @@ const handlers = {
     }
 };
 
-// Initialize core functionality1
+// Initialize core functionality
 async function initCore() {
     console.log('Initializing core...');
-    
     try {
         // Start auth0 initialization early
         const auth0Promise = waitForAuth0();
@@ -272,8 +271,28 @@ async function initCore() {
         });
         console.log('Map loaded successfully');
 
-        // Add Street View initialization here
-        initStreetView();
+        // Wait for map.js functions to be available
+        await new Promise(resolve => {
+            const checkMapFunctions = () => {
+                if (typeof window.initStreetView === 'function') {
+                    console.log('Map functions available, including Street View');
+                    resolve();
+                } else {
+                    console.log('Waiting for map functions to load...');
+                    setTimeout(checkMapFunctions, 100);
+                }
+            };
+            checkMapFunctions();
+        });
+
+        // Add Street View initialization here with error handling
+        try {
+            window.initStreetView();
+            console.log('Street View initialized successfully');
+        } catch (error) {
+            console.error('Error initializing Street View:', error);
+            // Non-blocking - continue initialization if Street View fails
+        }
 
         // Initialize map components with delay
         await new Promise(resolve => {
@@ -283,6 +302,7 @@ async function initCore() {
             // Give the map a moment to process the source/layer additions
             setTimeout(resolve, 100);
         });
+
 
         // Initialize Activity Feed if available
         if (window.ActivityFeed) {
