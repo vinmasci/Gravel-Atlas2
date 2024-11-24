@@ -712,7 +712,9 @@ async function addComment() {
         const response = await fetch('/api/comments', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${await auth0.getTokenSilently()}`,
+                'Content-Type': 'application/json',
+                'x-user-sub': user.sub
             },
             body: JSON.stringify({
                 routeId: routeId,
@@ -731,11 +733,11 @@ async function addComment() {
 
         const result = await response.json();
 
-        // Add activity tracking
+        // Add activity tracking - FIXED recordActivity call
         if (window.ActivityFeed) {
             try {
                 const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
-                await window.ActivityFeed.recordActivity('comment', 'add', result._id, {
+                await window.ActivityFeed.recordActivity('comment', 'add', {
                     title: segmentTitle,
                     commentText: commentText,
                     routeId: routeId
@@ -749,6 +751,7 @@ async function addComment() {
         // Clear input and refresh comments
         commentInput.value = '';
         await renderComments(routeId);
+
     } catch (error) {
         console.error('Error saving comment:', error);
         alert('Error saving comment. Please try again.');

@@ -130,6 +130,10 @@ async function handlePhotoUpload() {
                         throw new Error('User not authenticated');
                     }
 
+                    // Get auth token
+                    const auth0 = await window.auth0;
+                    const token = await auth0.getTokenSilently();
+
                     // Extract coordinates before compression
                     const coordinates = await extractCoordinates(file);
                     
@@ -143,7 +147,9 @@ async function handlePhotoUpload() {
                     const metadataResponse = await fetch('/api/save-photo-metadata', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                            'x-user-sub': currentUser.sub
                         },
                         body: JSON.stringify({
                             url: fileUrl,
@@ -166,7 +172,7 @@ async function handlePhotoUpload() {
                     // Add activity tracking
                     if (window.ActivityFeed && coordinates) {
                         try {
-                            await window.ActivityFeed.recordActivity('photo', 'add', metadataResult._id, {
+                            await window.ActivityFeed.recordActivity('photo', 'add', {
                                 location: {
                                     type: 'Point',
                                     coordinates: [coordinates.longitude, coordinates.latitude]
@@ -175,7 +181,6 @@ async function handlePhotoUpload() {
                             });
                         } catch (activityError) {
                             console.error("Error recording photo activity:", activityError);
-                            // Don't block the upload process if activity recording fails
                         }
                     }
 

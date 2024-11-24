@@ -705,9 +705,14 @@ async function saveDrawnRoute() {
                 auth0Id: currentUser.sub
             };
 
+            const token = await auth0.getTokenSilently();
             const response = await fetch('/api/save-drawn-route', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'x-user-sub': currentUser.sub
+                },
                 body: JSON.stringify(routeData)
             });
 
@@ -719,7 +724,7 @@ async function saveDrawnRoute() {
 
             if (window.ActivityFeed) {
                 try {
-                    await window.ActivityFeed.recordActivity('segment', 'add', result._id, {
+                    await window.ActivityFeed.recordActivity('segment', 'add', {
                         title: title,
                         location: {
                             type: 'Point',
@@ -738,7 +743,6 @@ async function saveDrawnRoute() {
             alert("Route saved successfully!");
 
             showLoading('Updating map...');
-            // Start forced timeout to hide loading after 4.5 seconds
             forceHideLoadingAfterDelay(4500);
 
             const source = map.getSource('existingSegments');
@@ -775,13 +779,6 @@ async function saveDrawnRoute() {
             newConfirmBtn.innerText = "Save Route";
         }
     }, { once: true });
-}
-
-// Make functions globally available
-if (typeof window !== 'undefined') {
-    window.saveDrawnRoute = saveDrawnRoute;
-    window.showLoading = showLoading;
-    window.hideLoading = hideLoading;
 }
 
 // ============================
