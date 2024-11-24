@@ -1973,7 +1973,16 @@
    SECTION: Steet View
    ============================ */
 
-   .mapboxgl-ctrl-street-view {
+ /* Add new street view control positioning */
+.street-view-control {
+    margin: 0 10px 60px 0 !important;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 1;
+}
+
+.mapboxgl-ctrl-street-view {
     padding: 5px;
     margin: 0;
     background: #fff;

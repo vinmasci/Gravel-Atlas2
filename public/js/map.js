@@ -695,7 +695,7 @@ function initStreetView() {
         onAdd(map) {
             this._map = map;
             this._container = document.createElement('div');
-            this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+            this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group mapboxgl-ctrl-bottom-right street-view-control';
             
             const button = document.createElement('button');
             button.className = 'mapboxgl-ctrl-street-view';
@@ -714,8 +714,8 @@ function initStreetView() {
         }
     }
 
-    // Add the control to the top right of the map
-    map.addControl(new StreetViewControl(), 'top-right');
+    // Changed to bottom-right
+    map.addControl(new StreetViewControl(), 'bottom-right');
     console.log('Street View control added to map');
 }
 
