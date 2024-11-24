@@ -346,19 +346,22 @@ const ActivityFeed = {
             return;
         }
 
-        activities.forEach(activity => {
+        activities.forEach(async activity => {
+            // Get current user
+            const auth0 = await window.auth0;
+            const currentUser = await auth0.getUser();
+            
             const item = document.createElement('div');
             item.className = 'activity-item';
     
-            const content = this.formatActivityContent(activity);
+            const content = this.formatActivityContent(activity, currentUser?.sub);
             const timeAgo = this.formatTimeAgo(activity.createdAt);
             
-            // Add icon based on activity type
             const icon = activity.type === 'segment' ? 'fa-route' :
                         activity.type === 'photo' ? 'fa-camera' :
                         activity.type === 'comment' ? 'fa-comment' : 'fa-circle';
     
-            item.innerHTML = `
+            const baseHtml = `
                 <div style="display: flex; align-items: start; gap: 10px;">
                     <div style="padding-top: 2px;">
                         <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
@@ -369,79 +372,26 @@ const ActivityFeed = {
                     </div>
                 </div>
             `;
-    
-            // Add click handler if activity has location
-            if (activity.metadata?.location?.coordinates) {
-                item.style.cursor = 'pointer';
-                item.addEventListener('click', () => {
-                    map.flyTo({
-                        center: activity.metadata.location.coordinates,
-                        zoom: 14,
-                        duration: 1000
-                    });
-                    this.toggleFeed();
-                });
-    
-                // Add hover effect for items with location
-                item.addEventListener('mouseenter', () => {
-                    item.style.backgroundColor = '#3b4147';
-                });
-                item.addEventListener('mouseleave', () => {
-                    item.style.backgroundColor = '';
-                });
-            }
-    
-            // Add to activities column
-            activitiesContainer.appendChild(item.cloneNode(true));
+
+            // Add to activities feed
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            activityItem.innerHTML = baseHtml;
+            this.addLocationHandling(activityItem, activity);
+            activitiesContainer.appendChild(activityItem);
 
             // If this is an interaction, add to interactions column
-            if (content.interaction) {
-                const interactionItem = item.cloneNode(true);
-                interactionItem.classList.add('interaction-item');
-                interactionItem.querySelector('div > div').innerHTML = content.interaction;
+            if (content.interaction && activity.auth0Id !== currentUser?.sub) {
+                const interactionItem = document.createElement('div');
+                interactionItem.className = 'activity-item interaction-item';
+                interactionItem.innerHTML = baseHtml;
+                interactionItem.querySelector('div > div > div:first-child').innerHTML = content.interaction;
+                this.addLocationHandling(interactionItem, activity);
                 interactionsContainer.appendChild(interactionItem);
             }
         });
     },
 
-    formatActivityContent(activity) {
-        console.log('Formatting activity:', activity);
-        const username = activity.auth0Id ? `${activity.username || 'Anonymous'}` : 'Someone';
-        
-        // Get current user
-        const currentUser = window.auth0?.user;
-        const isInteraction = activity.type === 'comment' && 
-                            activity.metadata?.routeId && 
-                            activity.auth0Id !== currentUser?.sub;
-    
-        const content = {
-            regular: '',
-            interaction: ''
-        };
-    
-        switch (activity.type) {
-            case 'segment':
-                content.regular = `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
-                break;
-                
-            case 'comment':
-                content.regular = `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
-                if (isInteraction) {
-                    content.interaction = `<span class="username">${username}</span> commented on a segment you follow`;
-                }
-                break;
-                
-            case 'photo':
-                content.regular = `<span class="username">${username}</span> added a new photo`;
-                break;
-                
-            default:
-                content.regular = `Unknown activity type: ${activity.type}`;
-        }
-    
-        return content;
-    },
-    
     formatTimeAgo(date) {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         
@@ -461,6 +411,64 @@ const ActivityFeed = {
         if (interval > 1) return Math.floor(interval) + ' minutes ago';
         
         return 'just now';
+    },
+
+    formatActivityContent(activity, currentUserId) {
+        console.log('Formatting activity:', activity);
+        const username = activity.auth0Id ? `${activity.username || 'Anonymous'}` : 'Someone';
+        
+        const content = {
+            regular: '',
+            interaction: ''
+        };
+    
+        switch (activity.type) {
+            case 'segment':
+                content.regular = `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                break;
+                
+            case 'comment':
+                content.regular = `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                // Check if comment is on current user's segment
+                if (activity.metadata?.segmentCreatorId === currentUserId) {
+                    content.interaction = `<span class="username">${username}</span> commented on your segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                } 
+                // Check if comment is on a segment where current user has commented
+                else if (activity.metadata?.previousCommenters?.includes(currentUserId)) {
+                    content.interaction = `<span class="username">${username}</span> also commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                }
+                break;
+                
+            case 'photo':
+                content.regular = `<span class="username">${username}</span> added a new photo`;
+                break;
+                
+            default:
+                content.regular = `Unknown activity type: ${activity.type}`;
+        }
+    
+        return content;
+    },
+
+    addLocationHandling(element, activity) {
+        if (activity.metadata?.location?.coordinates) {
+            element.style.cursor = 'pointer';
+            element.addEventListener('click', () => {
+                map.flyTo({
+                    center: activity.metadata.location.coordinates,
+                    zoom: 14,
+                    duration: 1000
+                });
+                this.toggleFeed();
+            });
+
+            element.addEventListener('mouseenter', () => {
+                element.style.backgroundColor = '#3b4147';
+            });
+            element.addEventListener('mouseleave', () => {
+                element.style.backgroundColor = '';
+            });
+        }
     },
 
     async loadMore() {
