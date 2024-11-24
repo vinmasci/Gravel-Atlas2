@@ -21,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
     <script src="https://kit.fontawesome.com/b02e210188.js" crossorigin="anonymous"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/1.22.5/auth0-spa-js.production.js" crossorigin="anonymous"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLAsQ7uOlLf5c8dhkFKrct_q-785_Y4FE&libraries=places"></script>
 </head>
 <body>
 
@@ -2063,6 +2064,28 @@
     text-align: center;
     width: 30px;
     height: 30px;
+}
+
+.mapboxgl-ctrl-street-view {
+    display: none; /* Hidden by default */
+}
+
+.using-google-maps .mapboxgl-ctrl-street-view {
+    display: flex;
+}
+
+#street-view-panorama {
+    display: none;
+    position: fixed;
+    top: 56px;
+    right: 0;
+    width: 50%;
+    height: calc(100vh - 106px);
+    z-index: 1000;
+}
+
+.map-split-view {
+    width: 50% !important;
 }
     </style>
     

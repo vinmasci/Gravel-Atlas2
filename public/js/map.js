@@ -170,6 +170,21 @@ async function resetToOriginalStyle() {
 // Function to switch between tile layers
 // ===========================
 async function setTileLayer(tileUrl) {
+    // Check if it's a Google Maps layer at the start
+    const isGoogleMaps = tileUrl.includes('google.com');
+    
+    // Show/hide Street View button based on layer type
+    const streetViewButton = document.querySelector('.mapboxgl-ctrl-street-view');
+    if (streetViewButton) {
+        if (isGoogleMaps) {
+            streetViewButton.style.display = 'block';
+            document.body.classList.add('using-google-maps');
+        } else {
+            streetViewButton.style.display = 'none';
+            document.body.classList.remove('using-google-maps');
+        }
+    }
+
     try {
         console.log('Setting new tile layer:', tileUrl);
         
@@ -265,6 +280,11 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     const select = event.target;
     const selectedLayer = select.value;
     
+    if (!selectedLayer) {
+        console.error('No layer selected');
+        return;
+    }
+    
     console.log('=== Layer Change Started ===');
     console.log('Current layer visibility:', window.layerVisibility);
     
@@ -280,6 +300,26 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     select.options[select.selectedIndex].text = 'Loading...';
     
     try {
+        // Check if switching to/from Google Maps layer
+        const isGoogleMaps = selectedLayer === 'googleMap' || 
+                            selectedLayer === 'googleSatellite' || 
+                            selectedLayer === 'googleHybrid';
+        
+        // Update Street View button visibility and body class
+        const streetViewButton = document.querySelector('.mapboxgl-ctrl-street-view');
+        if (streetViewButton) {
+            streetViewButton.style.display = isGoogleMaps ? 'block' : 'none';
+        }
+        if (isGoogleMaps) {
+            document.body.classList.add('using-google-maps');
+        } else {
+            document.body.classList.remove('using-google-maps');
+            // Disable street view mode if it's active
+            if (typeof window.disableStreetViewMode === 'function') {
+                window.disableStreetViewMode();
+            }
+        }
+    
         if (selectedLayer === 'reset') {
             console.log('Refreshing page for classic map...');
             // Store the visibility state in session storage
@@ -306,6 +346,7 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
         }
     } catch (error) {
         console.error('Error in layer change:', error);
+        console.error('Failed layer:', selectedLayer);
         alert('Failed to change map style. Resetting to default.');
         // Refresh on error
         window.location.reload();
@@ -315,6 +356,10 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
             select.disabled = false;
             select.options[select.selectedIndex].text = originalText;
             console.log('Final layer visibility state:', window.layerVisibility);
+            
+            // Log Street View visibility state
+            console.log('Street View visibility:', 
+                document.body.classList.contains('using-google-maps') ? 'enabled' : 'disabled');
         }
     }
 });
@@ -782,6 +827,13 @@ async function handleStreetViewClick(e) {
         const lat = e.lngLat.lat;
         const lng = e.lngLat.lng;
         
+        // Create Google Maps Street View URL
+        const streetViewUrl = `https://www.google.com/maps/@${lat},${lng},14z/data=!3m1!1e3!4m2!3m1!1s0x0:0x0!5m1!1e1`;
+        
+        // Open in new tab
+        window.open(streetViewUrl, '_blank');
+        
+        // Optionally add marker
         if (streetViewMarker) {
             streetViewMarker.remove();
         }
@@ -795,10 +847,10 @@ async function handleStreetViewClick(e) {
 
         streetViewMarker.on('dragend', () => {
             const pos = streetViewMarker.getLngLat();
-            openStreetView(pos.lat, pos.lng);
+            const newUrl = `https://www.google.com/maps/@${pos.lat},${pos.lng},14z/data=!3m1!1e3!4m2!3m1!1s0x0:0x0!5m1!1e1`;
+            window.open(newUrl, '_blank');
         });
 
-        await openStreetView(lat, lng);
     } catch (error) {
         console.error('Error in handleStreetViewClick:', error);
     }
