@@ -855,3 +855,9 @@ window.loadPhotoMarkers = loadPhotoMarkers;
 window.setTileLayer = setTileLayer;
 window.resetToOriginalStyle = resetToOriginalStyle;
 window.initStreetView = initStreetView;
+// Add Street View related functions
+window.toggleStreetViewMode = toggleStreetViewMode;
+window.enableStreetViewMode = enableStreetViewMode;
+window.disableStreetViewMode = disableStreetViewMode;
+window.handleStreetViewClick = handleStreetViewClick;
+window.openStreetView = openStreetView;
