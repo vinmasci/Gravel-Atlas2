@@ -45,42 +45,58 @@ const ActivityFeed = {
         // Add styles only if they haven't been added
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-            .activity-feed {
-                position: fixed;
-                top: 60px;
-                left: 20px;  /* Changed from right to left */
-                width: 300px;
-                max-height: calc(100vh - 80px);
-                background-color: #212529;  /* Dark background to match navbar */
-                color: #fff;  /* White text */
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                z-index: 1000;
-                overflow-y: auto;
-                font-family: 'DM Sans', sans-serif;
-            }
-        
-            .activity-feed-header {
-                padding: 12px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                background-color: #343a40;  /* Slightly lighter than background */
-            }
-        
-            .activity-item {
-                padding: 12px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                cursor: pointer;
-            }
+.activity-feed {
+    position: fixed;
+    top: 60px;
+    left: 20px;
+    width: 300px;
+    max-height: calc(100vh - 80px);
+    background-color: #212529;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+    overflow-y: auto;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; /* Added smaller base font size */
+}
+
+.activity-feed-header {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background-color: #343a40;
+}
+
+.activity-feed-header h5 {
+    font-size: 14px; /* Smaller header text */
+    margin: 0;
+}
+
+.activity-item {
+    padding: 10px 12px; /* Slightly reduced padding */
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    line-height: 1.4; /* Better readability for small text */
+}
+
+.activity-item .username {
+    color: #FF652F; /* Orange color for usernames */
+    font-weight: 600;
+}
         
             .activity-item:hover {
                 background-color: #343a40;  /* Lighter on hover */
             }
         
             .activity-meta {
-                font-size: 12px;
-                color: rgba(255,255,255,0.6);  /* Lighter gray for meta info */
-                margin-top: 4px;
-            }
+            font-size: 11px; /* Even smaller meta text */
+            color: rgba(255,255,255,0.6);
+            margin-top: 3px;
+        }
+
+            .activity-item i {
+            font-size: 12px; /* Smaller icons */
+        }
         
             .activity-count {
                 position: absolute;
@@ -315,17 +331,19 @@ const ActivityFeed = {
 
     formatActivityContent(activity) {
         console.log('Formatting activity:', activity);
+        const username = activity.auth0Id ? `${activity.username || 'Anonymous'}` : 'Someone';
+        
         switch (activity.type) {
             case 'segment':
-                return `Added new segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                return `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
             case 'comment':
-                return `Commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                return `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
             case 'photo':
-                return `Added a new photo`;
+                return `<span class="username">${username}</span> added a new photo`;
             default:
                 return `Unknown activity type: ${activity.type}`;
         }
-    },
+    }
 
     formatTimeAgo(date) {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -355,19 +373,10 @@ const ActivityFeed = {
 
     async recordActivity(type, action, metadata = {}) {
         try {
-            console.log('Starting recordActivity with:', { type, action, metadata });
-            
-            // Get auth token
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
             const user = await auth0.getUser();
             
-            console.log('Auth details:', { 
-                hasToken: !!token,
-                userId: user?.sub,
-                authenticated: await auth0.isAuthenticated()
-            });
-
             const response = await fetch('/api/activity', {
                 method: 'POST',
                 headers: {
@@ -378,10 +387,11 @@ const ActivityFeed = {
                 body: JSON.stringify({ 
                     type, 
                     action, 
-                    metadata 
+                    metadata,
+                    username: user.name || user.email, // Add username to the activity
+                    auth0Id: user.sub
                 })
             });
-
             console.log('Activity API response status:', response.status);
 
             if (!response.ok) {
