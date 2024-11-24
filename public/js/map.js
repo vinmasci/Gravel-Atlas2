@@ -678,18 +678,17 @@ function initEventListeners() {
         });
     }
 }
-
 // ============================
 // SECTION: Street View
 // ============================
 // Global variable for the Street View marker
 let streetViewMarker = null;
+let streetViewMode = false; // Add this to track mode state
 
 // Function to add Street View control to map
 function initStreetView() {
     console.log('Starting Street View initialization');
     
-    // Create a new control class
     class StreetViewControl {
         onAdd(map) {
             this._map = map;
@@ -701,7 +700,7 @@ function initStreetView() {
             button.innerHTML = '<i class="fa-solid fa-street-view"></i>';
             button.title = 'Street View';
             
-            // Modified click handler with more direct approach
+            // Improved click handler
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -733,16 +732,20 @@ function toggleStreetViewMode() {
         return;
     }
 
-    console.log('Current active state:', button.classList.contains('active'));
+    // Disable any other active modes first
+    if (typeof window.disableDrawingMode === 'function') {
+        window.disableDrawingMode();
+    }
+
+    streetViewMode = !streetViewMode; // Toggle mode state
+    console.log('Street View mode:', streetViewMode ? 'enabled' : 'disabled');
     
-    if (button.classList.contains('active')) {
-        console.log('Disabling Street View mode');
-        disableStreetViewMode();
-        button.classList.remove('active');
-    } else {
-        console.log('Enabling Street View mode');
+    if (streetViewMode) {
         enableStreetViewMode();
         button.classList.add('active');
+    } else {
+        disableStreetViewMode();
+        button.classList.remove('active');
     }
 }
 
@@ -750,44 +753,55 @@ function enableStreetViewMode() {
     console.log('Street View mode enabled');
     map.getCanvas().style.cursor = 'crosshair';
     
-    // Remove any existing click handlers first
-    map.off('click', handleStreetViewClick);
-    // Add new click handler
-    map.on('click', handleStreetViewClick);
+    // Remove existing handler and add new one with namespace
+    map.off('click.streetView');
+    map.on('click.streetView', (e) => {
+        if (streetViewMode) {
+            console.log('Map clicked in Street View mode');
+            handleStreetViewClick(e);
+        }
+    });
 }
 
 function disableStreetViewMode() {
     console.log('Street View mode disabled');
     map.getCanvas().style.cursor = '';
-    map.off('click', handleStreetViewClick);
+    map.off('click.streetView');
     if (streetViewMarker) {
         streetViewMarker.remove();
         streetViewMarker = null;
     }
+    streetViewMode = false;
 }
 
 async function handleStreetViewClick(e) {
-    console.log('Map clicked for Street View at:', e.lngLat);
-    const lat = e.lngLat.lat;
-    const lng = e.lngLat.lng;
+    if (!streetViewMode) return;
     
-    if (streetViewMarker) {
-        streetViewMarker.remove();
+    console.log('Handling Street View click at:', e.lngLat);
+    try {
+        const lat = e.lngLat.lat;
+        const lng = e.lngLat.lng;
+        
+        if (streetViewMarker) {
+            streetViewMarker.remove();
+        }
+        
+        streetViewMarker = new mapboxgl.Marker({
+            color: '#4285F4',
+            draggable: true
+        })
+        .setLngLat([lng, lat])
+        .addTo(map);
+
+        streetViewMarker.on('dragend', () => {
+            const pos = streetViewMarker.getLngLat();
+            openStreetView(pos.lat, pos.lng);
+        });
+
+        await openStreetView(lat, lng);
+    } catch (error) {
+        console.error('Error in handleStreetViewClick:', error);
     }
-    
-    streetViewMarker = new mapboxgl.Marker({
-        color: '#4285F4',
-        draggable: true
-    })
-    .setLngLat([lng, lat])
-    .addTo(map);
-
-    streetViewMarker.on('dragend', () => {
-        const pos = streetViewMarker.getLngLat();
-        openStreetView(pos.lat, pos.lng);
-    });
-
-    openStreetView(lat, lng);
 }
 
 async function openStreetView(lat, lng) {
