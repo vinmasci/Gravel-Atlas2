@@ -730,7 +730,8 @@ async function saveDrawnRoute() {
                             type: 'Point',
                             coordinates: drawnSegmentsGeoJSON.features[0].geometry.coordinates[0]
                         },
-                        gravelType: routeData.metadata.gravelType[0]
+                        gravelType: routeData.metadata.gravelType[0],
+                        username: currentUser.name || currentUser.email  // Add this
                     });
                 } catch (activityError) {
                     console.error("Error recording activity:", activityError);

@@ -177,7 +177,8 @@ async function handlePhotoUpload() {
                                     type: 'Point',
                                     coordinates: [coordinates.longitude, coordinates.latitude]
                                 },
-                                photoUrl: fileUrl
+                                photoUrl: fileUrl,
+                                username: currentUser.name || currentUser.email  // Add this
                             });
                         } catch (activityError) {
                             console.error("Error recording photo activity:", activityError);

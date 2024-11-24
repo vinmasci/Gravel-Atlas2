@@ -1,40 +1,44 @@
 const mongoose = require('mongoose');
 
 const activitySchema = new mongoose.Schema({
-  auth0Id: {
-    type: String,
-    required: true,
-    index: true
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: ['segment', 'comment', 'photo']
-  },
-  action: {
-    type: String,
-    required: true,
-    enum: ['add', 'delete', 'update']
-  },
-  metadata: {
-    title: String,
-    commentText: String,
-    photoUrl: String,
-    gravelType: String,
-    location: {
-      type: {
+    auth0Id: {
         type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: [Number] // [longitude, latitude]
+        required: true,
+        index: true
+    },
+    username: {  // Added this field
+        type: String,
+        required: true
+    },
+    type: {
+        type: String,
+        required: true,
+        enum: ['segment', 'comment', 'photo']
+    },
+    action: {
+        type: String,
+        required: true,
+        enum: ['add', 'delete', 'update']
+    },
+    metadata: {
+        title: String,
+        commentText: String,
+        photoUrl: String,
+        gravelType: String,
+        location: {
+            type: {
+                type: String,
+                enum: ['Point'],
+                default: 'Point'
+            },
+            coordinates: [Number]
+        }
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        index: true
     }
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    index: true
-  }
 });
 
 // Ensure indexes are created
