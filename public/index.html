@@ -1789,32 +1789,37 @@
 /* ============================
    SECTION: Flag Segment Modal
    ============================ */
-   #flag-segment-modal.modal {
+   #flag-segment-modal {
     display: none;
-    position: fixed !important; /* Force override */
-    z-index: 10000;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    height: 100vh;
+    position: fixed;
+    z-index: 99999; /* Much higher z-index */
+    inset: 0; /* Shorthand for top/right/bottom/left: 0 */
     background-color: rgba(0,0,0,0.5);
-    overflow: auto;
+    padding: 20px;
+    
+    /* Force it to be a new stacking context */
+    isolation: isolate;
+    
+    /* Center its contents */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-
-
 #flag-segment-modal .modal-content {
-    position: relative !important; /* Force override */
-    margin: 10% auto;
+    position: relative;
     background-color: #212529;
     color: #fff;
     padding: 25px;
     width: 90%;
     max-width: 500px;
+    min-height: 400px;
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 8px;
+    
+    /* Prevent it from being contained by other modals */
+    transform: none;
+    margin: 0;
 }
 
 #flag-segment-modal .modal-header {
