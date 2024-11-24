@@ -1147,67 +1147,27 @@ function showControlPanel() {
 
 // Show upload photo panel and activate the tab
 function showPhotoUploadPanel() {
-    console.log("showPhotoUploadPanel called");
-    
     // Disable drawing mode if it's active
     if (typeof window.disableDrawingMode === 'function') {
         window.disableDrawingMode();
-        console.log("Drawing mode disabled");
     }
 
-    const controlPanel = document.getElementById('control-panel');
     const drawRoutePanel = document.getElementById('draw-route-control-panel');
     const photoUploadPanel = document.getElementById('photo-upload-control-panel');
-    
-    console.log("Elements found:", {
-        controlPanel: !!controlPanel,
-        drawRoutePanel: !!drawRoutePanel,
-        photoUploadPanel: !!photoUploadPanel
-    });
-    
-    if (controlPanel) {
-        controlPanel.style.display = 'block';
-        console.log("Control panel displayed");
-    }
-    
+
+    // Hide the draw route panel
     if (drawRoutePanel) {
         drawRoutePanel.style.display = 'none';
-        console.log("Draw route panel hidden");
     }
     
+    // Show photo upload panel
     if (photoUploadPanel) {
         photoUploadPanel.style.display = 'block';
-        // Add test content if panel is empty
-        if (!photoUploadPanel.innerHTML.trim()) {
-            console.log("Photo panel empty, adding test content");
-            photoUploadPanel.innerHTML = `
-                <div class="upload-container">
-                    <h5>Upload Photos</h5>
-                    <div class="upload-content">
-                        <input 
-                            type="file" 
-                            id="photoFilesInput" 
-                            multiple 
-                            accept="image/*" 
-                            class="form-control file-input"
-                        />
-                        <div class="info-text">
-                            <i class="fa-solid fa-circle-info"></i>
-                            Photos must contain GPS data
-                        </div>
-                        <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
-                    </div>
-                </div>
-            `;
-        }
-        console.log("Photo upload panel displayed");
-    } else {
-        console.error("Photo upload panel not found in DOM");
     }
-    
+
     setActiveDropdownTab('photo-upload-dropdown');
-    console.log("Photo upload tab activated");
 }
+
 
 // Show GPX overlay and activate the tab
 function showTempOverlay() {
