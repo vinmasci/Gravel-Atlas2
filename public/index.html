@@ -1230,7 +1230,7 @@
     display: none;
     position: absolute;
     bottom: 100px;
-    left: 5px;
+    left: 10px;  /* Adjusted from 5px */
     background-color: rgba(255, 255, 255, 0.9);
     padding: 8px 12px 12px 12px;
     border-radius: 8px;
@@ -1238,6 +1238,20 @@
     z-index: 1000;
     font-family: 'DM Sans', sans-serif;
     border: 1px solid #000;
+    min-width: 250px;      /* Add minimum width */
+    max-width: 300px;      /* Add maximum width */
+    transform: translateX(0); /* Ensure no transform is pushing it left */
+}
+
+/* Add styles for the content to ensure proper sizing */
+.upload-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.file-input {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .drawing-options {
