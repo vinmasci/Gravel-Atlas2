@@ -930,6 +930,83 @@ function closeModal() {
 }
 
 // ============================
+// SECTION: Flag Modal
+// ============================
+async function handleFlagSegment(segmentId) {
+    console.log('Handling flag for segment:', segmentId);
+    
+    try {
+        // Check authentication
+        const auth0 = await waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        
+        if (!isAuthenticated) {
+            alert('Please log in to report issues.');
+            return;
+        }
+
+        const user = await auth0.getUser();
+        
+        // Set the segment ID and reporter info in the form
+        document.getElementById('flag-segment-id').value = segmentId;
+        document.getElementById('flag-reporter-id').value = user.sub;
+        document.getElementById('flag-reporter-name').value = user.name || user.email;
+        
+        // If user has an email, pre-fill it
+        if (user.email) {
+            document.getElementById('flag-email').value = user.email;
+        }
+        
+        // Show the flag modal
+        const flagModal = document.getElementById('flag-segment-modal');
+        flagModal.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error handling flag:', error);
+        alert('An error occurred while trying to report this segment. Please try again.');
+    }
+}
+
+function closeFlagModal() {
+    const modal = document.getElementById('flag-segment-modal');
+    modal.style.display = 'none';
+    // Reset the form
+    document.getElementById('flag-segment-form').reset();
+}
+
+// Add event listeners when the document loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Inject the flag modal HTML into the document
+    document.body.insertAdjacentHTML('beforeend', flagModalHtml);
+    
+    // Add the CSS to the document
+    const style = document.createElement('style');
+    style.textContent = flagModalCss;
+    document.head.appendChild(style);
+    
+    // Add click handler for the flag button in the segment modal
+    const flagButton = document.getElementById('flag-segment');
+    if (flagButton) {
+        flagButton.onclick = function() {
+            const routeId = document.getElementById('route-id').innerText.replace('Route ID: ', '').trim();
+            handleFlagSegment(routeId);
+        };
+    }
+    
+    // Add form submission handler
+    const flagForm = document.getElementById('flag-segment-form');
+    if (flagForm) {
+        flagForm.onsubmit = function(e) {
+            // Formspree will handle the submission
+            // But we can add a success handler
+            setTimeout(() => {
+                closeFlagModal();
+            }, 1000);
+        };
+    }
+});
+
+// ============================
 // Attach Event Listener to Delete Button (No Inline Onclick)
 // ============================
 document.getElementById('delete-segment').addEventListener('click', () => {
@@ -1270,3 +1347,5 @@ window.deleteSegment = deleteSegment;
 window.closeModal = closeModal;
 window.openRouteNameModal = openRouteNameModal;
 window.closeRouteNameModal = closeRouteNameModal;
+window.handleFlagSegment = handleFlagSegment;
+window.closeFlagModal = closeFlagModal;

@@ -1778,12 +1778,43 @@
     margin-top: 5px;
 }
 
+/* ============================
+   SECTION: Flag Segment Modal
+   ============================ */
+
 .snap-toggle input[type="checkbox"] {
     margin-right: 4px;
 }
 
 .snap-toggle i {
     margin-right: 4px;
+}
+
+#flag-segment-modal .modal-content {
+    max-width: 500px;
+}
+
+#flag-segment-modal .form-group {
+    margin-bottom: 15px;
+}
+
+#flag-segment-modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+#flag-segment-modal textarea {
+    resize: vertical;
+}
+
+#flag-segment-modal .btn-warning {
+    width: 100%;
+    margin-top: 10px;
+}
+
+#flag-segment-modal .close:hover {
+    color: #dc3545;
 }
 
     </style>
@@ -1973,6 +2004,51 @@
             </div>
             <!-- Route ID positioned below the buttons -->
             <p id="route-id" style="font-size: x-small; color: gray; margin: 0;">Route ID: </p>
+        </div>
+    </div>
+</div>
+
+<div id="flag-segment-modal" class="modal"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Report Issue with Segment</h4>
+            <span class="close" onclick="closeFlagModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="flag-segment-form" action="https://formspree.io/f/mzzbarqg" method="POST">
+                <!-- Hidden fields for metadata -->
+                <input type="hidden" name="segmentId" id="flag-segment-id">
+                <input type="hidden" name="reporterId" id="flag-reporter-id">
+                <input type="hidden" name="reporterName" id="flag-reporter-name">
+                
+                <div class="form-group">
+                    <label for="flag-reason">Reason for Flag:</label>
+                    <select id="flag-reason" name="reason" class="form-control" required>
+                        <option value="">Select a reason...</option>
+                        <option value="incorrect">Incorrect Information</option>
+                        <option value="private">Private Property</option>
+                        <option value="dangerous">Dangerous Conditions</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="flag-description">Description:</label>
+                    <textarea id="flag-description" name="message" class="form-control" rows="4" required
+                        placeholder="Please provide details about the issue..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="flag-email">Your Email:</label>
+                    <input type="email" id="flag-email" name="_replyto" class="form-control" required
+                        placeholder="So we can contact you about this report">
+                </div>
+
+                <!-- Anti-spam -->
+                <input type="text" name="_gotcha" style="display: none">
+                
+                <button type="submit" class="btn btn-warning">Submit Report</button>
+            </form>
         </div>
     </div>
 </div>
