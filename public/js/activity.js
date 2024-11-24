@@ -353,23 +353,45 @@ const ActivityFeed = {
         await this.loadActivities();
     },
 
-    async recordActivity(type, action, metadata) {
+    async recordActivity(type, action, metadata = {}) {
         try {
-            console.log('Recording activity:', { type, action, metadata });
+            console.log('Starting recordActivity with:', { type, action, metadata });
+            
             // Get auth token
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
+            const user = await auth0.getUser();
+            
+            console.log('Auth details:', { 
+                hasToken: !!token,
+                userId: user?.sub,
+                authenticated: await auth0.isAuthenticated()
+            });
 
-            const response = await fetch('/api/activities', {
+            const response = await fetch('/api/activity', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-user-sub': user.sub
                 },
-                body: JSON.stringify({ type, action, metadata })
+                body: JSON.stringify({ 
+                    type, 
+                    action, 
+                    metadata 
+                })
             });
 
-            if (!response.ok) throw new Error('Failed to record activity');
+            console.log('Activity API response status:', response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('API Error details:', errorData);
+                throw new Error(errorData.error || 'Failed to record activity');
+            }
+
+            const result = await response.json();
+            console.log('Activity recorded successfully:', result);
 
             // Update notification count
             const countEl = document.querySelector('.activity-count');
@@ -379,9 +401,14 @@ const ActivityFeed = {
                 countEl.style.display = 'block';
             }
 
-            console.log('Activity recorded successfully');
+            return result;
         } catch (error) {
-            console.error('Error recording activity:', error);
+            console.error('Detailed error in recordActivity:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
         }
     }
 };
