@@ -693,6 +693,8 @@ function initStreetView() {
     streetViewButton.className = 'mapboxgl-ctrl-street-view';
     streetViewButton.innerHTML = '<i class="fa-solid fa-street-view"></i>';
     streetViewButton.title = 'Street View';
+
+    console.log('Street View button created');
     
     // Create a container for the button
     const container = document.createElement('div');
