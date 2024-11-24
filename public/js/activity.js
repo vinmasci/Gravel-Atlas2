@@ -321,7 +321,7 @@ const ActivityFeed = {
         }
     },
 
-    renderActivities(activities) {
+    async renderActivities(activities) {
         console.log('Rendering activities:', activities);
         const activitiesContainer = document.getElementById('activities-content');
         const interactionsContainer = document.getElementById('interactions-content');
