@@ -1,41 +1,109 @@
-// Add at the top of photo.js
 async function extractCoordinates(file) {
+    console.log('Starting coordinate extraction for file:', file.name);
+    
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
+                console.log('File read successful, attempting to read EXIF data');
                 const exif = EXIF.readFromBinaryFile(e.target.result);
+                console.log('EXIF data found:', {
+                    hasGPSLatitude: !!exif?.GPSLatitude,
+                    hasGPSLongitude: !!exif?.GPSLongitude,
+                    latitudeRef: exif?.GPSLatitudeRef,
+                    longitudeRef: exif?.GPSLongitudeRef,
+                    rawLatitude: exif?.GPSLatitude,
+                    rawLongitude: exif?.GPSLongitude
+                });
+
                 if (exif && exif.GPSLatitude && exif.GPSLongitude) {
+                    console.log('Converting coordinates from DMS to DD');
                     const lat = convertDMSToDD(exif.GPSLatitude, exif.GPSLatitudeRef);
                     const lng = convertDMSToDD(exif.GPSLongitude, exif.GPSLongitudeRef);
+                    
+                    console.log('Converted coordinates:', { lat, lng });
+
                     if (isValidCoordinate(lat, lng)) {
+                        console.log('Coordinates valid, resolving with:', { latitude: lat, longitude: lng });
                         resolve({ latitude: lat, longitude: lng });
                         return;
+                    } else {
+                        console.log('Coordinates invalid, falling back to null');
                     }
+                } else {
+                    console.log('No GPS data found in EXIF');
                 }
                 resolve(null);
             } catch (error) {
                 console.error('Error reading EXIF:', error);
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
                 resolve(null);
             }
         };
+
+        reader.onerror = function(error) {
+            console.error('Error reading file:', error);
+            resolve(null);
+        };
+
         reader.readAsArrayBuffer(file);
     });
 }
 
 function convertDMSToDD(dms, ref) {
+    console.log('Converting DMS to DD:', {
+        dms: dms,
+        ref: ref,
+        degrees: dms[0],
+        minutes: dms[1],
+        seconds: dms[2]
+    });
+
     const degrees = dms[0];
     const minutes = dms[1];
     const seconds = dms[2];
+    
     let dd = degrees + minutes/60 + seconds/3600;
+    
     if (ref === 'S' || ref === 'W') {
         dd = dd * -1;
     }
+
+    console.log('Conversion result:', {
+        decimalDegrees: dd,
+        wasInverted: (ref === 'S' || ref === 'W')
+    });
+
     return dd;
 }
 
 function isValidCoordinate(lat, lng) {
-    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    console.log('Validating coordinates:', { lat, lng });
+    
+    const isLatValid = lat >= -90 && lat <= 90;
+    const isLngValid = lng >= -180 && lng <= 180;
+    
+    console.log('Validation results:', {
+        latitude: {
+            value: lat,
+            isValid: isLatValid,
+            inRange: `${lat} is ${!isLatValid ? 'not ' : ''}between -90 and 90`
+        },
+        longitude: {
+            value: lng,
+            isValid: isLngValid,
+            inRange: `${lng} is ${!isLngValid ? 'not ' : ''}between -180 and 180`
+        }
+    });
+
+    const isValid = isLatValid && isLngValid;
+    console.log(`Coordinates are ${isValid ? 'valid' : 'invalid'}`);
+    
+    return isValid;
 }
 
 // Compression function
