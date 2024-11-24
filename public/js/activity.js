@@ -343,7 +343,7 @@ const ActivityFeed = {
             default:
                 return `Unknown activity type: ${activity.type}`;
         }
-    }
+    },
 
     formatTimeAgo(date) {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
