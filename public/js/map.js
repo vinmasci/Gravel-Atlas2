@@ -688,78 +688,69 @@ let streetViewMarker = null;
 
 // Function to add Street View control to map
 function initStreetView() {
-    // Create a button element
-    const streetViewButton = document.createElement('button');
-    streetViewButton.className = 'mapboxgl-ctrl-street-view';
-    streetViewButton.innerHTML = '<i class="fa-solid fa-street-view"></i>';
-    streetViewButton.title = 'Street View';
-
-    console.log('Street View button created');
+    console.log('Starting Street View initialization');
     
-    // Create a container for the button
-    const container = document.createElement('div');
-    container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-    container.appendChild(streetViewButton);
-
-    // Add click handler
-    streetViewButton.addEventListener('click', toggleStreetViewMode);
-
-    // Add the control to the map
-    map.addControl({
-        onAdd: function() {
-            return container;
-        },
-        onRemove: function() {
-            container.parentNode.removeChild(container);
+    // Create a new control class
+    class StreetViewControl {
+        onAdd(map) {
+            this._map = map;
+            this._container = document.createElement('div');
+            this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+            
+            const button = document.createElement('button');
+            button.className = 'mapboxgl-ctrl-street-view';
+            button.innerHTML = '<i class="fa-solid fa-street-view"></i>';
+            button.title = 'Street View';
+            button.onclick = () => toggleStreetViewMode();
+            
+            this._container.appendChild(button);
+            console.log('Street View button created');
+            return this._container;
         }
-    });
+
+        onRemove() {
+            this._container.parentNode.removeChild(this._container);
+            this._map = undefined;
+        }
+    }
+
+    // Add the control to the top right of the map
+    map.addControl(new StreetViewControl(), 'top-right');
+    console.log('Street View control added to map');
 }
 
-// Function to toggle Street View mode
+// Rest of your functions remain the same
 function toggleStreetViewMode() {
     const button = document.querySelector('.mapboxgl-ctrl-street-view');
     
     if (button.classList.contains('active')) {
-        // Disable Street View mode
         disableStreetViewMode();
         button.classList.remove('active');
     } else {
-        // Enable Street View mode
         enableStreetViewMode();
         button.classList.add('active');
     }
 }
 
-// Function to enable Street View mode
 function enableStreetViewMode() {
-    // Change cursor
     map.getCanvas().style.cursor = 'crosshair';
-    
-    // Add click handler
     map.on('click', handleStreetViewClick);
 }
 
-// Function to disable Street View mode
 function disableStreetViewMode() {
-    // Reset cursor
     map.getCanvas().style.cursor = '';
-    
-    // Remove click handler
     map.off('click', handleStreetViewClick);
-    
-    // Remove marker if it exists
     if (streetViewMarker) {
         streetViewMarker.remove();
         streetViewMarker = null;
     }
 }
 
-// Function to handle Street View click
+// Your existing handleStreetViewClick and openStreetView functions remain the same
 async function handleStreetViewClick(e) {
     const lat = e.lngLat.lat;
     const lng = e.lngLat.lng;
     
-    // Create or update marker
     if (streetViewMarker) {
         streetViewMarker.remove();
     }
@@ -771,27 +762,22 @@ async function handleStreetViewClick(e) {
     .setLngLat([lng, lat])
     .addTo(map);
 
-    // Add drag end listener to update Street View
     streetViewMarker.on('dragend', () => {
         const pos = streetViewMarker.getLngLat();
         openStreetView(pos.lat, pos.lng);
     });
 
-    // Open Street View for clicked location
     openStreetView(lat, lng);
 }
 
-// Function to open Street View in a modal
 async function openStreetView(lat, lng) {
     try {
-        // Get Street View URL from API
         const response = await fetch(`/api/get-street-view-url?lat=${lat}&lng=${lng}`);
         if (!response.ok) {
             throw new Error('Failed to get Street View URL');
         }
         const data = await response.json();
 
-        // Create modal if it doesn't exist
         let modal = document.getElementById('street-view-modal');
         if (!modal) {
             modal = document.createElement('div');
@@ -805,10 +791,8 @@ async function openStreetView(lat, lng) {
             `;
             document.body.appendChild(modal);
 
-            // Add close button handler
             modal.querySelector('.close').onclick = function() {
                 modal.style.display = 'none';
-                // Optional: Remove marker when closing modal
                 if (streetViewMarker) {
                     streetViewMarker.remove();
                     streetViewMarker = null;
@@ -816,7 +800,6 @@ async function openStreetView(lat, lng) {
             };
         }
 
-        // Update Street View iframe
         const container = modal.querySelector('#street-view-container');
         container.innerHTML = `
             <iframe
@@ -828,12 +811,10 @@ async function openStreetView(lat, lng) {
             </iframe>
         `;
 
-        // Show modal
         modal.style.display = 'block';
     } catch (error) {
         console.error('Error opening Street View:', error);
         alert('Unable to load Street View for this location');
-        // Clean up marker if Street View fails
         if (streetViewMarker) {
             streetViewMarker.remove();
             streetViewMarker = null;
@@ -851,4 +832,4 @@ window.addSegmentLayers = addSegmentLayers;
 window.loadPhotoMarkers = loadPhotoMarkers;
 window.setTileLayer = setTileLayer;
 window.resetToOriginalStyle = resetToOriginalStyle;
-window.initStreetView = initStreetView; // Add Street View to global scope
+window.initStreetView = initStreetView;
