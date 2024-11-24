@@ -1974,16 +1974,17 @@
    ============================ */
 
    .mapboxgl-ctrl-street-view {
-    background: none;
+    padding: 5px;
+    margin: 0;
+    background: #fff;
     border: none;
     cursor: pointer;
-    padding: 6px;
-    width: 30px;
-    height: 30px;
     display: flex;
-    align-items: center;
     justify-content: center;
-    background-color: white;
+    align-items: center;
+    width: 29px;
+    height: 29px;
+    position: relative;
 }
 
 .mapboxgl-ctrl-street-view i {
@@ -1991,8 +1992,12 @@
     color: #333;
 }
 
+.mapboxgl-ctrl-street-view:hover {
+    background-color: #f2f2f2;
+}
+
 .mapboxgl-ctrl-street-view.active {
-    background-color: #eee;
+    background-color: #e6e6e6;
 }
 
 #street-view-modal {
@@ -2032,6 +2037,23 @@
 
 #street-view-container iframe {
     border: none;
+}
+
+/* Make sure control group styling is correct */
+.mapboxgl-ctrl-group {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.mapboxgl-ctrl-group button {
+    border: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    width: 30px;
+    height: 30px;
 }
     </style>
     
