@@ -21,39 +21,42 @@ async function connectDB() {
 }
 
 export default async function handler(req, res) {
-  try {
-    await connectDB();
+    try {
+        await connectDB();
 
-    if (req.method === 'POST') {
-      // Simplified auth check - just ensure we have the auth0Id
-      const auth0Id = req.headers['x-user-sub'];
-      if (!auth0Id) {
-        console.error('No auth0Id provided in headers');
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+        if (req.method === 'POST') {
+            const user = await verifyAuth0Token(req);
+            if (!user) {
+                return res.status(401).json({ error: 'Not authenticated' });
+            }
 
-      const { type, action, metadata } = req.body;
+            const { type, action, metadata, username } = req.body;
+            
+            console.log('Creating new activity:', {
+                auth0Id: user.sub,
+                type,
+                action,
+                metadata,
+                username
+            });
 
-      // Log the incoming data
-      console.log('Attempting to save activity:', {
-        auth0Id,
-        type,
-        action,
-        metadata
-      });
+            // Make sure username is always set
+            const activityUsername = username || 'Anonymous User';
 
-      // Create and save in one step
-      const savedActivity = await Activity.create({
-        auth0Id,
-        type,
-        action,
-        metadata,
-        createdAt: new Date()
-      });
+            const activity = new Activity({
+                auth0Id: user.sub,
+                username: activityUsername,
+                type,
+                action,
+                metadata,
+                createdAt: new Date()
+            });
 
-      console.log('Activity saved with ID:', savedActivity._id);
-      return res.status(201).json(savedActivity);
-    }
+            const savedActivity = await activity.save();
+            console.log('Activity saved successfully:', savedActivity._id);
+            
+            return res.status(201).json(savedActivity);
+        }
 
     if (req.method === 'GET') {
       const page = parseInt(req.query.page) || 1;

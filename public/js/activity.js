@@ -373,10 +373,29 @@ const ActivityFeed = {
 
     async recordActivity(type, action, metadata = {}) {
         try {
+            console.log('Starting recordActivity with:', { type, action, metadata });
+            
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
             const user = await auth0.getUser();
             
+            if (!user || !user.sub) {
+                throw new Error('User not authenticated');
+            }
+
+            const username = user.name || user.email || 'Anonymous User';
+            console.log('User details:', { username, sub: user.sub });
+
+            const activityData = {
+                type,
+                action,
+                metadata,
+                username: username,
+                auth0Id: user.sub
+            };
+
+            console.log('Sending activity data:', activityData);
+
             const response = await fetch('/api/activity', {
                 method: 'POST',
                 headers: {
@@ -384,14 +403,9 @@ const ActivityFeed = {
                     'Content-Type': 'application/json',
                     'x-user-sub': user.sub
                 },
-                body: JSON.stringify({ 
-                    type, 
-                    action, 
-                    metadata,
-                    username: user.name || user.email, // Add username to the activity
-                    auth0Id: user.sub
-                })
+                body: JSON.stringify(activityData)
             });
+
             console.log('Activity API response status:', response.status);
 
             if (!response.ok) {
