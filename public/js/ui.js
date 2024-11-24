@@ -734,20 +734,19 @@ async function addComment() {
         const result = await response.json();
 
         // Add activity tracking - FIXED recordActivity call
-// In addComment
-if (window.ActivityFeed) {
-    try {
-        const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
-        await window.ActivityFeed.recordActivity('comment', 'add', {
-            title: segmentTitle,
-            commentText: commentText,
-            routeId: routeId,
-            username: user.name || user.email  // Add this
-        });
-    } catch (activityError) {
-        console.error("Error recording comment activity:", activityError);
-    }
-}
+        if (window.ActivityFeed) {
+            try {
+                const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
+                await window.ActivityFeed.recordActivity('comment', 'add', {
+                    title: segmentTitle,
+                    commentText: commentText,
+                    routeId: routeId
+                });
+            } catch (activityError) {
+                console.error("Error recording comment activity:", activityError);
+                // Don't block the comment process if activity recording fails
+            }
+        }
 
         // Clear input and refresh comments
         commentInput.value = '';
