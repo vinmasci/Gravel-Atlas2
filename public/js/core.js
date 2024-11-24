@@ -271,11 +271,22 @@ async function initCore() {
         });
         console.log('Map loaded successfully');
 
-        // Wait for map.js functions to be available
+        // Wait for ALL required map.js functions to be available
         await new Promise(resolve => {
             const checkMapFunctions = () => {
-                if (typeof window.initStreetView === 'function') {
-                    console.log('Map functions available, including Street View');
+                const requiredFunctions = [
+                    'initStreetView',
+                    'initGeoJSONSources',
+                    'addSegmentLayers',
+                    'setupSegmentInteraction'
+                ];
+                
+                const allFunctionsAvailable = requiredFunctions.every(
+                    func => typeof window[func] === 'function'
+                );
+
+                if (allFunctionsAvailable) {
+                    console.log('All map functions available');
                     resolve();
                 } else {
                     console.log('Waiting for map functions to load...');
@@ -285,20 +296,26 @@ async function initCore() {
             checkMapFunctions();
         });
 
-        // Add Street View initialization here with error handling
+        // Initialize Street View with error handling
         try {
-            window.initStreetView();
+            console.log('Initializing Street View...');
+            await window.initStreetView();
             console.log('Street View initialized successfully');
         } catch (error) {
             console.error('Error initializing Street View:', error);
-            // Non-blocking - continue initialization if Street View fails
+            // Non-blocking - continue initialization
         }
 
         // Initialize map components with delay
         await new Promise(resolve => {
-            window.initGeoJSONSources();
-            window.addSegmentLayers();
-            window.setupSegmentInteraction();
+            try {
+                window.initGeoJSONSources();
+                window.addSegmentLayers();
+                window.setupSegmentInteraction();
+                console.log('Map components initialized successfully');
+            } catch (error) {
+                console.error('Error initializing map components:', error);
+            }
             // Give the map a moment to process the source/layer additions
             setTimeout(resolve, 100);
         });
