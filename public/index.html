@@ -1956,6 +1956,27 @@
 </div>
 
 
+<!-- Photo Upload Control Panel (separate from control-panel) -->
+<div id="photo-upload-control-panel" class="control-panel" style="display: block;">
+    <div class="upload-container">
+        <h5>Upload Photos</h5>
+        <div class="upload-content">
+            <input 
+                type="file" 
+                id="photoFilesInput" 
+                multiple 
+                accept="image/*" 
+                class="form-control file-input"
+            />
+            <div class="info-text">
+                <i class="fa-solid fa-circle-info"></i>
+                Photos must contain GPS data
+            </div>
+            <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
+        </div>
+    </div>
+</div>
+
 <!-- Control Panel -->
 <div id="control-panel" class="btn-group">
     <!-- Draw Route Control Panel -->
@@ -1993,26 +2014,7 @@
     </div>
 </div>
 
-<!-- Photo Upload Control Panel (separate from control-panel) -->
-<div id="photo-upload-control-panel" class="control-panel" style="display: block;">
-    <div class="upload-container">
-        <h5>Upload Photos</h5>
-        <div class="upload-content">
-            <input 
-                type="file" 
-                id="photoFilesInput" 
-                multiple 
-                accept="image/*" 
-                class="form-control file-input"
-            />
-            <div class="info-text">
-                <i class="fa-solid fa-circle-info"></i>
-                Photos must contain GPS data
-            </div>
-            <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
-        </div>
-    </div>
-</div>
+
 
 <!-- Tabs -->
 <div class="tabs">
