@@ -1955,15 +1955,20 @@
     </div>
 </div>
 
-
 <!-- Control Panel -->
 <div id="control-panel" class="btn-group">
+    <!-- Draw Route Control Panel -->
     <div id="draw-route-control-panel" class="control-panel" style="display: none;">
         <div id="gravel-style" class="gravel-style-container">
             <div class="drawing-options">
                 <h5>Gravel Type</h5>
-                <!-- Your gravel type options -->
-                
+                <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+                <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #ffa801"></i> Intermediate</label>
+                <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+                <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+                <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> Rail Trail</label>
+                <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+            
                 <hr class="drawing-option-divider">
                 
                 <label class="snap-toggle">
@@ -1973,34 +1978,40 @@
             </div>
             
             <div class="btn-group-container">
-                <!-- Your buttons -->
-            </div>
-        </div>
-
-        <!-- Re-add the photo upload panel here -->
-        <div id="photo-upload-control-panel" class="control-panel modal" style="display: none;">
-            <div class="upload-container">
-                <h5>Upload Photos</h5>
-                <div class="upload-content">
-                    <input 
-                        type="file" 
-                        id="photoFilesInput" 
-                        multiple 
-                        accept="image/*" 
-                        class="form-control file-input"
-                    />
-                    <div class="info-text">
-                        <i class="fa-solid fa-circle-info"></i>
-                        Photos must contain GPS data
-                    </div>
-                    <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
+                <div class="btn-group">
+                    <button id="undo-btn" class="btn btn-primary">Undo</button>
+                    <button id="reset-btn" class="btn btn-warning">Reset</button>
+                    <button id="save-btn" class="btn btn-success">Save</button>
+                </div>
+                <div class="info-text">
+                    <i class="fa-solid fa-circle-info"></i>
+                    See FAQ in the navbar for instructions.. 
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-
+<!-- Photo Upload Control Panel (separate from control-panel) -->
+<div id="photo-upload-control-panel" class="control-panel modal" style="display: none;">
+    <div class="upload-container">
+        <h5>Upload Photos</h5>
+        <div class="upload-content">
+            <input 
+                type="file" 
+                id="photoFilesInput" 
+                multiple 
+                accept="image/*" 
+                class="form-control file-input"
+            />
+            <div class="info-text">
+                <i class="fa-solid fa-circle-info"></i>
+                Photos must contain GPS data
+            </div>
+            <button id="uploadPhotosBtn" class="btn btn-primary">Upload</button>
+        </div>
+    </div>
+</div>
 
 <!-- Tabs -->
 <div class="tabs">
