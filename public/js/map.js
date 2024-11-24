@@ -634,29 +634,6 @@ function initDrawingSource() {
             }
         });
     }
-
-    // Add snap toggle to gravel style container
-    const gravelStyle = document.getElementById('gravel-style');
-    if (gravelStyle && !document.getElementById('snapToggle')) {
-        const snapToggleDiv = document.createElement('div');
-        snapToggleDiv.className = 'snap-option';
-        snapToggleDiv.style.marginTop = '10px';
-        snapToggleDiv.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
-        snapToggleDiv.style.paddingTop = '10px';
-        snapToggleDiv.innerHTML = `
-            <label style="display: flex; align-items: center; font-size: 13px; cursor: pointer;">
-                <input type="checkbox" id="snapToggle" checked style="margin-right: 4px;">
-                <i class="fa-solid fa-road" style="margin-right: 4px;"></i> Snap to Road
-            </label>
-        `;
-        gravelStyle.appendChild(snapToggleDiv);
-
-        // Add event listener for the snap toggle
-        document.getElementById('snapToggle').addEventListener('change', function(e) {
-            snapToRoadEnabled = e.target.checked;
-            console.log('Snap to road:', snapToRoadEnabled ? 'enabled' : 'disabled');
-        });
-    }
 }
 
 // ============================
@@ -687,10 +664,18 @@ function initEventListeners() {
         }
     });
 
-    // Initialize snap toggle state if it exists
+    // Initialize snap toggle state and event listener
     const snapToggle = document.getElementById('snapToggle');
     if (snapToggle) {
+        // Set initial state
         snapToggle.checked = snapToRoadEnabled;
+        
+        // Add change event listener
+        snapToggle.addEventListener('change', function() {
+            snapToRoadEnabled = this.checked;
+            lastSnappedPoint = null; // Reset last snapped point when toggling
+            console.log('Snap to road:', snapToRoadEnabled ? 'enabled' : 'disabled');
+        });
     }
 }
 
