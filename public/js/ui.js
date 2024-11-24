@@ -709,6 +709,11 @@ async function addComment() {
             return;
         }
 
+        // Get route creator info
+        const routeResponse = await fetch(`/api/get-drawn-routes?routeId=${routeId}`);
+        const routeData = await routeResponse.json();
+        const routeCreatorId = routeData.routes?.[0]?.metadata?.createdBy?.auth0Id;
+
         const response = await fetch('/api/comments', {
             method: 'POST',
             headers: {
@@ -724,8 +729,6 @@ async function addComment() {
             })
         });
 
-        console.log('Add comment response status:', response.status);
-
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`HTTP error ${response.status}: ${errorData.error}`);
@@ -733,18 +736,19 @@ async function addComment() {
 
         const result = await response.json();
 
-        // Add activity tracking - FIXED recordActivity call
+        // Add activity tracking with route creator info
         if (window.ActivityFeed) {
             try {
                 const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
                 await window.ActivityFeed.recordActivity('comment', 'add', {
                     title: segmentTitle,
                     commentText: commentText,
-                    routeId: routeId
+                    routeId: routeId,
+                    routeCreatorId: routeCreatorId, // Add route creator ID
+                    isInteraction: user.sub !== routeCreatorId // Flag if this is an interaction
                 });
             } catch (activityError) {
                 console.error("Error recording comment activity:", activityError);
-                // Don't block the comment process if activity recording fails
             }
         }
 
@@ -756,7 +760,6 @@ async function addComment() {
         console.error('Error saving comment:', error);
         alert('Error saving comment. Please try again.');
     } finally {
-        // Reset button state
         submitButton.disabled = false;
         submitButton.innerHTML = 'Submit';
     }

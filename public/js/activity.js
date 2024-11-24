@@ -29,75 +29,110 @@ const ActivityFeed = {
         // Create feed container if it doesn't exist
         if (!document.getElementById('activity-feed')) {
             const feedContainer = `
-                <div id="activity-feed" class="activity-feed" style="display: none;">
-                    <div class="activity-feed-header">
-                        <h5>Recent Activity</h5>
-                    </div>
-                    <div id="activity-feed-content"></div>
-                    <div id="activity-feed-loader" style="display: none;">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-                    </div>
-                </div>
-            `;
+    <div id="activity-feed" class="activity-feed" style="display: none;">
+        <div class="activity-feed-header">
+            <h5>Activity Feed</h5>
+        </div>
+        <div class="feed-columns">
+            <div class="feed-column">
+                <div class="column-header">All Activities</div>
+                <div id="activities-content" class="column-content"></div>
+            </div>
+            <div class="feed-column">
+                <div class="column-header">Interactions</div>
+                <div id="interactions-content" class="column-content"></div>
+            </div>
+        </div>
+        <div id="activity-feed-loader" style="display: none;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+        </div>
+    </div>
+`;
             document.body.insertAdjacentHTML('beforeend', feedContainer);
         }
 
         // Add styles only if they haven't been added
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-.activity-feed {
-    position: fixed;
-    top: 60px;
-    left: 20px;
-    width: 300px;
-    max-height: calc(100vh - 80px);
-    background-color: #212529;
-    color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    z-index: 1000;
-    overflow-y: auto;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px; /* Added smaller base font size */
-}
-
-.activity-feed-header {
-    padding: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    background-color: #343a40;
-}
-
-.activity-feed-header h5 {
-    font-size: 14px; /* Smaller header text */
-    margin: 0;
-}
-
-.activity-item {
-    padding: 10px 12px; /* Slightly reduced padding */
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    cursor: pointer;
-    line-height: 1.4; /* Better readability for small text */
-}
-
-.activity-item .username {
-    color: #FF652F; /* Orange color for usernames */
-    font-weight: 600;
-}
-        
-            .activity-item:hover {
-                background-color: #343a40;  /* Lighter on hover */
+            .activity-feed {
+                position: fixed;
+                top: 60px;
+                left: 20px;
+                width: 600px;
+                max-height: calc(100vh - 80px);
+                background-color: #212529;
+                color: #fff;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                z-index: 1000;
+                overflow-y: auto;
+                font-family: 'DM Sans', sans-serif;
+                font-size: 12px;
             }
-        
+            
+            .activity-feed-header {
+                padding: 12px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                background-color: #343a40;
+            }
+            
+            .activity-feed-header h5 {
+                font-size: 14px;
+                margin: 0;
+            }
+            
+            .feed-columns {
+                display: flex;
+                gap: 1px;
+                background-color: rgba(255,255,255,0.1);
+            }
+            
+            .feed-column {
+                flex: 1;
+                background-color: #212529;
+            }
+            
+            .column-header {
+                padding: 10px;
+                font-weight: 600;
+                font-size: 13px;
+                background-color: #343a40;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                text-align: center;
+            }
+            
+            .column-content {
+                max-height: calc(100vh - 160px);
+                overflow-y: auto;
+            }
+            
+            .activity-item {
+                padding: 10px 12px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                cursor: pointer;
+                position: relative;
+                line-height: 1.4;
+            }
+            
+            .activity-item .username {
+                color: #FF652F;
+                font-weight: 600;
+            }
+            
+            .activity-item:hover {
+                background-color: #343a40;
+            }
+            
             .activity-meta {
-            font-size: 11px; /* Even smaller meta text */
-            color: rgba(255,255,255,0.6);
-            margin-top: 3px;
-        }
-
+                font-size: 11px;
+                color: rgba(255,255,255,0.6);
+                margin-top: 3px;
+            }
+            
             .activity-item i {
-            font-size: 12px; /* Smaller icons */
-        }
-        
+                font-size: 12px;
+            }
+            
             .activity-count {
                 position: absolute;
                 top: 0;
@@ -110,30 +145,52 @@ const ActivityFeed = {
                 min-width: 16px;
                 text-align: center;
             }
-        
-            #activity-feed::-webkit-scrollbar {
+            
+            .column-content::-webkit-scrollbar {
                 width: 6px;
             }
-        
-            #activity-feed::-webkit-scrollbar-track {
+            
+            .column-content::-webkit-scrollbar-track {
                 background: #343a40;
             }
-        
-            #activity-feed::-webkit-scrollbar-thumb {
+            
+            .column-content::-webkit-scrollbar-thumb {
                 background: #666;
                 border-radius: 3px;
             }
-        
-            #activity-feed::-webkit-scrollbar-thumb:hover {
+            
+            .column-content::-webkit-scrollbar-thumb:hover {
                 background: #888;
             }
-        
+            
             #activity-feed-loader {
                 color: rgba(255,255,255,0.8);
                 text-align: center;
                 padding: 10px;
             }
-        `;
+            
+            .interaction-item {
+                background-color: rgba(255,102,47,0.05);
+                border-left: 3px solid #FF652F;
+            }
+            
+            .empty-state {
+                text-align: center;
+                color: rgba(255,255,255,0.6);
+                padding: 20px;
+            }
+            
+            .empty-state i {
+                font-size: 24px;
+                margin-bottom: 8px;
+                display: block;
+            }
+            
+            .empty-state .message {
+                font-size: 12px;
+                margin-top: 4px;
+            }
+            `;
         
             const styleSheet = document.createElement("style");
             styleSheet.id = 'activity-feed-styles';
@@ -206,16 +263,19 @@ const ActivityFeed = {
     
             if (reset) {
                 this.currentPage = 1;
-                const content = document.getElementById('activity-feed-content');
-                if (content) content.innerHTML = '';
+                const activitiesContent = document.getElementById('activities-content');
+                const interactionsContent = document.getElementById('interactions-content');
+                if (activitiesContent) activitiesContent.innerHTML = '';
+                if (interactionsContent) interactionsContent.innerHTML = '';
             }
     
-            // Get auth token
+            // Get auth token and user
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
+            const user = await auth0.getUser();
     
             console.log('Fetching activities for page:', this.currentPage);
-            const response = await fetch(`/api/activity?page=${this.currentPage}&limit=20`, { // Changed to activity
+            const response = await fetch(`/api/activity?page=${this.currentPage}&limit=20`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -229,7 +289,7 @@ const ActivityFeed = {
             const data = await response.json();
             console.log('Received activities:', data);
     
-            this.renderActivities(data.activities);
+            await this.renderActivities(data.activities, user?.sub);
             this.hasMore = data.pagination.hasMore;
             this.currentPage++;
     
@@ -243,32 +303,36 @@ const ActivityFeed = {
     
         } catch (error) {
             console.error('Error loading activities:', error);
-            const content = document.getElementById('activity-feed-content');
-            if (content) {
-                content.innerHTML = `
-                    <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
-                        <i class="fa-solid fa-exclamation-circle" style="font-size: 24px; margin-bottom: 8px;"></i>
-                        <div>Error loading activities</div>
-                    </div>
-                `;
-            }
+            const errorContent = `
+                <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
+                    <i class="fa-solid fa-exclamation-circle" style="font-size: 24px; margin-bottom: 8px;"></i>
+                    <div>Error loading activities</div>
+                </div>
+            `;
+            
+            const activitiesContent = document.getElementById('activities-content');
+            const interactionsContent = document.getElementById('interactions-content');
+            if (activitiesContent) activitiesContent.innerHTML = errorContent;
+            if (interactionsContent) interactionsContent.innerHTML = errorContent;
         } finally {
             this.isLoading = false;
             const loader = document.getElementById('activity-feed-loader');
             if (loader) loader.style.display = 'none';
         }
     },
-    
+
     renderActivities(activities) {
         console.log('Rendering activities:', activities);
-        const container = document.getElementById('activity-feed-content');
-        if (!container) {
-            console.error('Activity feed content container not found');
+        const activitiesContainer = document.getElementById('activities-content');
+        const interactionsContainer = document.getElementById('interactions-content');
+
+        if (!activitiesContainer || !interactionsContainer) {
+            console.error('Activity containers not found');
             return;
         }
     
         if (!activities || activities.length === 0) {
-            container.innerHTML = `
+            const emptyState = `
                 <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
                     <i class="fa-solid fa-inbox" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
                     <div>No activities yet</div>
@@ -277,9 +341,11 @@ const ActivityFeed = {
                     </div>
                 </div>
             `;
+            activitiesContainer.innerHTML = emptyState;
+            interactionsContainer.innerHTML = emptyState;
             return;
         }
-    
+
         activities.forEach(activity => {
             const item = document.createElement('div');
             item.className = 'activity-item';
@@ -298,7 +364,7 @@ const ActivityFeed = {
                         <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
                     </div>
                     <div style="flex-grow: 1;">
-                        <div>${content}</div>
+                        <div>${content.regular}</div>
                         <div class="activity-meta">${timeAgo}</div>
                     </div>
                 </div>
@@ -311,21 +377,30 @@ const ActivityFeed = {
                     map.flyTo({
                         center: activity.metadata.location.coordinates,
                         zoom: 14,
-                        duration: 1000 // Smooth animation
+                        duration: 1000
                     });
                     this.toggleFeed();
                 });
     
                 // Add hover effect for items with location
                 item.addEventListener('mouseenter', () => {
-                    item.style.backgroundColor = '#3b4147'; // Slightly lighter than hover
+                    item.style.backgroundColor = '#3b4147';
                 });
                 item.addEventListener('mouseleave', () => {
                     item.style.backgroundColor = '';
                 });
             }
     
-            container.appendChild(item);
+            // Add to activities column
+            activitiesContainer.appendChild(item.cloneNode(true));
+
+            // If this is an interaction, add to interactions column
+            if (content.interaction) {
+                const interactionItem = item.cloneNode(true);
+                interactionItem.classList.add('interaction-item');
+                interactionItem.querySelector('div > div').innerHTML = content.interaction;
+                interactionsContainer.appendChild(interactionItem);
+            }
         });
     },
 
@@ -333,18 +408,40 @@ const ActivityFeed = {
         console.log('Formatting activity:', activity);
         const username = activity.auth0Id ? `${activity.username || 'Anonymous'}` : 'Someone';
         
+        // Get current user
+        const currentUser = window.auth0?.user;
+        const isInteraction = activity.type === 'comment' && 
+                            activity.metadata?.routeId && 
+                            activity.auth0Id !== currentUser?.sub;
+    
+        const content = {
+            regular: '',
+            interaction: ''
+        };
+    
         switch (activity.type) {
             case 'segment':
-                return `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                content.regular = `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                break;
+                
             case 'comment':
-                return `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                content.regular = `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                if (isInteraction) {
+                    content.interaction = `<span class="username">${username}</span> commented on a segment you follow`;
+                }
+                break;
+                
             case 'photo':
-                return `<span class="username">${username}</span> added a new photo`;
+                content.regular = `<span class="username">${username}</span> added a new photo`;
+                break;
+                
             default:
-                return `Unknown activity type: ${activity.type}`;
+                content.regular = `Unknown activity type: ${activity.type}`;
         }
+    
+        return content;
     },
-
+    
     formatTimeAgo(date) {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         
