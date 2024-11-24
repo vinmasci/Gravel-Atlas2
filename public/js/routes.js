@@ -18,6 +18,7 @@
     let liveElevationData = [];
     let totalDistance = 0;
     let fullRouteElevationData = [];
+    let snapToRoadEnabled = true; // Default to true to maintain current behavior
 
     // Gravel type color mapping
     const gravelColors = {
@@ -388,7 +389,7 @@ async function snapToRoads(points) {
 }
 
 // ============================
-// SECTION: Draw Point with Improved Snapping
+// SECTION: Draw Point with Improved Snapping1
 // ============================
 async function drawPoint(e) {
     // Reset data if this is the first point
@@ -401,25 +402,32 @@ async function drawPoint(e) {
     originalPins.push(coords);
 
     if (originalPins.length > 1) {
-        let snappedSegment = await snapToRoads([originalPins[originalPins.length - 2], coords]);
+        let segmentCoords;
         
-        if (!snappedSegment && lastSnappedPoint) {
-            snappedSegment = [lastSnappedPoint, coords];
+        if (snapToRoadEnabled) {
+            // Use existing snap to roads logic
+            segmentCoords = await snapToRoads([originalPins[originalPins.length - 2], coords]);
+            if (!segmentCoords && lastSnappedPoint) {
+                segmentCoords = [lastSnappedPoint, coords];
+            }
         } else {
-            lastSnappedPoint = snappedSegment ? snappedSegment[snappedSegment.length - 1] : coords;
+            // Direct point-to-point when snap is disabled
+            segmentCoords = [originalPins[originalPins.length - 2], coords];
         }
+        
+        // Update last snapped point
+        lastSnappedPoint = segmentCoords ? segmentCoords[segmentCoords.length - 1] : coords;
 
         try {
             const response = await fetch('/api/get-elevation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ coordinates: snappedSegment })
+                body: JSON.stringify({ coordinates: segmentCoords })
             });
 
             if (response.ok) {
                 const elevationData = await response.json();
                 if (window.innerWidth > 768) {
-                    // Add new coordinates to the full route data
                     fullRouteElevationData = fullRouteElevationData.concat(elevationData.coordinates);
                     const preview = document.getElementById('elevation-preview');
                     if (preview) preview.style.display = 'block';
@@ -430,12 +438,11 @@ async function drawPoint(e) {
             console.error('Error fetching elevation data:', error);
         }
 
-        addSegment(snappedSegment);
+        addSegment(segmentCoords);
         drawSegmentsOnMap();
     }
     createMarker(coords);
 }
-
 
 // ============================
     // SECTION: Add Segment

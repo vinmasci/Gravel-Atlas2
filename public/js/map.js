@@ -591,7 +591,7 @@ function initDrawingSource() {
             'type': 'geojson',
             'data': {
                 'type': 'FeatureCollection',
-                'features': []  // Initially empty
+                'features': [] // Initially empty
             }
         });
     }
@@ -607,10 +607,10 @@ function initDrawingSource() {
                 'line-cap': 'round'
             },
             'paint': {
-                'line-color': '#FFFFFF',  // White background
-                'line-width': 7           // Slightly wider than the main line
-            } 
-        }); 
+                'line-color': '#FFFFFF', // White background
+                'line-width': 7 // Slightly wider than the main line
+            }
+        });
     }
 
     // Add drawn segments main layer
@@ -624,18 +624,40 @@ function initDrawingSource() {
                 'line-cap': 'round'
             },
             'paint': {
-                'line-color': ['get', 'color'],  // Dynamic color from GeoJSON
-                'line-width': 5,                 // Thinner than background
+                'line-color': ['get', 'color'], // Dynamic color from GeoJSON
+                'line-width': 5, // Thinner than background
                 'line-dasharray': [
                     'case',
-                    ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]], 
-                    ['literal', [1, 0]]  // Solid line by default
+                    ['==', ['get', 'lineStyle'], 'dashed'], ['literal', [2, 4]],
+                    ['literal', [1, 0]] // Solid line by default
                 ]
             }
         });
     }
-}
 
+    // Add snap toggle to gravel style container
+    const gravelStyle = document.getElementById('gravel-style');
+    if (gravelStyle && !document.getElementById('snapToggle')) {
+        const snapToggleDiv = document.createElement('div');
+        snapToggleDiv.className = 'snap-option';
+        snapToggleDiv.style.marginTop = '10px';
+        snapToggleDiv.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
+        snapToggleDiv.style.paddingTop = '10px';
+        snapToggleDiv.innerHTML = `
+            <label style="display: flex; align-items: center; font-size: 13px; cursor: pointer;">
+                <input type="checkbox" id="snapToggle" checked style="margin-right: 4px;">
+                <i class="fa-solid fa-road" style="margin-right: 4px;"></i> Snap to Road
+            </label>
+        `;
+        gravelStyle.appendChild(snapToggleDiv);
+
+        // Add event listener for the snap toggle
+        document.getElementById('snapToggle').addEventListener('change', function(e) {
+            snapToRoadEnabled = e.target.checked;
+            console.log('Snap to road:', snapToRoadEnabled ? 'enabled' : 'disabled');
+        });
+    }
+}
 
 // ============================
 // SECTION: Initialize Event Listeners
@@ -659,21 +681,26 @@ function initEventListeners() {
     document.getElementById('tileLayerSelect').addEventListener('change', function (event) {
         const selectedLayer = event.target.value;
         if (selectedLayer === 'reset') {
-            resetToOriginalStyle();  // Reset to original Mapbox style
+            resetToOriginalStyle(); // Reset to original Mapbox style
         } else if (tileLayers[selectedLayer]) {
-            setTileLayer(tileLayers[selectedLayer]);  // Apply selected tile layer
+            setTileLayer(tileLayers[selectedLayer]); // Apply selected tile layer
         }
     });
+
+    // Initialize snap toggle state if it exists
+    const snapToggle = document.getElementById('snapToggle');
+    if (snapToggle) {
+        snapToggle.checked = snapToRoadEnabled;
+    }
 }
 
-// At the bottom of map.js
+// Make functions globally available
 window.loadSegments = loadSegments;
 window.removeSegments = removeSegments;
 window.initGeoJSONSources = initGeoJSONSources;
 window.setupSegmentInteraction = setupSegmentInteraction;
 window.initDrawingSource = initDrawingSource;
 window.addSegmentLayers = addSegmentLayers;
-window.loadPhotoMarkers = loadPhotoMarkers; // Add this line
+window.loadPhotoMarkers = loadPhotoMarkers;
 window.setTileLayer = setTileLayer;
 window.resetToOriginalStyle = resetToOriginalStyle;
-

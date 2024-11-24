@@ -1735,6 +1735,41 @@
     font-size: 16px;
     color: #333;
 }
+
+/* ============================
+   SECTION: Snap Toggle Styles
+   ============================ */
+
+.drawing-option-divider {
+    margin: 10px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.snap-option {
+    margin-top: 8px;
+}
+
+.snap-toggle {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #212529;
+    cursor: pointer;
+    padding: 2px 0;
+}
+
+.snap-toggle input[type="checkbox"] {
+    margin-right: 4px;
+}
+
+.snap-toggle i {
+    margin-right: 4px;
+}
+
+/* Hover effect to match other options */
+.snap-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
     </style>
     
 <!-- Updated navbarV2 -->
@@ -1929,28 +1964,36 @@
 
 <!-- Control Panel -->
 <div id="control-panel" class="btn-group">
-    
-<!-- Replace your current draw-route-control-panel with this -->
-<div id="draw-route-control-panel" class="control-panel" style="display: none;">
-    <div id="gravel-style" class="gravel-style-container">
-        <div class="drawing-options">
-            <h5>Gravel Type</h5>
-            <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
-            <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #ffa801"></i> Intermediate</label>
-            <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
-            <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
-            <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> Rail Trail</label>
-            <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
-        </div>
-        <div class="btn-group-container">
-            <div class="btn-group">
-                <button id="undo-btn" class="btn btn-primary">Undo</button>
-                <button id="reset-btn" class="btn btn-warning">Reset</button>
-                <button id="save-btn" class="btn btn-success">Save</button>
+    <div id="draw-route-control-panel" class="control-panel" style="display: none;">
+        <div id="gravel-style" class="gravel-style-container">
+            <div class="drawing-options">
+                <h5>Gravel Type</h5>
+                <label><input type="radio" name="gravelType" value="0">&nbsp; <i class="fa-solid fa-circle" style="color: #01bf11;"></i> Easiest</label>
+                <label><input type="radio" name="gravelType" value="1">&nbsp; <i class="fa-solid fa-square" style="color: #ffa801"></i> Intermediate</label>
+                <label><input type="radio" name="gravelType" value="2">&nbsp; <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> Difficult</label>
+                <label><input type="radio" name="gravelType" value="3">&nbsp; <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> Extreme</label>
+                <label><input type="radio" name="gravelType" value="4">&nbsp; <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> Rail Trail</label>
+                <label><input type="radio" name="gravelType" value="5">&nbsp; <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> Closed or Private</label>
+                
+                <!-- Add the snap toggle here -->
+                <div class="drawing-option-divider"></div>
+                <div class="snap-option">
+                    <label class="snap-toggle">
+                        <input type="checkbox" id="snapToggle" checked>
+                        &nbsp; <i class="fa-solid fa-road"></i> Snap to Road
+                    </label>
+                </div>
             </div>
-            <div class="info-text">
-                <i class="fa-solid fa-circle-info"></i>
-                See FAQ in the navbar for instructions.. 
+            <div class="btn-group-container">
+                <div class="btn-group">
+                    <button id="undo-btn" class="btn btn-primary">Undo</button>
+                    <button id="reset-btn" class="btn btn-warning">Reset</button>
+                    <button id="save-btn" class="btn btn-success">Save</button>
+                </div>
+                <div class="info-text">
+                    <i class="fa-solid fa-circle-info"></i>
+                    See FAQ in the navbar for instructions.. 
+                </div>
             </div>
         </div>
     </div>
