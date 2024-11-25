@@ -4,7 +4,6 @@ const tileLayers = {
     googleSatellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     googleHybrid: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     osmCycle: 'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=7724ff4746164f39b35fadb342b13a50',
-    mapillary: null // Special case for Mapillary
 };
 
 // Original Mapbox style URL for reset function
@@ -168,6 +167,144 @@ async function resetToOriginalStyle() {
 }
 
 // ===========================
+// Mapillary
+// ===========================
+function toggleMapillaryLayer() {
+    try {
+        if (!map.getSource('mapillary')) {
+            map.addSource('mapillary', {
+                type: 'vector',
+                tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31`],
+                minzoom: 6,
+                maxzoom: 14
+            });
+
+            map.addLayer({
+                'id': 'mapillary-sequences',
+                'type': 'line',
+                'source': 'mapillary',
+                'source-layer': 'sequence',
+                'layout': {
+                    'line-cap': 'round',
+                    'line-join': 'round',
+                    'visibility': 'visible'
+                },
+                'paint': {
+                    'line-opacity': 0.6,
+                    'line-color': '#05CB63',
+                    'line-width': 2
+                }
+            });
+
+            map.addLayer({
+                'id': 'mapillary-images',
+                'type': 'circle',
+                'source': 'mapillary',
+                'source-layer': 'image',
+                'layout': {
+                    'visibility': 'visible'
+                },
+                'paint': {
+                    'circle-radius': 4,
+                    'circle-color': '#05CB63',
+                    'circle-opacity': 0.8
+                }
+            });
+
+            // Add click handler for images
+            map.on('click', 'mapillary-images', (e) => {
+                if (e.features.length > 0) {
+                    const imageId = e.features[0].properties.id;
+                    window.open(`https://www.mapillary.com/app/?image_key=${imageId}`, '_blank');
+                }
+            });
+
+            map.on('mouseenter', 'mapillary-images', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'mapillary-images', () => {
+                map.getCanvas().style.cursor = '';
+            });
+        } else {
+            // Toggle visibility if layers already exist
+            const visibility = map.getLayoutProperty('mapillary-sequences', 'visibility');
+            const newVisibility = visibility === 'visible' ? 'none' : 'visible';
+            map.setLayoutProperty('mapillary-sequences', 'visibility', newVisibility);
+            map.setLayoutProperty('mapillary-images', 'visibility', newVisibility);
+        }
+    } catch (error) {
+        console.error('Error toggling Mapillary layer:', error);
+    }
+}
+
+// Modify the event listener to use the toggle function
+document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
+    const select = event.target;
+    const selectedLayer = select.value;
+    
+    if (!selectedLayer) {
+        console.error('No layer selected');
+        return;
+    }
+    
+    console.log('=== Layer Change Started ===');
+    console.log('Current layer visibility:', window.layerVisibility);
+    
+    // Store the current visibility state
+    const visibilityState = {
+        photos: window.layerVisibility.photos,
+        segments: window.layerVisibility.segments
+    };
+    
+    // Disable select and show loading state
+    select.disabled = true;
+    const originalText = select.options[select.selectedIndex].text;
+    select.options[select.selectedIndex].text = 'Loading...';
+    
+    try {
+        if (selectedLayer === 'reset') {
+            console.log('Refreshing page for classic map...');
+            sessionStorage.setItem('mapStyle', 'reset');
+            sessionStorage.setItem('layerVisibility', JSON.stringify(visibilityState));
+            window.location.reload();
+            return;
+        } else if (selectedLayer === 'mapillary') {
+            console.log('Toggling Mapillary layer...');
+            toggleMapillaryLayer();
+        } else if (tileLayers[selectedLayer]) {
+            console.log('Setting new tile layer...');
+            await setTileLayer(tileLayers[selectedLayer]);
+        }
+        
+        // Restore visibility state
+        window.layerVisibility = visibilityState;
+        
+        // Only wait and reload photos for non-Mapillary layers
+        if (selectedLayer !== 'mapillary') {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (visibilityState.photos) {
+                console.log('Reloading photos...');
+                await loadPhotoMarkers();
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error in layer change:', error);
+        console.error('Failed layer:', selectedLayer);
+        alert('Failed to change map style. Resetting to default.');
+        window.location.reload();
+    } finally {
+        if (selectedLayer !== 'reset') {
+            select.disabled = false;
+            select.options[select.selectedIndex].text = originalText;
+            console.log('Final layer visibility state:', window.layerVisibility);
+        }
+    }
+});
+
+// ===========================
 // Function to switch between tile layers
 // ===========================
 async function setTileLayer(tileUrl) {
@@ -203,84 +340,26 @@ async function setTileLayer(tileUrl) {
             map.removeSource('custom-tiles');
         }
 
-        // Handle Mapillary layer specially
-        if (tileUrl === null) {
-            // Add Mapillary source and layers
-            if (!map.getSource('mapillary')) {
-                map.addSource('mapillary', {
-                    type: 'vector',
-                    tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31`],
-                    minzoom: 6,
-                    maxzoom: 14
-                });
+        // Add new tile layer
+        map.addSource('custom-tiles', {
+            'type': 'raster',
+            'tiles': [tileUrl],
+            'tileSize': 256
+        });
 
-                map.addLayer({
-                    'id': 'mapillary-sequences',
-                    'type': 'line',
-                    'source': 'mapillary',
-                    'source-layer': 'sequence',
-                    'layout': {
-                        'line-cap': 'round',
-                        'line-join': 'round'
-                    },
-                    'paint': {
-                        'line-opacity': 0.6,
-                        'line-color': '#05CB63',
-                        'line-width': 2
-                    }
-                });
+        map.addLayer({
+            'id': 'custom-tiles-layer',
+            'type': 'raster',
+            'source': 'custom-tiles',
+            'layout': { 'visibility': 'visible' }
+        });
 
-                map.addLayer({
-                    'id': 'mapillary-images',
-                    'type': 'circle',
-                    'source': 'mapillary',
-                    'source-layer': 'image',
-                    'paint': {
-                        'circle-radius': 4,
-                        'circle-color': '#05CB63',
-                        'circle-opacity': 0.8
-                    }
-                });
-
-                // Add click handler for images
-                map.on('click', 'mapillary-images', (e) => {
-                    if (e.features.length > 0) {
-                        const imageId = e.features[0].properties.id;
-                        window.open(`https://www.mapillary.com/app/?image_key=${imageId}`, '_blank');
-                    }
-                });
-
-                map.on('mouseenter', 'mapillary-images', () => {
-                    map.getCanvas().style.cursor = 'pointer';
-                });
-
-                map.on('mouseleave', 'mapillary-images', () => {
-                    map.getCanvas().style.cursor = '';
-                });
-            }
-        } else {
-            // Add regular tile layer
-            map.addSource('custom-tiles', {
-                'type': 'raster',
-                'tiles': [tileUrl],
-                'tileSize': 256
-            });
-
-            map.addLayer({
-                'id': 'custom-tiles-layer',
-                'type': 'raster',
-                'source': 'custom-tiles',
-                'layout': { 'visibility': 'visible' }
-            });
-        }
-
-        // Restore view state
+        // Restore view state and layers
         map.setCenter(center);
         map.setZoom(zoom);
         map.setBearing(bearing);
         map.setPitch(pitch);
 
-        // Wait for style to settle
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Reinitialize base layers
@@ -288,7 +367,6 @@ async function setTileLayer(tileUrl) {
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore segments if needed
         if (layerStates.segments) {
             const source = map.getSource('existingSegments');
             if (source) {
@@ -296,7 +374,6 @@ async function setTileLayer(tileUrl) {
             }
         }
 
-        // Reload photos if they were visible
         if (layerStates.photos) {
             removePhotoMarkers();
             setTimeout(async () => {
