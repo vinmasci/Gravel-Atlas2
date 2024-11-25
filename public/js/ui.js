@@ -674,7 +674,6 @@ async function renderComments(routeId) {
 }
 
 // add comment 1
-
 async function addComment() {
     console.log('Adding new comment');
     const submitButton = document.getElementById('submit-comment');
@@ -719,8 +718,15 @@ async function addComment() {
         // Get route creator info
         const routeResponse = await fetch(`/api/get-drawn-routes?routeId=${routeId}`);
         const routeData = await routeResponse.json();
-        const routeCreatorId = routeData.routes?.[0]?.metadata?.createdBy?.auth0Id;
+        console.log('Route data:', routeData);
 
+        // Get previous comments and commenters
+        const commentsResponse = await fetch(`/api/comments?routeId=${routeId}`);
+        const commentsData = await commentsResponse.json();
+        const previousCommenters = [...new Set(commentsData.map(comment => comment.auth0Id))];
+        console.log('Previous commenters:', previousCommenters);
+
+        // Save the comment
         const response = await fetch('/api/comments', {
             method: 'POST',
             headers: {
@@ -736,6 +742,8 @@ async function addComment() {
             })
         });
 
+        console.log('Add comment response status:', response.status);
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`HTTP error ${response.status}: ${errorData.error}`);
@@ -743,27 +751,38 @@ async function addComment() {
 
         const result = await response.json();
 
-        // Add activity tracking with route creator info
+        // Add activity tracking with complete metadata
         if (window.ActivityFeed) {
             try {
-                const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
+                // Get clean segment title
+                const segmentTitle = document.getElementById('segment-details')
+                    ?.querySelector('.segment-title')?.textContent.trim() || 'Unknown Segment';
+
+                const segmentCreatorId = routeData.routes?.[0]?.metadata?.createdBy?.auth0Id;
+                
                 console.log('Recording activity with metadata:', {
                     type: 'comment',
                     title: segmentTitle,
                     commentText: commentText,
                     routeId: routeId,
-                    segmentCreatorId: routeData.routes[0]?.metadata?.createdBy?.auth0Id,
+                    segmentCreatorId: segmentCreatorId,
                     previousCommenters: previousCommenters
                 });
+
                 await window.ActivityFeed.recordActivity('comment', 'add', {
                     title: segmentTitle,
                     commentText: commentText,
                     routeId: routeId,
-                    routeCreatorId: routeCreatorId, // Add route creator ID
-                    isInteraction: user.sub !== routeCreatorId // Flag if this is an interaction
+                    segmentCreatorId: segmentCreatorId,
+                    previousCommenters: previousCommenters
                 });
             } catch (activityError) {
                 console.error("Error recording comment activity:", activityError);
+                console.error("Activity error details:", {
+                    name: activityError.name,
+                    message: activityError.message,
+                    stack: activityError.stack
+                });
             }
         }
 
@@ -773,8 +792,14 @@ async function addComment() {
 
     } catch (error) {
         console.error('Error saving comment:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         alert('Error saving comment. Please try again.');
     } finally {
+        // Reset button state
         submitButton.disabled = false;
         submitButton.innerHTML = 'Submit';
     }
