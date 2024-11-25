@@ -6,7 +6,6 @@ const tileLayers = {
     osmCycle: 'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=7724ff4746164f39b35fadb342b13a50',
 };
 
-
 // Original Mapbox style URL for reset function
 const originalMapboxStyle = 'mapbox://styles/mapbox/streets-v11';
 
@@ -22,6 +21,13 @@ if (!window.layerVisibility) {
         photos: false
     };
 }
+
+// Add this at the top with your other constants
+const mapillaryPopup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: '300px'
+});
 
 // ============================
 // SECTION: Segment Interaction (Hover & Click)
@@ -170,13 +176,6 @@ async function resetToOriginalStyle() {
 // ===========================
 // Mapillary
 // ===========================
-// Add this at the top with your other constants
-const mapillaryPopup = new mapboxgl.Popup({
-    closeButton: false,
-    closeOnClick: false,
-    maxWidth: '300px'
-});
-
 function toggleMapillaryLayer() {
     try {
         const hasMapillaryLayers = map.getSource('mapillary') && 
@@ -223,57 +222,54 @@ function toggleMapillaryLayer() {
                 }
             });
 
-            // Mouse enter - Show preview
+            // REPLACE the existing mouseenter handler with this updated one
             map.on('mouseenter', 'mapillary-images', async (e) => {
-                map.getCanvas().style.cursor = 'pointer';
+                if (!e.features?.length) return;
                 
-                const feature = e.features[0];
-                const imageId = feature.properties.id;
+                map.getCanvas().style.cursor = 'pointer';
+                const imageId = e.features[0].properties.id;
                 
                 // Show loading state
                 mapillaryPopup
                     .setLngLat(e.lngLat)
-                    .setHTML('<div class="mapillary-popup-loading">Loading preview...</div>')
+                    .setHTML('<div style="padding: 10px;">Loading preview...</div>')
                     .addTo(map);
 
                 try {
-                    // Get image details from Mapillary API
                     const response = await fetch(
                         `https://graph.mapillary.com/images/${imageId}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&fields=thumb_1024_url,captured_at`
                     );
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        const date = new Date(data.captured_at).toLocaleDateString();
-                        
-                        // Update popup with image
-                        mapillaryPopup.setHTML(`
-                            <div class="mapillary-popup">
-                                <img src="${data.thumb_1024_url}" 
-                                     alt="Street view preview" 
-                                     class="mapillary-preview-image" 
-                                     style="width: 300px; border-radius: 4px;"
-                                />
-                                <div class="mapillary-popup-date" 
-                                     style="font-size: 12px; color: #666; margin-top: 4px;">
-                                    Captured: ${date}
-                                </div>
+                    if (!response.ok) throw new Error('Failed to fetch image data');
+                    
+                    const data = await response.json();
+                    const date = new Date(data.captured_at).toLocaleDateString();
+                    
+                    mapillaryPopup.setHTML(`
+                        <div style="background: white; padding: 5px; border-radius: 4px;">
+                            <img 
+                                src="${data.thumb_1024_url}" 
+                                alt="Street view preview" 
+                                style="width: 300px; border-radius: 4px;"
+                                onerror="this.style.display='none'; this.parentElement.innerHTML='Failed to load image'"
+                            />
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                Captured: ${date}
                             </div>
-                        `);
-                    }
+                        </div>
+                    `);
                 } catch (error) {
                     console.error('Error fetching Mapillary image:', error);
-                    mapillaryPopup.setHTML('Failed to load preview');
+                    mapillaryPopup.setHTML('<div style="padding: 10px;">Failed to load preview</div>');
                 }
             });
 
-            // Mouse leave - Hide preview
+            // Keep your existing mouseleave and click handlers
             map.on('mouseleave', 'mapillary-images', () => {
                 map.getCanvas().style.cursor = '';
                 mapillaryPopup.remove();
             });
 
-            // Click handler - Open in Mapillary
             map.on('click', 'mapillary-images', (e) => {
                 if (e.features.length > 0) {
                     const imageId = e.features[0].properties.id;
