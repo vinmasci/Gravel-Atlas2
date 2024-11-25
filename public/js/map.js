@@ -1,3 +1,6 @@
+// Add this as a global variable at the top of your map.js
+let mly = null;
+
 // Tile URLs for different map layers
 const tileLayers = {
     googleMap: 'https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}',
@@ -811,31 +814,47 @@ map.on('load', () => {
 });
 
 function initMapillaryViewer() {
+    console.log('Initializing Mapillary viewer');
     const container = document.getElementById('street-view-panorama');
+    
     if (!container) {
         console.error('Mapillary container not found');
         return;
     }
 
-    mly = new mapillary.Viewer({
-        accessToken: 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31', // Replace with your token
-        container: 'street-view-panorama',
-        component: {
-            cover: false,
-            sequence: true,
-            bearing: true,
-            spatial: true,
+    try {
+        // Make sure old viewer is destroyed if it exists
+        if (mly) {
+            mly.remove();
+            mly = null;
         }
-    });
 
-    // Add viewer events
-    mly.on('bearing', (bearing) => {
-        if (streetViewMarker) {
-            // Update marker rotation based on viewer bearing
-            const el = streetViewMarker.getElement();
-            el.style.transform = `rotate(${bearing}deg)`;
-        }
-    });
+        // Create new viewer
+        mly = new mapillary.Viewer({
+            accessToken: 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31',
+            container: 'street-view-panorama',
+            component: {
+                cover: false,
+                sequence: true,
+                bearing: true,
+                spatial: true,
+                zoom: true,
+                keyboard: true
+            }
+        });
+
+        // Add viewer event listeners
+        mly.on('load', () => console.log('Mapillary viewer loaded'));
+        mly.on('error', (error) => console.error('Mapillary viewer error:', error));
+        mly.on('bearing', (bearing) => {
+            console.log('Bearing updated:', bearing);
+        });
+
+        console.log('Mapillary viewer initialized');
+    } catch (error) {
+        console.error('Error initializing Mapillary viewer:', error);
+        console.error('Error details:', error.stack);
+    }
 }
 
 function toggleStreetViewMode() {
@@ -850,21 +869,28 @@ function toggleStreetViewMode() {
     }
 
     streetViewMode = !streetViewMode;
+    console.log('Street View mode:', streetViewMode ? 'enabled' : 'disabled');
     
     if (streetViewMode) {
         enableStreetViewMode();
         button.classList.add('active');
         mapContainer.classList.add('map-split-view');
+        streetViewContainer.classList.add('visible');
         streetViewContainer.style.display = 'block';
+
+        // Force viewer resize after showing
+        if (mly) {
+            setTimeout(() => {
+                mly.resize();
+                console.log('Resized Mapillary viewer');
+            }, 100);
+        }
     } else {
         disableStreetViewMode();
         button.classList.remove('active');
         mapContainer.classList.remove('map-split-view');
+        streetViewContainer.classList.remove('visible');
         streetViewContainer.style.display = 'none';
-        if (streetViewMarker) {
-            streetViewMarker.remove();
-            streetViewMarker = null;
-        }
     }
 }
 
@@ -886,7 +912,10 @@ function disableStreetViewMode() {
 }
 
 async function handleStreetViewClick(e) {
-    if (!streetViewMode || !mly) return;
+    if (!streetViewMode || !mly) {
+        console.log('Street View mode or viewer not active');
+        return;
+    }
     
     console.log('Handling Street View click at:', e.lngLat);
     try {
@@ -905,20 +934,36 @@ async function handleStreetViewClick(e) {
         .setLngLat([lng, lat])
         .addTo(map);
 
-        // Use our new API endpoint
-        const response = await fetch(`/api/get-mapillary-images?lat=${lat}&lng=${lng}`);
+        // Search for nearest Mapillary images with larger radius
+        const searchRadius = 0.05; // Increased radius
+        const apiUrl = `https://graph.mapillary.com/images?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&` +
+            `fields=id,captured_at,computed_geometry&` +
+            `limit=1&` +
+            `bbox=${lng-searchRadius},${lat-searchRadius},${lng+searchRadius},${lat+searchRadius}`;
+        
+        console.log('Fetching Mapillary images...');
+        const response = await fetch(apiUrl);
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch Mapillary images');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+        
         const data = await response.json();
         console.log('Mapillary API response:', data);
-        
+
         if (data.data && data.data.length > 0) {
             const imageId = data.data[0].id;
-            console.log('Loading Mapillary image:', imageId);
-            await mly.moveToKey(imageId);
+            console.log('Found image:', imageId);
+            
+            try {
+                await mly.moveToKey(imageId);
+                console.log('Moved to image successfully');
+            } catch (viewerError) {
+                console.error('Error moving to image:', viewerError);
+                alert('Error loading street-level image');
+            }
         } else {
+            console.log('No images found nearby');
             alert('No street-level imagery available at this location');
             streetViewMarker.remove();
             streetViewMarker = null;

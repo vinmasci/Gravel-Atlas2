@@ -1989,11 +1989,17 @@
 }
 
 #street-view-panorama.visible {
-    display: block;
+    display: block !important;
+}
+
+#street-view-panorama .mapillary-js-dom {
+    width: 100%;
+    height: 100%;
 }
 
 .map-split-view {
     width: 50% !important;
+    transition: width 0.3s ease;
 }
 
 /* Control Button */
