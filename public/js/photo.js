@@ -368,17 +368,48 @@ async function deletePhoto(photoId) {
 async function handlePhotoClick(e) {
     try {
         const coordinates = e.features[0].geometry.coordinates.slice();
-        const { 
-            originalName, 
-            url, 
-            _id: photoId, 
-            auth0Id,
-            username,
-            picture,
-            uploadedAt 
-        } = e.features[0].properties;
+        const { originalName, url, _id: photoId, auth0Id, username, picture, uploadedAt } = e.features[0].properties;
 
-        // First fetch user profile before showing anything
+        // Get current user upfront
+        const currentUser = await getCurrentUser();
+
+        // Initial loading popup
+        let popupContent = `
+            <div class="photo-popup">
+                <div class="photo-header">
+                    <div class="user-info">
+                        <img src="/api/placeholder/24/24" class="profile-pic" id="profile-pic-${photoId}" />
+                        <div class="name-social-line"><strong>Loading...</strong></div>
+                    </div>
+                </div>
+                <div class="photo-content">
+                    <div class="photo-loading">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>`;
+
+        const popup = new mapboxgl.Popup({
+            closeButton: true,
+            closeOnClick: false,
+            maxWidth: '300px'
+        })
+        .setLngLat(coordinates)
+        .setHTML(popupContent)
+        .addTo(map);
+
+        // Add one-time close handler
+        const closeButton = popup.getElement().querySelector('.mapboxgl-popup-close-button');
+        if (closeButton) {
+            const closeHandler = (e) => {
+                e.preventDefault();
+                popup.remove();
+                closeButton.removeEventListener('click', closeHandler);
+            };
+            closeButton.addEventListener('click', closeHandler);
+        }
+
+        // Fetch user profile
         let userProfile;
         try {
             const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
@@ -389,105 +420,93 @@ async function handlePhotoClick(e) {
             console.error('Error fetching user profile:', error);
         }
 
-        // Use profile data if available, fall back to defaults if not
-        const displayName = userProfile?.bioName || username;
-        const profilePicture = userProfile?.picture || picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
-        
-        // Build social links HTML if available
-        let socialLinksHtml = '';
-        if (userProfile?.socialLinks) {
-            const { instagram, strava, facebook } = userProfile.socialLinks;
-            socialLinksHtml = `
-                <div class="social-links">
-                    ${instagram ? `<a href="${instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
-                    ${strava ? `<a href="${strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
-                    ${facebook ? `<a href="${facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
-                    ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
-                </div>
-            `;
-        }
+        // Build social links HTML
+        const socialLinksHtml = userProfile?.socialLinks ? `
+            <div class="social-links">
+                ${userProfile.socialLinks.instagram ? `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
+                ${userProfile.socialLinks.strava ? `<a href="${userProfile.socialLinks.strava}" target="_blank" title="Strava"><i class="fa-brands fa-strava"></i></a>` : ''}
+                ${userProfile.socialLinks.facebook ? `<a href="${userProfile.socialLinks.facebook}" target="_blank" title="Facebook"><i class="fa-brands fa-facebook"></i></a>` : ''}
+                ${userProfile.website ? `<a href="${userProfile.website}" target="_blank" title="Website"><i class="fa-solid fa-globe"></i></a>` : ''}
+            </div>
+        ` : '';
 
-        // Now create popup with pre-fetched data
-// Inside the handlePhotoClick function, update the popupContent template:
-// Now create popup with pre-fetched data
-let popupContent = `
-    <div class="photo-popup">
-        <div class="photo-header">
-            <div class="user-info">
-                <img src="${profilePicture}"
-                    class="profile-pic"
-                    id="profile-pic-${photoId}"
-                    onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'" />
-                <div class="name-social-line">
-                    <strong>${displayName}</strong>
-                    <div id="socialLinks-${photoId}">
-                        ${socialLinksHtml}
+        // Preload image
+        const img = new Image();
+        img.onload = () => {
+            const updatedContent = `
+                <div class="photo-popup">
+                    <div class="photo-header">
+                        <div class="user-info">
+                            <img src="${userProfile?.picture || picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}"
+                                class="profile-pic"
+                                id="profile-pic-${photoId}"
+                                onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'" />
+                            <div class="name-social-line">
+                                <strong>${userProfile?.bioName || username}</strong>
+                                ${socialLinksHtml}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="photo-content">
-            <img src="${url}" alt="${originalName}" class="photo-image">
-            <div class="photo-date">
-                ${new Date(uploadedAt).toLocaleDateString()}
-            </div>
-        </div>
-        <div class="photo-footer">
-            <span class="photo-id">Photo ID: ${photoId}</span>
-            <div class="photo-actions">
-                ${auth0Id === (await getCurrentUser())?.sub ?
-                    `<span id="deletePhotoText" data-photo-id="${photoId}"
-                        class="delete-photo"><i class="fa-solid fa-trash"></i></span>` :
-                    `<span id="flagPhotoBtn" data-photo-id="${photoId}"
-                        class="flag-photo"><i class="fa-solid fa-flag"></i></span>`
+                    <div class="photo-content">
+                        <img src="${url}" alt="${originalName}" class="photo-image">
+                        <div class="photo-date">
+                            ${new Date(uploadedAt).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="photo-footer">
+                        <span class="photo-id">Photo ID: ${photoId}</span>
+                        <div class="photo-actions">
+                            ${auth0Id === currentUser?.sub ?
+                                `<span class="delete-photo" data-photo-id="${photoId}">
+                                    <i class="fa-solid fa-trash"></i>
+                                </span>` :
+                                `<span class="flag-photo" data-photo-id="${photoId}">
+                                    <i class="fa-solid fa-flag"></i>
+                                </span>`
+                            }
+                        </div>
+                    </div>
+                </div>`;
+            
+            popup.setHTML(updatedContent);
+
+            // Reattach event handlers
+            setTimeout(() => {
+                const deleteBtn = popup.getElement().querySelector('.delete-photo');
+                const flagBtn = popup.getElement().querySelector('.flag-photo');
+
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', async () => {
+                        if (confirm('Are you sure you want to delete this photo?')) {
+                            try {
+                                showLoading('Deleting photo...');
+                                await deletePhoto(photoId);
+                                popup.remove();
+                                await loadPhotoMarkers();
+                            } catch (error) {
+                                console.error('Error deleting photo:', error);
+                                alert('Failed to delete photo');
+                            } finally {
+                                hideLoading();
+                            }
+                        }
+                    });
                 }
-            </div>
-        </div>
-    </div>`;
 
-const popup = new mapboxgl.Popup()
-    .setLngLat(coordinates)
-    .setHTML(popupContent)
-    .addTo(map);
-
-// Add both delete and flag handlers
-setTimeout(() => {
-    // Delete handler
-    const deleteText = popup.getElement().querySelector('#deletePhotoText');
-    if (deleteText) {
-        deleteText.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to delete this photo?')) {
-                try {
-                    showLoading('Deleting photo...');
-                    forceHideLoadingAfterDelay(5000);
-                    await deletePhoto(photoId);
-                    popup.remove();
-                    showLoading('Updating map...');
-                    forceHideLoadingAfterDelay(5000);
-                    await loadPhotoMarkers();
-                } catch (error) {
-                    console.error('Error handling photo deletion:', error);
-                    alert('Failed to delete photo. Please try again.');
-                } finally {
-                    hideLoading();
+                if (flagBtn) {
+                    flagBtn.addEventListener('click', () => {
+                        const photoId = flagBtn.getAttribute('data-photo-id');
+                        handleFlagSegment(photoId);
+                    });
                 }
-            }
-        });
-    }
+            }, 0);
+        };
 
-    // Flag handler
-    const flagBtn = popup.getElement().querySelector('#flagPhotoBtn');
-    if (flagBtn) {
-        flagBtn.addEventListener('click', async () => {
-            const photoId = flagBtn.getAttribute('data-photo-id');
-            handleFlagSegment(photoId); // Reuse the same flag modal
-        });
-    }
-}, 0);
+        img.src = url;
 
-} catch (error) {
-    console.error('Error creating photo popup:', error);
-}
+    } catch (error) {
+        console.error('Error creating photo popup:', error);
+    }
 }
 
 // Add this function to photo.js (right before or after loadPhotoMarkers)
