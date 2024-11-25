@@ -1,6 +1,3 @@
-// Add this as a global variable at the top of your map.js
-let mly = null;
-
 // Tile URLs for different map layers
 const tileLayers = {
     googleMap: 'https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}',
