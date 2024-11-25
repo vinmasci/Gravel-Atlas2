@@ -414,8 +414,25 @@ const ActivityFeed = {
     },
 
     formatActivityContent(activity, currentUserId) {
-        const username = activity.auth0Id ? `${activity.username.split('@')[0]}` : 'Someone';
+        // Get default username (part before @ in email)
+        const defaultUsername = activity.username?.split('@')[0] || 'Anonymous';
         
+        // Try to get bio name from user profile
+        let username = defaultUsername;
+        if (activity.auth0Id) {
+            fetch(`/api/user?id=${encodeURIComponent(activity.auth0Id)}`)
+                .then(response => response.json())
+                .then(profile => {
+                    if (profile?.bioName) {
+                        const nameElement = document.querySelector(`[data-activity-id="${activity._id}"] .username`);
+                        if (nameElement) {
+                            nameElement.textContent = profile.bioName;
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching user profile:', error));
+        }
+    
         const content = {
             regular: '',
             interaction: ''
@@ -423,20 +440,20 @@ const ActivityFeed = {
     
         switch (activity.type) {
             case 'segment':
-                content.regular = `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                content.regular = `<span class="username" data-activity-id="${activity._id}">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
                 break;
                 
             case 'comment':
-                content.regular = `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                content.regular = `<span class="username" data-activity-id="${activity._id}">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
                 if (activity.metadata?.segmentCreatorId === currentUserId) {
-                    content.interaction = `<span class="username">${username}</span> commented on your segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                    content.interaction = `<span class="username" data-activity-id="${activity._id}">${username}</span> commented on your segment "${activity.metadata?.title || 'Unnamed segment'}"`;
                 } else if (activity.metadata?.previousCommenters?.includes(currentUserId)) {
-                    content.interaction = `<span class="username">${username}</span> also commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                    content.interaction = `<span class="username" data-activity-id="${activity._id}">${username}</span> also commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
                 }
                 break;
                 
             case 'photo':
-                content.regular = `<span class="username">${username}</span> added a new photo`;
+                content.regular = `<span class="username" data-activity-id="${activity._id}">${username}</span> added a new photo`;
                 break;
                 
             default:
