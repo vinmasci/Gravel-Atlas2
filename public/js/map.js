@@ -6,6 +6,13 @@ const tileLayers = {
     osmCycle: 'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=7724ff4746164f39b35fadb342b13a50',
 };
 
+// Add this at the top with your other constants
+const mapillaryPopup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: '300px'
+});
+
 // Original Mapbox style URL for reset function
 const originalMapboxStyle = 'mapbox://styles/mapbox/streets-v11';
 
@@ -169,6 +176,13 @@ async function resetToOriginalStyle() {
 // ===========================
 // Mapillary
 // ===========================
+// Add this at the top with your other constants
+const mapillaryPopup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: '300px'
+});
+
 function toggleMapillaryLayer() {
     try {
         const hasMapillaryLayers = map.getSource('mapillary') && 
@@ -176,8 +190,6 @@ function toggleMapillaryLayer() {
                                  map.getLayer('mapillary-images');
 
         if (!hasMapillaryLayers) {
-            // First time adding Mapillary layers
-            console.log('Adding Mapillary layers for the first time');
             map.addSource('mapillary', {
                 type: 'vector',
                 tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31`],
@@ -217,24 +229,65 @@ function toggleMapillaryLayer() {
                 }
             });
 
-            // Add click handler for images
+            // Mouse enter - Show preview
+            map.on('mouseenter', 'mapillary-images', async (e) => {
+                map.getCanvas().style.cursor = 'pointer';
+                
+                const feature = e.features[0];
+                const imageId = feature.properties.id;
+                
+                // Show loading state
+                mapillaryPopup
+                    .setLngLat(e.lngLat)
+                    .setHTML('<div class="mapillary-popup-loading">Loading preview...</div>')
+                    .addTo(map);
+
+                try {
+                    // Get image details from Mapillary API
+                    const response = await fetch(
+                        `https://graph.mapillary.com/images/${imageId}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&fields=thumb_1024_url,captured_at`
+                    );
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const date = new Date(data.captured_at).toLocaleDateString();
+                        
+                        // Update popup with image
+                        mapillaryPopup.setHTML(`
+                            <div class="mapillary-popup">
+                                <img src="${data.thumb_1024_url}" 
+                                     alt="Street view preview" 
+                                     class="mapillary-preview-image" 
+                                     style="width: 300px; border-radius: 4px;"
+                                />
+                                <div class="mapillary-popup-date" 
+                                     style="font-size: 12px; color: #666; margin-top: 4px;">
+                                    Captured: ${date}
+                                </div>
+                            </div>
+                        `);
+                    }
+                } catch (error) {
+                    console.error('Error fetching Mapillary image:', error);
+                    mapillaryPopup.setHTML('Failed to load preview');
+                }
+            });
+
+            // Mouse leave - Hide preview
+            map.on('mouseleave', 'mapillary-images', () => {
+                map.getCanvas().style.cursor = '';
+                mapillaryPopup.remove();
+            });
+
+            // Click handler - Open in Mapillary
             map.on('click', 'mapillary-images', (e) => {
                 if (e.features.length > 0) {
                     const imageId = e.features[0].properties.id;
                     window.open(`https://www.mapillary.com/app/?image_key=${imageId}`, '_blank');
                 }
             });
-
-            map.on('mouseenter', 'mapillary-images', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-
-            map.on('mouseleave', 'mapillary-images', () => {
-                map.getCanvas().style.cursor = '';
-            });
         } else {
-            // Layers exist, just toggle visibility
-            console.log('Toggling existing Mapillary layers');
+            // Toggle visibility of existing layers
             const currentVisibility = map.getLayoutProperty('mapillary-sequences', 'visibility');
             const newVisibility = currentVisibility === 'visible' ? 'none' : 'visible';
             
