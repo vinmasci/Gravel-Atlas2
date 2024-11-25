@@ -186,10 +186,26 @@ async function setTileLayer(tileUrl) {
             photos: window.layerVisibility?.photos || map.getLayer('clusters') || map.getLayer('unclustered-photo')
         };
 
+        // Remove existing layers first
+        if (map.getStyle().layers) {
+            map.getStyle().layers.forEach(layer => {
+                if (map.getLayer(layer.id)) {
+                    map.removeLayer(layer.id);
+                }
+            });
+        }
+
+        // Remove old tile layer
+        if (map.getLayer('custom-tiles-layer')) {
+            map.removeLayer('custom-tiles-layer');
+        }
+        if (map.getSource('custom-tiles')) {
+            map.removeSource('custom-tiles');
+        }
+
         // Handle Mapillary layer specially
         if (tileUrl === null) {
-            // Don't remove existing layers for Mapillary
-            // Just add Mapillary layers on top
+            // Add Mapillary source and layers
             if (!map.getSource('mapillary')) {
                 map.addSource('mapillary', {
                     type: 'vector',
@@ -241,33 +257,9 @@ async function setTileLayer(tileUrl) {
                 map.on('mouseleave', 'mapillary-images', () => {
                     map.getCanvas().style.cursor = '';
                 });
-            } else {
-                // Toggle visibility if layers already exist
-                const visibility = map.getLayoutProperty('mapillary-sequences', 'visibility');
-                const newVisibility = visibility === 'visible' ? 'none' : 'visible';
-                map.setLayoutProperty('mapillary-sequences', 'visibility', newVisibility);
-                map.setLayoutProperty('mapillary-images', 'visibility', newVisibility);
             }
         } else {
-            // For other tile layers, remove existing layers and add new ones
-            // Remove existing layers first
-            if (map.getStyle().layers) {
-                map.getStyle().layers.forEach(layer => {
-                    if (map.getLayer(layer.id)) {
-                        map.removeLayer(layer.id);
-                    }
-                });
-            }
-
-            // Remove old tile layer
-            if (map.getLayer('custom-tiles-layer')) {
-                map.removeLayer('custom-tiles-layer');
-            }
-            if (map.getSource('custom-tiles')) {
-                map.removeSource('custom-tiles');
-            }
-
-            // Add new tile layer
+            // Add regular tile layer
             map.addSource('custom-tiles', {
                 'type': 'raster',
                 'tiles': [tileUrl],
@@ -317,12 +309,82 @@ async function setTileLayer(tileUrl) {
             }, 1000);
         }
 
-        console.log('Layer updated successfully');
+        console.log('Tile layer updated successfully');
     } catch (error) {
-        console.error('Error setting layer:', error);
+        console.error('Error setting tile layer:', error);
         await resetToOriginalStyle();
     }
 }
+
+// Update the event listener
+document.getElementById('tileLayerSelect').addEventListener('change', async function(event) {
+    const select = event.target;
+    const selectedLayer = select.value;
+    
+    if (!selectedLayer) {
+        console.error('No layer selected');
+        return;
+    }
+    
+    console.log('=== Layer Change Started ===');
+    console.log('Current layer visibility:', window.layerVisibility);
+    
+    // Store the current visibility state
+    const visibilityState = {
+        photos: window.layerVisibility.photos,
+        segments: window.layerVisibility.segments
+    };
+    
+    // Disable select and show loading state
+    select.disabled = true;
+    const originalText = select.options[select.selectedIndex].text;
+    select.options[select.selectedIndex].text = 'Loading...';
+    
+    try {
+        if (selectedLayer === 'reset') {
+            console.log('Refreshing page for classic map...');
+            // Store the visibility state in session storage
+            sessionStorage.setItem('mapStyle', 'reset');
+            sessionStorage.setItem('layerVisibility', JSON.stringify(visibilityState));
+            // Refresh the page
+            window.location.reload();
+            return; // Exit early since we're refreshing
+        } else if (selectedLayer === 'mapillary') {
+            // Handle Mapillary layer
+            console.log('Setting Mapillary layer...');
+            await setTileLayer(null); // null triggers Mapillary layer handling
+        } else if (tileLayers[selectedLayer]) {
+            console.log('Setting new tile layer...');
+            await setTileLayer(tileLayers[selectedLayer]);
+        }
+        
+        // Restore visibility state
+        window.layerVisibility = visibilityState;
+        
+        // Wait a moment for the style to settle
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload photos if they were visible
+        if (visibilityState.photos) {
+            console.log('Reloading photos...');
+            await loadPhotoMarkers();
+        }
+        
+    } catch (error) {
+        console.error('Error in layer change:', error);
+        console.error('Failed layer:', selectedLayer);
+        alert('Failed to change map style. Resetting to default.');
+        // Refresh on error
+        window.location.reload();
+    } finally {
+        // Only restore select state if we haven't refreshed
+        if (selectedLayer !== 'reset') {
+            select.disabled = false;
+            select.options[select.selectedIndex].text = originalText;
+            console.log('Final layer visibility state:', window.layerVisibility);
+        }
+    }
+});
 
 // Add this to your initialization code
 document.addEventListener('DOMContentLoaded', function() {
