@@ -222,7 +222,7 @@ function toggleMapillaryLayer() {
                 }
             });
 
-            // REPLACE the existing mouseenter handler with this updated one
+            // Mouse enter handler
             map.on('mouseenter', 'mapillary-images', async (e) => {
                 if (!e.features?.length) return;
                 
@@ -236,9 +236,10 @@ function toggleMapillaryLayer() {
                     .addTo(map);
 
                 try {
-                    const response = await fetch(
-                        `https://graph.mapillary.com/images/${imageId}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&fields=thumb_1024_url,captured_at`
-                    );
+                    // Encode the URL properly
+                    const encodedUrl = `https://graph.mapillary.com/images/${imageId}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&fields=thumb_1024_url,captured_at`;
+                    
+                    const response = await fetch(encodedUrl);
                     
                     if (!response.ok) throw new Error('Failed to fetch image data');
                     
@@ -248,8 +249,8 @@ function toggleMapillaryLayer() {
                     mapillaryPopup.setHTML(`
                         <div style="background: white; padding: 5px; border-radius: 4px;">
                             <img 
-                                src="${data.thumb_1024_url}" 
-                                alt="Street view preview" 
+                                src="${data.thumb_1024_url}"
+                                alt="Street view preview"
                                 style="width: 300px; border-radius: 4px;"
                                 onerror="this.style.display='none'; this.parentElement.innerHTML='Failed to load image'"
                             />
@@ -264,12 +265,13 @@ function toggleMapillaryLayer() {
                 }
             });
 
-            // Keep your existing mouseleave and click handlers
+            // Mouse leave handler
             map.on('mouseleave', 'mapillary-images', () => {
                 map.getCanvas().style.cursor = '';
                 mapillaryPopup.remove();
             });
 
+            // Click handler
             map.on('click', 'mapillary-images', (e) => {
                 if (e.features.length > 0) {
                     const imageId = e.features[0].properties.id;
@@ -288,7 +290,6 @@ function toggleMapillaryLayer() {
         console.error('Error in toggleMapillaryLayer:', error);
     }
 }
-
 // ===========================
 // Function to switch between tile layers
 // ===========================
