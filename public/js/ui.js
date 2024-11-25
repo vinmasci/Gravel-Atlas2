@@ -694,6 +694,13 @@ async function addComment() {
         const routeIdElement = document.getElementById('route-id');
         const routeId = routeIdElement.innerText.replace('Route ID: ', '').trim();
 
+        // Add this debug log
+        console.log('Comment details:', {
+            routeId,
+            commentText,
+            userAuth: await auth0.getUser()
+        });
+
         if (!commentText) {
             alert('Please enter a comment.');
             return;
@@ -740,6 +747,14 @@ async function addComment() {
         if (window.ActivityFeed) {
             try {
                 const segmentTitle = document.getElementById('segment-details')?.textContent || 'Unknown Segment';
+                console.log('Recording activity with metadata:', {
+                    type: 'comment',
+                    title: segmentTitle,
+                    commentText: commentText,
+                    routeId: routeId,
+                    segmentCreatorId: routeData.routes[0]?.metadata?.createdBy?.auth0Id,
+                    previousCommenters: previousCommenters
+                });
                 await window.ActivityFeed.recordActivity('comment', 'add', {
                     title: segmentTitle,
                     commentText: commentText,
