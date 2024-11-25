@@ -724,15 +724,16 @@ function initEventListeners() {
     }
 }
 // ============================
-// SECTION: Street View
+// SECTION: MAPILLARY
 // ============================
-// Global variable for the Street View marker
+// Global variables for Mapillary
+let mly = null;
+let streetViewMode = false;
 let streetViewMarker = null;
-let streetViewMode = false; // Add this to track mode state
 
 // Function to add Street View control to map
 function initStreetView() {
-    console.log('Starting Street View initialization');
+    console.log('Starting Mapillary initialization');
     
     class StreetViewControl {
         onAdd(map) {
@@ -745,7 +746,6 @@ function initStreetView() {
             button.innerHTML = '<i class="fa-solid fa-street-view"></i>';
             button.title = 'Street View';
             
-            // Improved click handler
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -754,7 +754,6 @@ function initStreetView() {
             });
             
             this._container.appendChild(button);
-            console.log('Street View button created');
             return this._container;
         }
 
@@ -765,47 +764,73 @@ function initStreetView() {
     }
 
     map.addControl(new StreetViewControl(), 'bottom-right');
-    console.log('Street View control added to map');
+    
+    // Initialize Mapillary viewer
+    initMapillaryViewer();
+}
+
+function initMapillaryViewer() {
+    const container = document.getElementById('street-view-panorama');
+    if (!container) {
+        console.error('Mapillary container not found');
+        return;
+    }
+
+    mly = new mapillary.Viewer({
+        accessToken: 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31', // Replace with your token
+        container: 'street-view-panorama',
+        component: {
+            cover: false,
+            sequence: true,
+            bearing: true,
+            spatial: true,
+        }
+    });
+
+    // Add viewer events
+    mly.on('bearing', (bearing) => {
+        if (streetViewMarker) {
+            // Update marker rotation based on viewer bearing
+            const el = streetViewMarker.getElement();
+            el.style.transform = `rotate(${bearing}deg)`;
+        }
+    });
 }
 
 function toggleStreetViewMode() {
     console.log('Toggle Street View clicked');
     const button = document.querySelector('.mapboxgl-ctrl-street-view');
+    const mapContainer = document.getElementById('map');
+    const streetViewContainer = document.getElementById('street-view-panorama');
     
-    if (!button) {
-        console.error('Street View button not found');
+    if (!button || !streetViewContainer) {
+        console.error('Required elements not found');
         return;
     }
 
-    // Disable any other active modes first
-    if (typeof window.disableDrawingMode === 'function') {
-        window.disableDrawingMode();
-    }
-
-    streetViewMode = !streetViewMode; // Toggle mode state
-    console.log('Street View mode:', streetViewMode ? 'enabled' : 'disabled');
+    streetViewMode = !streetViewMode;
     
     if (streetViewMode) {
         enableStreetViewMode();
         button.classList.add('active');
+        mapContainer.classList.add('map-split-view');
+        streetViewContainer.style.display = 'block';
     } else {
         disableStreetViewMode();
         button.classList.remove('active');
+        mapContainer.classList.remove('map-split-view');
+        streetViewContainer.style.display = 'none';
+        if (streetViewMarker) {
+            streetViewMarker.remove();
+            streetViewMarker = null;
+        }
     }
 }
 
 function enableStreetViewMode() {
     console.log('Street View mode enabled');
     map.getCanvas().style.cursor = 'crosshair';
-    
-    // Remove existing handler and add new one with namespace
-    map.off('click.streetView');
-    map.on('click.streetView', (e) => {
-        if (streetViewMode) {
-            console.log('Map clicked in Street View mode');
-            handleStreetViewClick(e);
-        }
-    });
+    map.on('click.streetView', handleStreetViewClick);
 }
 
 function disableStreetViewMode() {
@@ -820,95 +845,61 @@ function disableStreetViewMode() {
 }
 
 async function handleStreetViewClick(e) {
-    if (!streetViewMode) return;
+    if (!streetViewMode || !mly) return;
     
     console.log('Handling Street View click at:', e.lngLat);
     try {
         const lat = e.lngLat.lat;
         const lng = e.lngLat.lng;
         
-        // Create Google Maps Street View URL
-        const streetViewUrl = `https://www.google.com/maps/@${lat},${lng},14z/data=!3m1!1e3!4m2!3m1!1s0x0:0x0!5m1!1e1`;
-        
-        // Open in new tab
-        window.open(streetViewUrl, '_blank');
-        
-        // Optionally add marker
+        // Add or update marker
         if (streetViewMarker) {
             streetViewMarker.remove();
         }
         
         streetViewMarker = new mapboxgl.Marker({
-            color: '#4285F4',
+            color: '#05CB63', // Mapillary green
             draggable: true
         })
         .setLngLat([lng, lat])
         .addTo(map);
 
-        streetViewMarker.on('dragend', () => {
+        // Search for nearest Mapillary images
+        const response = await fetch(
+            `https://graph.mapillary.com/images?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&` +
+            `fields=id,computed_geometry&` +
+            `limit=1&` +
+            `bbox=${lng-0.001},${lat-0.001},${lng+0.001},${lat+0.001}`
+        );
+
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+            const imageId = data.data[0].id;
+            await mly.moveToKey(imageId);
+        } else {
+            alert('No street-level imagery available at this location');
+            streetViewMarker.remove();
+            streetViewMarker = null;
+        }
+
+        // Handle marker drag
+        streetViewMarker.on('dragend', async () => {
             const pos = streetViewMarker.getLngLat();
-            const newUrl = `https://www.google.com/maps/@${pos.lat},${pos.lng},14z/data=!3m1!1e3!4m2!3m1!1s0x0:0x0!5m1!1e1`;
-            window.open(newUrl, '_blank');
+            handleStreetViewClick({ lngLat: pos });
         });
 
     } catch (error) {
         console.error('Error in handleStreetViewClick:', error);
-    }
-}
-
-async function openStreetView(lat, lng) {
-    try {
-        console.log('Opening Street View for:', lat, lng);
-        const response = await fetch(`/api/get-street-view-url?lat=${lat}&lng=${lng}`);
-        if (!response.ok) {
-            throw new Error('Failed to get Street View URL');
-        }
-        const data = await response.json();
-        console.log('Received Street View URL');
-
-        let modal = document.getElementById('street-view-modal');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'street-view-modal';
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <div id="street-view-container"></div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            modal.querySelector('.close').onclick = function() {
-                modal.style.display = 'none';
-                if (streetViewMarker) {
-                    streetViewMarker.remove();
-                    streetViewMarker = null;
-                }
-            };
-        }
-
-        const container = modal.querySelector('#street-view-container');
-        container.innerHTML = `
-            <iframe
-                width="100%"
-                height="450"
-                frameborder="0"
-                src="${data.url}"
-                allowfullscreen>
-            </iframe>
-        `;
-
-        modal.style.display = 'block';
-    } catch (error) {
-        console.error('Error opening Street View:', error);
-        alert('Unable to load Street View for this location');
+        alert('Error accessing street-level imagery');
         if (streetViewMarker) {
             streetViewMarker.remove();
             streetViewMarker = null;
         }
     }
 }
+
+
 
 // Make functions globally available
 window.loadSegments = loadSegments;
@@ -921,9 +912,9 @@ window.loadPhotoMarkers = loadPhotoMarkers;
 window.setTileLayer = setTileLayer;
 window.resetToOriginalStyle = resetToOriginalStyle;
 window.initStreetView = initStreetView;
-// Add Street View related functions
+// Make functions globally available
+window.initStreetView = initStreetView;
 window.toggleStreetViewMode = toggleStreetViewMode;
 window.enableStreetViewMode = enableStreetViewMode;
 window.disableStreetViewMode = disableStreetViewMode;
 window.handleStreetViewClick = handleStreetViewClick;
-window.openStreetView = openStreetView;
