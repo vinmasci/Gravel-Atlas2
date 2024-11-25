@@ -763,11 +763,24 @@ function initStreetView() {
         }
     }
 
+    // Add control to map
+    console.log('Adding Street View control to map');
     map.addControl(new StreetViewControl(), 'bottom-right');
     
     // Initialize Mapillary viewer
     initMapillaryViewer();
 }
+
+// For debugging, add this to check if control is added
+map.once('load', () => {
+    console.log('Map loaded, checking Street View control');
+    const streetViewControl = document.querySelector('.street-view-control');
+    if (streetViewControl) {
+        console.log('Street View control found in DOM');
+    } else {
+        console.log('Street View control not found in DOM');
+    }
+});
 
 function initMapillaryViewer() {
     const container = document.getElementById('street-view-panorama');
