@@ -1367,6 +1367,41 @@ function initUI() {
     console.log('UI initialized');
 }
 
+// ============================
+// SECTION: Cleanup After Save
+// ============================
+
+function cleanupAfterSave() {
+    // Hide the control panel
+    const controlPanel = document.getElementById('control-panel');
+    if (controlPanel) {
+        controlPanel.style.display = 'none';
+    }
+
+    // Hide the contribute dropdown
+    const contributeDropdown = document.getElementById('contribute-dropdown');
+    if (contributeDropdown) {
+        contributeDropdown.style.display = 'none';
+    }
+
+    // Remove active class from contribute tab
+    const contributeTab = document.getElementById('draw-route-tab');
+    if (contributeTab) {
+        contributeTab.classList.remove('active');
+    }
+
+    // Reset the drawing mode state
+    if (typeof window.disableDrawingMode === 'function') {
+        window.disableDrawingMode();
+    }
+
+    // Reset the route data
+    if (typeof window.resetRoute === 'function') {
+        window.resetRoute();
+    }
+}
+
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initUI);
 
@@ -1389,3 +1424,5 @@ window.openRouteNameModal = openRouteNameModal;
 window.closeRouteNameModal = closeRouteNameModal;
 window.handleFlagSegment = handleFlagSegment;
 window.closeFlagModal = closeFlagModal;
+// Add this to your existing window exports
+window.cleanupAfterSave = cleanupAfterSave;

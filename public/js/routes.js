@@ -738,7 +738,7 @@ async function saveDrawnRoute() {
             }
 
             closeRouteNameModal();
-            resetRoute();
+            window.cleanupAfterSave(); // Add this line here
             
             alert("Route saved successfully!");
 
@@ -868,6 +868,7 @@ async function handleSaveConfirmation(gpxData, auth0) {
     } catch (error) {
         console.error("Error saving route:", error);
         alert("Failed to save route. Please try again.");
+        window.cleanupAfterSave(); // Add this line here
     } finally {
         // Re-enable the button
         confirmSaveBtn.disabled = false;
