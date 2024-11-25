@@ -1996,17 +1996,19 @@
     width: 50% !important;
 }
 
+/* Button styling */
 .mapboxgl-ctrl-street-view {
-    padding: 5px;
-    margin: 0;
-    background: #fff;
-    border: none;
-    cursor: pointer;
-    display: flex;
+    display: flex !important;  /* Force display */
     justify-content: center;
     align-items: center;
     width: 29px;
     height: 29px;
+    padding: 5px;
+    background: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
 }
 
 .mapboxgl-ctrl-street-view i {
@@ -2024,6 +2026,13 @@
 
 .mapboxgl-ctrl-street-view.active i {
     color: #fff;
+}
+
+/* Ensure button stays visible when map controls are shown */
+.mapboxgl-ctrl-group {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
 }
     </style>
     
