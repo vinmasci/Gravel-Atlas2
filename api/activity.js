@@ -9,20 +9,21 @@ if (!cached) {
 
 async function connectDB() {
     if (cached.conn) return cached.conn;
-
+    
     if (!cached.promise) {
         cached.promise = mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
     }
+    
     try {
         cached.conn = await cached.promise;
     } catch (e) {
         cached.promise = null;
         throw e;
     }
-
+    
     return cached.conn;
 }
 
@@ -84,7 +85,8 @@ export default async function handler(req, res) {
 
         if (req.method === 'POST') {
             console.log('Processing POST request');
-            
+            console.log('Request body:', req.body);
+
             const user = await verifyAuth0Token(req);
             if (!user) {
                 console.log('Authentication failed');
@@ -92,26 +94,53 @@ export default async function handler(req, res) {
             }
 
             const { type, action, metadata, username } = req.body;
-            
-            console.log('Creating activity:', {
-                auth0Id: user.sub,
-                username,
+
+            // Log the incoming metadata
+            console.log('Received activity data:', {
                 type,
                 action,
-                metadata
+                metadata,
+                auth0Id: user.sub,
+                username
             });
+
+            // Prepare metadata with all necessary fields
+            const processedMetadata = {
+                title: metadata.title,
+                commentText: metadata.commentText,
+                photoUrl: metadata.photoUrl,
+                gravelType: metadata.gravelType,
+                routeId: metadata.routeId,
+                segmentCreatorId: metadata.segmentCreatorId,
+                previousCommenters: metadata.previousCommenters || [],
+                location: metadata.location || {
+                    type: 'Point',
+                    coordinates: []
+                }
+            };
 
             const activity = new Activity({
                 auth0Id: user.sub,
                 username: username || 'Anonymous User',
                 type,
                 action,
-                metadata,
+                metadata: processedMetadata,
                 createdAt: new Date()
             });
 
+            console.log('Attempting to save activity:', {
+                type: activity.type,
+                auth0Id: activity.auth0Id,
+                metadata: activity.metadata
+            });
+
             const savedActivity = await activity.save();
-            console.log('Activity saved:', savedActivity._id);
+            
+            console.log('Activity saved successfully:', {
+                id: savedActivity._id,
+                type: savedActivity.type,
+                metadata: savedActivity.metadata
+            });
 
             return res.status(201).json(savedActivity);
         }
@@ -124,7 +153,8 @@ export default async function handler(req, res) {
             stack: error.stack,
             name: error.name
         });
-        return res.status(500).json({ 
+
+        return res.status(500).json({
             error: error.message,
             details: error.name === 'ValidationError' ? error.errors : undefined
         });

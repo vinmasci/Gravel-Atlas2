@@ -1,3 +1,4 @@
+// models/Activity.js
 const mongoose = require('mongoose');
 
 const activitySchema = new mongoose.Schema({
@@ -6,7 +7,7 @@ const activitySchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    username: {  // Added this field
+    username: {
         type: String,
         required: true
     },
@@ -25,6 +26,9 @@ const activitySchema = new mongoose.Schema({
         commentText: String,
         photoUrl: String,
         gravelType: String,
+        routeId: String,                // Added for linking comments to routes
+        segmentCreatorId: String,       // Added for tracking segment owner
+        previousCommenters: [String],   // Added for tracking other commenters
         location: {
             type: {
                 type: String,
@@ -41,14 +45,19 @@ const activitySchema = new mongoose.Schema({
     }
 });
 
-// Ensure indexes are created
+// Indexes
 activitySchema.index({ createdAt: -1 });
 activitySchema.index({ auth0Id: 1, createdAt: -1 });
 activitySchema.index({ type: 1, createdAt: -1 });
+activitySchema.index({ 'metadata.segmentCreatorId': 1 });
+activitySchema.index({ 'metadata.previousCommenters': 1 });
 
-// Add this to help with debugging
 activitySchema.post('save', function(doc) {
-  console.log('Activity saved successfully:', doc._id);
+    console.log('Activity saved successfully:', {
+        id: doc._id,
+        type: doc.type,
+        metadata: doc.metadata
+    });
 });
 
 module.exports = mongoose.models.Activity || mongoose.model('Activity', activitySchema);
