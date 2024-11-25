@@ -275,7 +275,6 @@ async function initCore() {
         await new Promise(resolve => {
             const checkMapFunctions = () => {
                 const requiredFunctions = [
-                    // Remove 'initStreetView' from here since we'll handle Mapillary separately
                     'initGeoJSONSources',
                     'addSegmentLayers',
                     'setupSegmentInteraction'
@@ -306,30 +305,8 @@ async function initCore() {
             } catch (error) {
                 console.error('Error initializing map components:', error);
             }
-            // Give the map a moment to process the source/layer additions
             setTimeout(resolve, 100);
         });
-
-        // Initialize Mapillary
-        try {
-            console.log('Initializing Mapillary viewer...');
-            // Add Street View container if it doesn't exist
-            if (!document.getElementById('street-view-panorama')) {
-                const streetViewContainer = document.createElement('div');
-                streetViewContainer.id = 'street-view-panorama';
-                document.body.appendChild(streetViewContainer);
-            }
-            
-            if (typeof window.initMapillaryViewer === 'function') {
-                await window.initMapillaryViewer();
-                console.log('Mapillary viewer initialized successfully');
-            } else {
-                console.error('Mapillary viewer initialization function not found');
-            }
-        } catch (error) {
-            console.error('Error initializing Mapillary:', error);
-            // Non-blocking - continue initialization
-        }
 
         // Initialize Activity Feed if available
         if (window.ActivityFeed) {
@@ -341,14 +318,15 @@ async function initCore() {
             }
         }
 
-        // Rest of your existing initialization code remains the same
+        // Show loading indicators immediately
         utils.showTabLoading('segments-tab');
         utils.showTabLoading('photos-tab');
 
+        // Start loading data immediately
         console.log('Starting initial data load...');
         const loadingPromises = [];
 
-        // Segments loading
+        // Add segments loading promise with delay
         if (typeof window.loadSegments === 'function') {
             const segmentsPromise = (async () => {
                 try {
@@ -371,7 +349,7 @@ async function initCore() {
             utils.hideTabLoading('segments-tab');
         }
 
-        // Photos loading
+        // Add photos loading promise
         if (typeof window.loadPhotoMarkers === 'function') {
             const photosPromise = window.loadPhotoMarkers()
                 .then(() => {
@@ -393,7 +371,6 @@ async function initCore() {
         // Complete auth0 initialization and handle authentication
         const auth0 = await auth0Promise;
         console.log('Auth0 initialization complete');
-        
         const isAuthenticated = await auth0.isAuthenticated();
         console.log('Authentication status:', isAuthenticated);
 

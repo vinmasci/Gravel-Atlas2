@@ -4,6 +4,7 @@ const tileLayers = {
     googleSatellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     googleHybrid: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     osmCycle: 'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=7724ff4746164f39b35fadb342b13a50',
+    mapillary: null // Special case for Mapillary
 };
 
 // Original Mapbox style URL for reset function
@@ -170,21 +171,6 @@ async function resetToOriginalStyle() {
 // Function to switch between tile layers
 // ===========================
 async function setTileLayer(tileUrl) {
-    // Check if it's a Google Maps layer at the start
-    const isGoogleMaps = tileUrl.includes('google.com');
-    
-    // Show/hide Street View button based on layer type
-    const streetViewButton = document.querySelector('.mapboxgl-ctrl-street-view');
-    if (streetViewButton) {
-        if (isGoogleMaps) {
-            streetViewButton.style.display = 'block';
-            document.body.classList.add('using-google-maps');
-        } else {
-            streetViewButton.style.display = 'none';
-            document.body.classList.remove('using-google-maps');
-        }
-    }
-
     try {
         console.log('Setting new tile layer:', tileUrl);
         
@@ -194,19 +180,20 @@ async function setTileLayer(tileUrl) {
         const bearing = map.getBearing();
         const pitch = map.getPitch();
         
-        // Store layer visibility states and check actual layer presence
+        // Store layer visibility states
         const layerStates = {
             segments: window.layerVisibility?.segments || false,
             photos: window.layerVisibility?.photos || map.getLayer('clusters') || map.getLayer('unclustered-photo')
         };
 
-        // Remove existing layers
-        const layers = map.getStyle().layers;
-        layers.forEach(layer => {
-            if (layer.id !== 'custom-tiles-layer') {
-                map.removeLayer(layer.id);
-            }
-        });
+        // Remove existing layers first
+        if (map.getStyle().layers) {
+            map.getStyle().layers.forEach(layer => {
+                if (map.getLayer(layer.id)) {
+                    map.removeLayer(layer.id);
+                }
+            });
+        }
 
         // Remove old tile layer
         if (map.getLayer('custom-tiles-layer')) {
@@ -216,19 +203,76 @@ async function setTileLayer(tileUrl) {
             map.removeSource('custom-tiles');
         }
 
-        // Add new tile layer
-        map.addSource('custom-tiles', {
-            'type': 'raster',
-            'tiles': [tileUrl],
-            'tileSize': 256
-        });
+        // Handle Mapillary layer specially
+        if (tileUrl === null) {
+            // Add Mapillary source and layers
+            if (!map.getSource('mapillary')) {
+                map.addSource('mapillary', {
+                    type: 'vector',
+                    tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31`],
+                    minzoom: 6,
+                    maxzoom: 14
+                });
 
-        map.addLayer({
-            'id': 'custom-tiles-layer',
-            'type': 'raster',
-            'source': 'custom-tiles',
-            'layout': { 'visibility': 'visible' }
-        });
+                map.addLayer({
+                    'id': 'mapillary-sequences',
+                    'type': 'line',
+                    'source': 'mapillary',
+                    'source-layer': 'sequence',
+                    'layout': {
+                        'line-cap': 'round',
+                        'line-join': 'round'
+                    },
+                    'paint': {
+                        'line-opacity': 0.6,
+                        'line-color': '#05CB63',
+                        'line-width': 2
+                    }
+                });
+
+                map.addLayer({
+                    'id': 'mapillary-images',
+                    'type': 'circle',
+                    'source': 'mapillary',
+                    'source-layer': 'image',
+                    'paint': {
+                        'circle-radius': 4,
+                        'circle-color': '#05CB63',
+                        'circle-opacity': 0.8
+                    }
+                });
+
+                // Add click handler for images
+                map.on('click', 'mapillary-images', (e) => {
+                    if (e.features.length > 0) {
+                        const imageId = e.features[0].properties.id;
+                        window.open(`https://www.mapillary.com/app/?image_key=${imageId}`, '_blank');
+                    }
+                });
+
+                map.on('mouseenter', 'mapillary-images', () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+
+                map.on('mouseleave', 'mapillary-images', () => {
+                    map.getCanvas().style.cursor = '';
+                });
+            }
+        } else {
+            // Add regular tile layer
+            map.addSource('custom-tiles', {
+                'type': 'raster',
+                'tiles': [tileUrl],
+                'tileSize': 256
+            });
+
+            map.addLayer({
+                'id': 'custom-tiles-layer',
+                'type': 'raster',
+                'source': 'custom-tiles',
+                'layout': { 'visibility': 'visible' }
+            });
+        }
 
         // Restore view state
         map.setCenter(center);
@@ -236,7 +280,7 @@ async function setTileLayer(tileUrl) {
         map.setBearing(bearing);
         map.setPitch(pitch);
 
-        // Wait longer for the new style to settle
+        // Wait for style to settle
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Reinitialize base layers
@@ -244,20 +288,17 @@ async function setTileLayer(tileUrl) {
         window.addSegmentLayers();
         window.setupSegmentInteraction();
 
-        // Restore segments first
+        // Restore segments if needed
         if (layerStates.segments) {
             const source = map.getSource('existingSegments');
             if (source) {
                 source.setData(existingSegmentsData.data);
             }
         }
-        
-        // Then reload photos with a longer delay
+
+        // Reload photos if they were visible
         if (layerStates.photos) {
-            // Remove existing photo markers first
             removePhotoMarkers();
-            
-            // Wait a bit longer before reloading
             setTimeout(async () => {
                 try {
                     await loadPhotoMarkers();
@@ -265,7 +306,7 @@ async function setTileLayer(tileUrl) {
                 } catch (error) {
                     console.error('Error reloading photos:', error);
                 }
-            }, 1000); // Increased delay to 1 second
+            }, 1000);
         }
 
         console.log('Tile layer updated successfully');
@@ -300,26 +341,6 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
     select.options[select.selectedIndex].text = 'Loading...';
     
     try {
-        // Check if switching to/from Google Maps layer
-        const isGoogleMaps = selectedLayer === 'googleMap' || 
-                            selectedLayer === 'googleSatellite' || 
-                            selectedLayer === 'googleHybrid';
-        
-        // Update Street View button visibility and body class
-        const streetViewButton = document.querySelector('.mapboxgl-ctrl-street-view');
-        if (streetViewButton) {
-            streetViewButton.style.display = isGoogleMaps ? 'block' : 'none';
-        }
-        if (isGoogleMaps) {
-            document.body.classList.add('using-google-maps');
-        } else {
-            document.body.classList.remove('using-google-maps');
-            // Disable street view mode if it's active
-            if (typeof window.disableStreetViewMode === 'function') {
-                window.disableStreetViewMode();
-            }
-        }
-    
         if (selectedLayer === 'reset') {
             console.log('Refreshing page for classic map...');
             // Store the visibility state in session storage
@@ -328,22 +349,27 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
             // Refresh the page
             window.location.reload();
             return; // Exit early since we're refreshing
+        } else if (selectedLayer === 'mapillary') {
+            // Handle Mapillary layer
+            console.log('Setting Mapillary layer...');
+            await setTileLayer(null); // null triggers Mapillary layer handling
         } else if (tileLayers[selectedLayer]) {
             console.log('Setting new tile layer...');
             await setTileLayer(tileLayers[selectedLayer]);
-            
-            // Restore visibility state
-            window.layerVisibility = visibilityState;
-            
-            // Wait a moment for the style to settle
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Reload photos if they were visible
-            if (visibilityState.photos) {
-                console.log('Reloading photos...');
-                await loadPhotoMarkers();
-            }
         }
+        
+        // Restore visibility state
+        window.layerVisibility = visibilityState;
+        
+        // Wait a moment for the style to settle
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload photos if they were visible
+        if (visibilityState.photos) {
+            console.log('Reloading photos...');
+            await loadPhotoMarkers();
+        }
+        
     } catch (error) {
         console.error('Error in layer change:', error);
         console.error('Failed layer:', selectedLayer);
@@ -356,10 +382,6 @@ document.getElementById('tileLayerSelect').addEventListener('change', async func
             select.disabled = false;
             select.options[select.selectedIndex].text = originalText;
             console.log('Final layer visibility state:', window.layerVisibility);
-            
-            // Log Street View visibility state
-            console.log('Street View visibility:', 
-                document.body.classList.contains('using-google-maps') ? 'enabled' : 'disabled');
         }
     }
 });
@@ -395,7 +417,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
 // ============================
 // SECTION: Initialize GeoJSON Sources for Segments
 // ============================
@@ -723,265 +744,6 @@ function initEventListeners() {
         });
     }
 }
-// ============================
-// SECTION: MAPILLARY
-// ============================
-// Global variables for Mapillary
-let mly = null;
-let streetViewMode = false;
-let streetViewMarker = null;
-
-// Function to add Street View control to map
-function initStreetView() {
-    console.log('Starting Mapillary initialization');
-    
-    class StreetViewControl {
-        onAdd(map) {
-            console.log('Creating Street View control');
-            this._map = map;
-            this._container = document.createElement('div');
-            this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-            
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'mapboxgl-ctrl-street-view';
-            button.innerHTML = '<i class="fa-solid fa-street-view"></i>';
-            button.title = 'Street View';
-            
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Street View button clicked');
-                toggleStreetViewMode();
-            });
-            
-            this._container.appendChild(button);
-            console.log('Street View control created');
-            return this._container;
-        }
-
-        onRemove() {
-            this._container.parentNode.removeChild(this._container);
-            this._map = undefined;
-        }
-    }
-
-    // Create viewer container if it doesn't exist
-    let viewerContainer = document.getElementById('street-view-panorama');
-    if (!viewerContainer) {
-        viewerContainer = document.createElement('div');
-        viewerContainer.id = 'street-view-panorama';
-        document.body.appendChild(viewerContainer);
-        console.log('Created street view container');
-    }
-
-    // Initialize Mapillary viewer
-    try {
-        console.log('Initializing Mapillary viewer');
-        mly = new mapillary.Viewer({
-            accessToken: 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31',
-            container: 'street-view-panorama',
-            component: {
-                cover: false,
-                sequence: true,
-                bearing: true,
-                spatial: true,
-            }
-        });
-        console.log('Mapillary viewer initialized');
-    } catch (error) {
-        console.error('Error initializing Mapillary viewer:', error);
-    }
-
-    // Add control to map
-    map.addControl(new StreetViewControl(), 'bottom-right');
-    console.log('Street View control added to map');
-}
-
-// Initialize after map loads
-map.on('load', () => {
-    console.log('Map loaded, initializing Mapillary');
-    initStreetView();
-    
-    // Check if control was added successfully
-    setTimeout(() => {
-        const streetViewControl = document.querySelector('.mapboxgl-ctrl-street-view');
-        console.log('Street View control present:', !!streetViewControl);
-    }, 500);
-});
-
-function initMapillaryViewer() {
-    console.log('Initializing Mapillary viewer');
-    const container = document.getElementById('street-view-panorama');
-    
-    if (!container) {
-        console.error('Mapillary container not found');
-        return;
-    }
-
-    try {
-        // Make sure old viewer is destroyed if it exists
-        if (mly) {
-            mly.remove();
-            mly = null;
-        }
-
-        // Create new viewer
-        mly = new mapillary.Viewer({
-            accessToken: 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31',
-            container: 'street-view-panorama',
-            component: {
-                cover: false,
-                sequence: true,
-                bearing: true,
-                spatial: true,
-                zoom: true,
-                keyboard: true
-            }
-        });
-
-        // Add viewer event listeners
-        mly.on('load', () => console.log('Mapillary viewer loaded'));
-        mly.on('error', (error) => console.error('Mapillary viewer error:', error));
-        mly.on('bearing', (bearing) => {
-            console.log('Bearing updated:', bearing);
-        });
-
-        console.log('Mapillary viewer initialized');
-    } catch (error) {
-        console.error('Error initializing Mapillary viewer:', error);
-        console.error('Error details:', error.stack);
-    }
-}
-
-function toggleStreetViewMode() {
-    console.log('Toggle Street View clicked');
-    const button = document.querySelector('.mapboxgl-ctrl-street-view');
-    const mapContainer = document.getElementById('map');
-    const streetViewContainer = document.getElementById('street-view-panorama');
-    
-    if (!button || !streetViewContainer) {
-        console.error('Required elements not found');
-        return;
-    }
-
-    streetViewMode = !streetViewMode;
-    console.log('Street View mode:', streetViewMode ? 'enabled' : 'disabled');
-    
-    if (streetViewMode) {
-        enableStreetViewMode();
-        button.classList.add('active');
-        mapContainer.classList.add('map-split-view');
-        streetViewContainer.classList.add('visible');
-        streetViewContainer.style.display = 'block';
-
-        // Force viewer resize after showing
-        if (mly) {
-            setTimeout(() => {
-                mly.resize();
-                console.log('Resized Mapillary viewer');
-            }, 100);
-        }
-    } else {
-        disableStreetViewMode();
-        button.classList.remove('active');
-        mapContainer.classList.remove('map-split-view');
-        streetViewContainer.classList.remove('visible');
-        streetViewContainer.style.display = 'none';
-    }
-}
-
-function enableStreetViewMode() {
-    console.log('Street View mode enabled');
-    map.getCanvas().style.cursor = 'crosshair';
-    map.on('click.streetView', handleStreetViewClick);
-}
-
-function disableStreetViewMode() {
-    console.log('Street View mode disabled');
-    map.getCanvas().style.cursor = '';
-    map.off('click.streetView');
-    if (streetViewMarker) {
-        streetViewMarker.remove();
-        streetViewMarker = null;
-    }
-    streetViewMode = false;
-}
-
-async function handleStreetViewClick(e) {
-    if (!streetViewMode || !mly) {
-        console.log('Street View mode or viewer not active');
-        return;
-    }
-    
-    console.log('Handling Street View click at:', e.lngLat);
-    try {
-        const lat = e.lngLat.lat;
-        const lng = e.lngLat.lng;
-        
-        // Add or update marker
-        if (streetViewMarker) {
-            streetViewMarker.remove();
-        }
-        
-        streetViewMarker = new mapboxgl.Marker({
-            color: '#05CB63',
-            draggable: true
-        })
-        .setLngLat([lng, lat])
-        .addTo(map);
-
-        // Search for nearest Mapillary images with larger radius
-        const searchRadius = 0.05; // Increased radius
-        const apiUrl = `https://graph.mapillary.com/images?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&` +
-            `fields=id,captured_at,computed_geometry&` +
-            `limit=1&` +
-            `bbox=${lng-searchRadius},${lat-searchRadius},${lng+searchRadius},${lat+searchRadius}`;
-        
-        console.log('Fetching Mapillary images...');
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Mapillary API response:', data);
-
-        if (data.data && data.data.length > 0) {
-            const imageId = data.data[0].id;
-            console.log('Found image:', imageId);
-            
-            try {
-                await mly.moveToKey(imageId);
-                console.log('Moved to image successfully');
-            } catch (viewerError) {
-                console.error('Error moving to image:', viewerError);
-                alert('Error loading street-level image');
-            }
-        } else {
-            console.log('No images found nearby');
-            alert('No street-level imagery available at this location');
-            streetViewMarker.remove();
-            streetViewMarker = null;
-        }
-
-        // Handle marker drag
-        streetViewMarker.on('dragend', async () => {
-            const pos = streetViewMarker.getLngLat();
-            handleStreetViewClick({ lngLat: pos });
-        });
-
-    } catch (error) {
-        console.error('Error in handleStreetViewClick:', error);
-        alert('Error accessing street-level imagery');
-        if (streetViewMarker) {
-            streetViewMarker.remove();
-            streetViewMarker = null;
-        }
-    }
-}
-
 
 
 // Make functions globally available
@@ -992,12 +754,5 @@ window.setupSegmentInteraction = setupSegmentInteraction;
 window.initDrawingSource = initDrawingSource;
 window.addSegmentLayers = addSegmentLayers;
 window.loadPhotoMarkers = loadPhotoMarkers;
-window.setTileLayer = setTileLayer;
+window.setTileLayer = setTileLayer;        // Only once
 window.resetToOriginalStyle = resetToOriginalStyle;
-window.initStreetView = initStreetView;
-// Make functions globally available
-window.initStreetView = initStreetView;
-window.toggleStreetViewMode = toggleStreetViewMode;
-window.enableStreetViewMode = enableStreetViewMode;
-window.disableStreetViewMode = disableStreetViewMode;
-window.handleStreetViewClick = handleStreetViewClick;

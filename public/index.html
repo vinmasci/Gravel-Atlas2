@@ -1971,95 +1971,6 @@
 .flag-photo:hover {
     color: #ffcd39;
 }
-
-/* ============================
-   SECTION: Steet View
-   ============================ */
-/* Street View Container */
-#street-view-panorama {
-    display: none;
-    position: fixed;
-    top: 56px;
-    right: 0;
-    width: 50%;
-    height: calc(100vh - 106px);
-    z-index: 1000;
-    background: #000; /* Changed to black for Mapillary */
-    border-left: 1px solid #ddd;
-}
-
-#street-view-panorama.visible {
-    display: block !important;
-}
-
-#street-view-panorama .mapillary-js-dom {
-    width: 100%;
-    height: 100%;
-}
-
-.map-split-view {
-    width: 50% !important;
-    transition: width 0.3s ease;
-}
-
-/* Control Button */
-.mapboxgl-ctrl-street-view {
-    width: 30px !important;
-    height: 30px !important;
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    background: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    padding: 0;
-    margin: 0;
-    position: relative;
-}
-
-/* Icon styling */
-.mapboxgl-ctrl-street-view i {
-    font-size: 16px;
-    color: #333;
-}
-
-/* Hover state */
-.mapboxgl-ctrl-street-view:hover {
-    background-color: #f2f2f2;
-}
-
-/* Active state */
-.mapboxgl-ctrl-street-view.active {
-    background-color: #05CB63;
-}
-
-.mapboxgl-ctrl-street-view.active i {
-    color: #fff;
-}
-
-/* Control group */
-.mapboxgl-ctrl-group {
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
-    position: relative;
-    z-index: 1000;
-}
-
-/* Position control */
-.mapboxgl-ctrl-bottom-right {
-    position: absolute;
-    right: 10px;
-    bottom: 60px; /* Adjusted to clear bottom tabs */
-}
-
-/* Ensure button stays visible when map controls are shown */
-.mapboxgl-ctrl-group {
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
-}
     </style>
     
 <!-- Updated navbarV2 -->
@@ -2203,6 +2114,7 @@
         <option value="googleSatellite">Google Satellite</option>
         <option value="googleHybrid">Google Hybrid</option>
         <option value="osmCycle">OSM Cycle</option>
+        <option value="mapillary">Mapillary Coverage</option>
     </select>
 </div>
 
