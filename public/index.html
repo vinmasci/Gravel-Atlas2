@@ -1975,7 +1975,8 @@
 /* ============================
    SECTION: Steet View
    ============================ */
-   #street-view-panorama {
+/* Street View Container */
+#street-view-panorama {
     display: none;
     position: fixed;
     top: 56px;
@@ -1983,11 +1984,10 @@
     width: 50%;
     height: calc(100vh - 106px);
     z-index: 1000;
-    background: #f5f5f5; /* Add this to see container */
-    border-left: 1px solid #ddd; /* Optional: adds visual separation */
+    background: #000; /* Changed to black for Mapillary */
+    border-left: 1px solid #ddd;
 }
 
-/* Make sure the container is visible when active */
 #street-view-panorama.visible {
     display: block;
 }
@@ -1996,36 +1996,56 @@
     width: 50% !important;
 }
 
-/* Button styling */
+/* Control Button */
 .mapboxgl-ctrl-street-view {
-    display: flex !important;  /* Force display */
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
     justify-content: center;
     align-items: center;
-    width: 29px;
-    height: 29px;
-    padding: 5px;
     background: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+    padding: 0;
+    margin: 0;
+    position: relative;
 }
 
+/* Icon styling */
 .mapboxgl-ctrl-street-view i {
     font-size: 16px;
     color: #333;
 }
 
+/* Hover state */
 .mapboxgl-ctrl-street-view:hover {
     background-color: #f2f2f2;
 }
 
+/* Active state */
 .mapboxgl-ctrl-street-view.active {
     background-color: #05CB63;
 }
 
 .mapboxgl-ctrl-street-view.active i {
     color: #fff;
+}
+
+/* Control group */
+.mapboxgl-ctrl-group {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1000;
+}
+
+/* Position control */
+.mapboxgl-ctrl-bottom-right {
+    position: absolute;
+    right: 10px;
+    bottom: 60px; /* Adjusted to clear bottom tabs */
 }
 
 /* Ensure button stays visible when map controls are shown */

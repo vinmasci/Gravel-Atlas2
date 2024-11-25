@@ -737,11 +737,13 @@ function initStreetView() {
     
     class StreetViewControl {
         onAdd(map) {
+            console.log('Creating Street View control');
             this._map = map;
             this._container = document.createElement('div');
-            this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group mapboxgl-ctrl-bottom-right street-view-control';
+            this._container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
             
             const button = document.createElement('button');
+            button.type = 'button';
             button.className = 'mapboxgl-ctrl-street-view';
             button.innerHTML = '<i class="fa-solid fa-street-view"></i>';
             button.title = 'Street View';
@@ -754,6 +756,7 @@ function initStreetView() {
             });
             
             this._container.appendChild(button);
+            console.log('Street View control created');
             return this._container;
         }
 
@@ -763,23 +766,48 @@ function initStreetView() {
         }
     }
 
-    // Add control to map
-    console.log('Adding Street View control to map');
-    map.addControl(new StreetViewControl(), 'bottom-right');
-    
+    // Create viewer container if it doesn't exist
+    let viewerContainer = document.getElementById('street-view-panorama');
+    if (!viewerContainer) {
+        viewerContainer = document.createElement('div');
+        viewerContainer.id = 'street-view-panorama';
+        document.body.appendChild(viewerContainer);
+        console.log('Created street view container');
+    }
+
     // Initialize Mapillary viewer
-    initMapillaryViewer();
+    try {
+        console.log('Initializing Mapillary viewer');
+        mly = new mapillary.Viewer({
+            accessToken: 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31',
+            container: 'street-view-panorama',
+            component: {
+                cover: false,
+                sequence: true,
+                bearing: true,
+                spatial: true,
+            }
+        });
+        console.log('Mapillary viewer initialized');
+    } catch (error) {
+        console.error('Error initializing Mapillary viewer:', error);
+    }
+
+    // Add control to map
+    map.addControl(new StreetViewControl(), 'bottom-right');
+    console.log('Street View control added to map');
 }
 
-// For debugging, add this to check if control is added
-map.once('load', () => {
-    console.log('Map loaded, checking Street View control');
-    const streetViewControl = document.querySelector('.street-view-control');
-    if (streetViewControl) {
-        console.log('Street View control found in DOM');
-    } else {
-        console.log('Street View control not found in DOM');
-    }
+// Initialize after map loads
+map.on('load', () => {
+    console.log('Map loaded, initializing Mapillary');
+    initStreetView();
+    
+    // Check if control was added successfully
+    setTimeout(() => {
+        const streetViewControl = document.querySelector('.mapboxgl-ctrl-street-view');
+        console.log('Street View control present:', !!streetViewControl);
+    }, 500);
 });
 
 function initMapillaryViewer() {
