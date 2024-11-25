@@ -178,7 +178,6 @@ async function resetToOriginalStyle() {
 // ===========================
 function toggleMapillaryLayer() {
     try {
-        // Create a proper access token by encoding the pipe character
         const MAPILLARY_ACCESS_TOKEN = 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31'.replace(/\|/g, '%7C');
         
         const hasMapillaryLayers = map.getSource('mapillary') && 
@@ -186,6 +185,7 @@ function toggleMapillaryLayer() {
                                  map.getLayer('mapillary-images');
 
         if (!hasMapillaryLayers) {
+            // Add source with proper parameters
             map.addSource('mapillary', {
                 type: 'vector',
                 tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=${MAPILLARY_ACCESS_TOKEN}`],
@@ -193,6 +193,7 @@ function toggleMapillaryLayer() {
                 maxzoom: 14
             });
 
+            // Layers remain the same...
             map.addLayer({
                 'id': 'mapillary-sequences',
                 'type': 'line',
@@ -225,37 +226,44 @@ function toggleMapillaryLayer() {
                 }
             });
 
-            // Mouse enter handler
+            // Updated mouseenter handler
             map.on('mouseenter', 'mapillary-images', async (e) => {
                 if (!e.features?.length) return;
                 
                 map.getCanvas().style.cursor = 'pointer';
                 const feature = e.features[0];
                 
-                // Log the feature data to debug
-                console.log('Mapillary feature:', feature.properties);
+                // Debug logging
+                console.log('Raw Mapillary feature:', feature);
+                console.log('Properties:', feature.properties);
                 
-                const imageId = feature.properties.id;
-                console.log('Image ID:', imageId);
+                const coordinates = e.lngLat;
                 
                 // Show loading state
                 mapillaryPopup
-                    .setLngLat(e.lngLat)
+                    .setLngLat(coordinates)
                     .setHTML('<div style="padding: 10px; background: white; border-radius: 4px;">Loading preview...</div>')
                     .addTo(map);
 
                 try {
-                    // Construct and encode the URL properly
-                    const apiUrl = new URL('https://graph.mapillary.com/images/' + encodeURIComponent(imageId));
-                    apiUrl.searchParams.append('access_token', MAPILLARY_ACCESS_TOKEN);
-                    apiUrl.searchParams.append('fields', 'thumb_1024_url,captured_at');
-                    
-                    console.log('Requesting URL:', apiUrl.toString().replace(MAPILLARY_ACCESS_TOKEN, 'HIDDEN'));
+                    // First, get images near this location
+                    const bbox = {
+                        west: coordinates.lng - 0.0001,
+                        east: coordinates.lng + 0.0001,
+                        south: coordinates.lat - 0.0001,
+                        north: coordinates.lat + 0.0001
+                    };
 
-                    const response = await fetch(apiUrl);
+                    const searchUrl = new URL('https://graph.mapillary.com/images');
+                    searchUrl.searchParams.append('access_token', MAPILLARY_ACCESS_TOKEN);
+                    searchUrl.searchParams.append('fields', 'id,thumb_1024_url,captured_at');
+                    searchUrl.searchParams.append('bbox', `${bbox.west},${bbox.south},${bbox.east},${bbox.north}`);
+                    searchUrl.searchParams.append('limit', '1');
+
+                    console.log('Requesting images near:', coordinates);
                     
-                    // Log response status for debugging
-                    console.log('Response status:', response.status);
+                    const response = await fetch(searchUrl);
+                    console.log('Search response status:', response.status);
                     
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -266,22 +274,30 @@ function toggleMapillaryLayer() {
                     const data = await response.json();
                     console.log('API response data:', data);
 
-                    if (!data.thumb_1024_url) {
-                        throw new Error('No image URL in response');
+                    if (!data.data?.[0]?.thumb_1024_url) {
+                        throw new Error('No images found at this location');
                     }
 
-                    const date = new Date(data.captured_at).toLocaleDateString();
+                    const image = data.data[0];
+                    const date = new Date(image.captured_at).toLocaleDateString();
                     
                     mapillaryPopup.setHTML(`
                         <div style="background: white; padding: 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             <img 
-                                src="${data.thumb_1024_url}" 
+                                src="${image.thumb_1024_url}" 
                                 alt="Street view preview" 
                                 style="width: 300px; border-radius: 4px; display: block;"
                                 onerror="this.parentElement.innerHTML='<div style=\'padding: 10px; color: #e74c3c;\'>Image failed to load</div>'"
                             />
                             <div style="font-size: 12px; color: #666; margin-top: 4px;">
                                 Captured: ${date}
+                            </div>
+                            <div style="font-size: 12px; margin-top: 4px;">
+                                <a href="https://www.mapillary.com/app/?image_key=${image.id}" 
+                                   target="_blank" 
+                                   style="color: #05CB63; text-decoration: none;">
+                                    View in Mapillary
+                                </a>
                             </div>
                         </div>
                     `);
@@ -303,19 +319,12 @@ function toggleMapillaryLayer() {
                 }
             });
 
-            // Mouse leave handler
+            // Keep existing mouseleave handler
             map.on('mouseleave', 'mapillary-images', () => {
                 map.getCanvas().style.cursor = '';
                 mapillaryPopup.remove();
             });
 
-            // Click handler
-            map.on('click', 'mapillary-images', (e) => {
-                if (e.features.length > 0) {
-                    const imageId = e.features[0].properties.id;
-                    window.open(`https://www.mapillary.com/app/?image_key=${imageId}`, '_blank');
-                }
-            });
         } else {
             // Toggle visibility of existing layers
             const currentVisibility = map.getLayoutProperty('mapillary-sequences', 'visibility');
