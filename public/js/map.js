@@ -178,6 +178,9 @@ async function resetToOriginalStyle() {
 // ===========================
 function toggleMapillaryLayer() {
     try {
+        // Create a proper access token by encoding the pipe character
+        const MAPILLARY_ACCESS_TOKEN = 'MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31'.replace(/\|/g, '%7C');
+        
         const hasMapillaryLayers = map.getSource('mapillary') && 
                                  map.getLayer('mapillary-sequences') && 
                                  map.getLayer('mapillary-images');
@@ -185,7 +188,7 @@ function toggleMapillaryLayer() {
         if (!hasMapillaryLayers) {
             map.addSource('mapillary', {
                 type: 'vector',
-                tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31`],
+                tiles: [`https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=${MAPILLARY_ACCESS_TOKEN}`],
                 minzoom: 6,
                 maxzoom: 14
             });
@@ -227,32 +230,55 @@ function toggleMapillaryLayer() {
                 if (!e.features?.length) return;
                 
                 map.getCanvas().style.cursor = 'pointer';
-                const imageId = e.features[0].properties.id;
+                const feature = e.features[0];
+                
+                // Log the feature data to debug
+                console.log('Mapillary feature:', feature.properties);
+                
+                const imageId = feature.properties.id;
+                console.log('Image ID:', imageId);
                 
                 // Show loading state
                 mapillaryPopup
                     .setLngLat(e.lngLat)
-                    .setHTML('<div style="padding: 10px;">Loading preview...</div>')
+                    .setHTML('<div style="padding: 10px; background: white; border-radius: 4px;">Loading preview...</div>')
                     .addTo(map);
 
                 try {
-                    // Encode the URL properly
-                    const encodedUrl = `https://graph.mapillary.com/images/${imageId}?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&fields=thumb_1024_url,captured_at`;
+                    // Construct and encode the URL properly
+                    const apiUrl = new URL('https://graph.mapillary.com/images/' + encodeURIComponent(imageId));
+                    apiUrl.searchParams.append('access_token', MAPILLARY_ACCESS_TOKEN);
+                    apiUrl.searchParams.append('fields', 'thumb_1024_url,captured_at');
                     
-                    const response = await fetch(encodedUrl);
+                    console.log('Requesting URL:', apiUrl.toString().replace(MAPILLARY_ACCESS_TOKEN, 'HIDDEN'));
+
+                    const response = await fetch(apiUrl);
                     
-                    if (!response.ok) throw new Error('Failed to fetch image data');
+                    // Log response status for debugging
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API Error response:', errorText);
+                        throw new Error(`API request failed: ${response.status} - ${errorText}`);
+                    }
                     
                     const data = await response.json();
+                    console.log('API response data:', data);
+
+                    if (!data.thumb_1024_url) {
+                        throw new Error('No image URL in response');
+                    }
+
                     const date = new Date(data.captured_at).toLocaleDateString();
                     
                     mapillaryPopup.setHTML(`
-                        <div style="background: white; padding: 5px; border-radius: 4px;">
+                        <div style="background: white; padding: 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             <img 
-                                src="${data.thumb_1024_url}"
-                                alt="Street view preview"
-                                style="width: 300px; border-radius: 4px;"
-                                onerror="this.style.display='none'; this.parentElement.innerHTML='Failed to load image'"
+                                src="${data.thumb_1024_url}" 
+                                alt="Street view preview" 
+                                style="width: 300px; border-radius: 4px; display: block;"
+                                onerror="this.parentElement.innerHTML='<div style=\'padding: 10px; color: #e74c3c;\'>Image failed to load</div>'"
                             />
                             <div style="font-size: 12px; color: #666; margin-top: 4px;">
                                 Captured: ${date}
@@ -260,8 +286,20 @@ function toggleMapillaryLayer() {
                         </div>
                     `);
                 } catch (error) {
-                    console.error('Error fetching Mapillary image:', error);
-                    mapillaryPopup.setHTML('<div style="padding: 10px;">Failed to load preview</div>');
+                    console.error('Detailed error:', {
+                        message: error.message,
+                        stack: error.stack,
+                        feature: feature.properties
+                    });
+                    
+                    mapillaryPopup.setHTML(`
+                        <div style="padding: 10px; background: white; border-radius: 4px;">
+                            <div style="color: #e74c3c;">Failed to load preview</div>
+                            <div style="font-size: 12px; margin-top: 4px; color: #666;">
+                                ${error.message}
+                            </div>
+                        </div>
+                    `);
                 }
             });
 
@@ -290,6 +328,7 @@ function toggleMapillaryLayer() {
         console.error('Error in toggleMapillaryLayer:', error);
     }
 }
+
 // ===========================
 // Function to switch between tile layers
 // ===========================
