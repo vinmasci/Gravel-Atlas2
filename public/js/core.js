@@ -254,7 +254,7 @@ const handlers = {
     }
 };
 
-// Initialize core functionality
+// Initialize core
 async function initCore() {
     console.log('Initializing core...');
     try {
@@ -271,11 +271,11 @@ async function initCore() {
         });
         console.log('Map loaded successfully');
 
-        // Wait for ALL required map.js functions to be available
+        // Wait for required map.js functions to be available
         await new Promise(resolve => {
             const checkMapFunctions = () => {
                 const requiredFunctions = [
-                    'initStreetView',
+                    // Remove 'initStreetView' from here since we'll handle Mapillary separately
                     'initGeoJSONSources',
                     'addSegmentLayers',
                     'setupSegmentInteraction'
@@ -296,16 +296,6 @@ async function initCore() {
             checkMapFunctions();
         });
 
-        // Initialize Street View with error handling
-        try {
-            console.log('Initializing Street View...');
-            await window.initStreetView();
-            console.log('Street View initialized successfully');
-        } catch (error) {
-            console.error('Error initializing Street View:', error);
-            // Non-blocking - continue initialization
-        }
-
         // Initialize map components with delay
         await new Promise(resolve => {
             try {
@@ -320,6 +310,26 @@ async function initCore() {
             setTimeout(resolve, 100);
         });
 
+        // Initialize Mapillary
+        try {
+            console.log('Initializing Mapillary viewer...');
+            // Add Street View container if it doesn't exist
+            if (!document.getElementById('street-view-panorama')) {
+                const streetViewContainer = document.createElement('div');
+                streetViewContainer.id = 'street-view-panorama';
+                document.body.appendChild(streetViewContainer);
+            }
+            
+            if (typeof window.initMapillaryViewer === 'function') {
+                await window.initMapillaryViewer();
+                console.log('Mapillary viewer initialized successfully');
+            } else {
+                console.error('Mapillary viewer initialization function not found');
+            }
+        } catch (error) {
+            console.error('Error initializing Mapillary:', error);
+            // Non-blocking - continue initialization
+        }
 
         // Initialize Activity Feed if available
         if (window.ActivityFeed) {
@@ -328,24 +338,21 @@ async function initCore() {
                 console.log('Activity Feed initialized');
             } catch (error) {
                 console.error('Error initializing Activity Feed:', error);
-                // Non-blocking - continue initialization if Activity Feed fails
             }
         }
 
-        // Show loading indicators immediately
+        // Rest of your existing initialization code remains the same
         utils.showTabLoading('segments-tab');
         utils.showTabLoading('photos-tab');
 
-        // Start loading data immediately
         console.log('Starting initial data load...');
         const loadingPromises = [];
 
-        // Add segments loading promise with delay
+        // Segments loading
         if (typeof window.loadSegments === 'function') {
             const segmentsPromise = (async () => {
                 try {
                     console.log('Starting segments load...');
-                    // Add small delay to ensure sources are ready
                     await new Promise(resolve => setTimeout(resolve, 200));
                     await window.loadSegments();
                     layerVisibility.segments = true;
@@ -364,7 +371,7 @@ async function initCore() {
             utils.hideTabLoading('segments-tab');
         }
 
-        // Add photos loading promise
+        // Photos loading
         if (typeof window.loadPhotoMarkers === 'function') {
             const photosPromise = window.loadPhotoMarkers()
                 .then(() => {
@@ -383,15 +390,14 @@ async function initCore() {
             utils.hideTabLoading('photos-tab');
         }
 
-        // Complete auth0 initialization
+        // Complete auth0 initialization and handle authentication
         const auth0 = await auth0Promise;
         console.log('Auth0 initialization complete');
-
-        // Handle authentication
+        
         const isAuthenticated = await auth0.isAuthenticated();
         console.log('Authentication status:', isAuthenticated);
 
-        // Profile button creation
+        // Profile button creation and handling
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn && !document.getElementById(config.profileButton.id)) {
             const buttonContainer = loginBtn.parentElement;
@@ -403,7 +409,6 @@ async function initCore() {
             profileBtn.addEventListener('click', handlers.handleProfileClick);
         }
 
-        // Initialize profile if authenticated
         if (isAuthenticated) {
             const profileBtn = document.getElementById(config.profileButton.id);
             if (profileBtn) {
@@ -423,7 +428,7 @@ async function initCore() {
         // Initialize other event listeners
         initEventListeners();
 
-        // Add click outside handler for profile section
+        // Click outside handler for profile section
         document.addEventListener('click', (event) => {
             const profileSection = document.getElementById('profile-section');
             const profileBtn = document.getElementById(config.profileButton.id);
