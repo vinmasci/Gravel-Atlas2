@@ -6,12 +6,6 @@ const tileLayers = {
     osmCycle: 'https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=7724ff4746164f39b35fadb342b13a50',
 };
 
-// Add this at the top with your other constants
-const mapillaryPopup = new mapboxgl.Popup({
-    closeButton: false,
-    closeOnClick: false,
-    maxWidth: '300px'
-});
 
 // Original Mapbox style URL for reset function
 const originalMapboxStyle = 'mapbox://styles/mapbox/streets-v11';
