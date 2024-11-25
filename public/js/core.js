@@ -152,15 +152,6 @@ const layers = {
 
             if (layerVisibility[layerType]) {
                 switch(layerType) {
-                    case 'photos':
-                        if (!window.loadPhotoMarkers) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        }
-                        if (typeof window.loadPhotoMarkers !== 'function') {
-                            throw new Error('Photo markers functionality not loaded');
-                        }
-                        await window.loadPhotoMarkers();
-                        break;
                     case 'segments':
                         if (!window.loadSegments) {
                             await new Promise(resolve => setTimeout(resolve, 500));
@@ -169,6 +160,17 @@ const layers = {
                             throw new Error('Segments functionality not loaded');
                         }
                         await window.loadSegments();
+                        map.setLayoutProperty('existing-segments-layer', 'visibility', 'visible');
+                        map.setLayoutProperty('existing-segments-layer-background', 'visibility', 'visible');
+                        break;
+                    case 'photos':
+                        if (!window.loadPhotoMarkers) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        if (typeof window.loadPhotoMarkers !== 'function') {
+                            throw new Error('Photo markers functionality not loaded');
+                        }
+                        await window.loadPhotoMarkers();
                         break;
                     case 'pois':
                         if (!window.loadPOIMarkers) {
@@ -182,14 +184,13 @@ const layers = {
                 }
             } else {
                 switch(layerType) {
+                    case 'segments':
+                        map.setLayoutProperty('existing-segments-layer', 'visibility', 'none');
+                        map.setLayoutProperty('existing-segments-layer-background', 'visibility', 'none');
+                        break;
                     case 'photos':
                         if (typeof window.removePhotoMarkers === 'function') {
                             window.removePhotoMarkers();
-                        }
-                        break;
-                    case 'segments':
-                        if (typeof window.removeSegments === 'function') {
-                            window.removeSegments();
                         }
                         break;
                     case 'pois':
