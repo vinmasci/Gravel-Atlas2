@@ -413,49 +413,37 @@ const ActivityFeed = {
         return 'just now';
     },
 
-    async formatActivityContent(activity, currentUserId) {
-        try {
-            // Fetch user profile to get bioName
-            const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(activity.auth0Id)}`);
-            const userProfile = profileResponse.ok ? await profileResponse.json() : null;
-            
-            const displayName = userProfile?.bioName || activity.username;
-            
-            const content = {
-                regular: '',
-                interaction: ''
-            };
+    formatActivityContent(activity, currentUserId) {
+        const username = activity.auth0Id ? `${activity.username.split('@')[0]}` : 'Someone';
+        
+        const content = {
+            regular: '',
+            interaction: ''
+        };
     
-            switch (activity.type) {
-                case 'segment':
-                    content.regular = `<span class="username">${displayName}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    break;
-                    
-                case 'comment':
-                    content.regular = `<span class="username">${displayName}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    if (activity.metadata?.segmentCreatorId === currentUserId) {
-                        content.interaction = `<span class="username">${displayName}</span> commented on your segment "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    } else if (activity.metadata?.previousCommenters?.includes(currentUserId)) {
-                        content.interaction = `<span class="username">${displayName}</span> also commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    }
-                    break;
-                    
-                case 'photo':
-                    content.regular = `<span class="username">${displayName}</span> added a new photo`;
-                    break;
-                    
-                default:
-                    content.regular = `Unknown activity type: ${activity.type}`;
-            }
-    
-            return content;
-        } catch (error) {
-            console.error('Error formatting activity:', error);
-            return {
-                regular: `<span class="username">${activity.username}</span>`,
-                interaction: ''
-            };
+        switch (activity.type) {
+            case 'segment':
+                content.regular = `<span class="username">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                break;
+                
+            case 'comment':
+                content.regular = `<span class="username">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                if (activity.metadata?.segmentCreatorId === currentUserId) {
+                    content.interaction = `<span class="username">${username}</span> commented on your segment "${activity.metadata?.title || 'Unnamed segment'}"`;
+                } else if (activity.metadata?.previousCommenters?.includes(currentUserId)) {
+                    content.interaction = `<span class="username">${username}</span> also commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
+                }
+                break;
+                
+            case 'photo':
+                content.regular = `<span class="username">${username}</span> added a new photo`;
+                break;
+                
+            default:
+                content.regular = `Unknown activity type: ${activity.type}`;
         }
+    
+        return content;
     },
 
     addLocationHandling(element, activity) {
