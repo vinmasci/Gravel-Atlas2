@@ -858,24 +858,24 @@ async function handleStreetViewClick(e) {
         }
         
         streetViewMarker = new mapboxgl.Marker({
-            color: '#05CB63', // Mapillary green
+            color: '#05CB63',
             draggable: true
         })
         .setLngLat([lng, lat])
         .addTo(map);
 
-        // Search for nearest Mapillary images
-        const response = await fetch(
-            `https://graph.mapillary.com/images?access_token=MLY|8906616826026117|b54ee1593f4e7ea3e975d357ed39ae31&` +
-            `fields=id,computed_geometry&` +
-            `limit=1&` +
-            `bbox=${lng-0.001},${lat-0.001},${lng+0.001},${lat+0.001}`
-        );
+        // Use our new API endpoint
+        const response = await fetch(`/api/get-mapillary-images?lat=${lat}&lng=${lng}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch Mapillary images');
+        }
 
         const data = await response.json();
+        console.log('Mapillary API response:', data);
         
         if (data.data && data.data.length > 0) {
             const imageId = data.data[0].id;
+            console.log('Loading Mapillary image:', imageId);
             await mly.moveToKey(imageId);
         } else {
             alert('No street-level imagery available at this location');
