@@ -1289,11 +1289,160 @@ function showPhotoUploadPanel() {
 }
 
 
-// Show GPX overlay and activate the tab
-function showTempOverlay() {
-    alert("GPX Overlay is a placeholder for now.");
-    setActiveDropdownTab('gpx-overlay-dropdown');
+function showGpxOverlay() {
+    // Create container for GPX upload
+    const containerDiv = document.createElement('div');
+    containerDiv.id = 'gpx-overlay-container';
+    containerDiv.style.position = 'absolute';
+    containerDiv.style.top = '100px';
+    containerDiv.style.right = '10px';
+    containerDiv.style.zIndex = '1000';
+    containerDiv.style.backgroundColor = 'white';
+    containerDiv.style.padding = '15px';
+    containerDiv.style.borderRadius = '8px';
+    containerDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+
+    // Create file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.gpx';
+    fileInput.style.marginBottom = '10px';
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            handleGpxUpload(file);
+            containerDiv.remove(); // Remove upload panel after file is selected
+        }
+    });
+
+    // Add clear overlay button
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'Clear Current Overlay';
+    clearButton.style.display = 'block';
+    clearButton.style.marginBottom = '10px';
+    clearButton.onclick = clearGpxOverlay;
+
+    // Create info text
+    const infoText = document.createElement('div');
+    infoText.style.fontSize = '12px';
+    infoText.style.color = '#666';
+    infoText.innerHTML = '<i class="fa-solid fa-circle-info"></i> Upload GPX file to view route';
+
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;';
+    closeButton.style.position = 'absolute';
+    closeButton.style.right = '5px';
+    closeButton.style.top = '5px';
+    closeButton.style.border = 'none';
+    closeButton.style.background = 'none';
+    closeButton.style.fontSize = '20px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.onclick = () => {
+        containerDiv.remove();
+    };
+
+    // Assemble container
+    containerDiv.appendChild(closeButton);
+    containerDiv.appendChild(fileInput);
+    containerDiv.appendChild(clearButton);
+    containerDiv.appendChild(infoText);
+    
+    document.body.appendChild(containerDiv);
 }
+
+// Function to clear current overlay
+function clearGpxOverlay() {
+    // Remove existing overlay layers
+    ['gpx-paved', 'gpx-gravel', 'gpx-unknown'].forEach(layerId => {
+        if (map.getLayer(layerId)) {
+            map.removeLayer(layerId);
+        }
+    });
+
+    // Remove source
+    if (map.getSource('gpx-overlay')) {
+        map.removeSource('gpx-overlay');
+    }
+}
+
+async function handleGpxUpload(file) {
+    // Clear any existing overlay first
+    clearGpxOverlay();
+
+    const formData = new FormData();
+    formData.append('gpx', file);
+
+    try {
+        const response = await fetch('/api/upload-gpx', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to process GPX file');
+        }
+
+        const { geojson } = await response.json();
+
+        // Add new source
+        map.addSource('gpx-overlay', {
+            type: 'geojson',
+            data: geojson
+        });
+
+        // Add layers for different surface types
+        map.addLayer({
+            id: 'gpx-paved',
+            type: 'line',
+            source: 'gpx-overlay',
+            filter: ['==', ['get', 'surface'], 'paved'],
+            paint: {
+                'line-color': '#666666',
+                'line-width': 4,
+                'line-opacity': 0.7
+            }
+        });
+
+        map.addLayer({
+            id: 'gpx-gravel',
+            type: 'line',
+            source: 'gpx-overlay',
+            filter: ['==', ['get', 'surface'], 'gravel'],
+            paint: {
+                'line-color': '#ffa801',
+                'line-width': 4,
+                'line-opacity': 0.7
+            }
+        });
+
+        map.addLayer({
+            id: 'gpx-unknown',
+            type: 'line',
+            source: 'gpx-overlay',
+            filter: ['==', ['get', 'surface'], 'unknown'],
+            paint: {
+                'line-color': '#cccccc',
+                'line-width': 4,
+                'line-opacity': 0.7
+            }
+        });
+
+        // Fit map to the GPX route bounds
+        const bounds = new mapboxgl.LngLatBounds();
+        geojson.features.forEach(feature => {
+            feature.geometry.coordinates.forEach(coord => {
+                bounds.extend(coord);
+            });
+        });
+        map.fitBounds(bounds, { padding: 50 });
+
+    } catch (error) {
+        console.error('Error uploading GPX:', error);
+        alert('Failed to process GPX file');
+    }
+}
+  
 
 // Hide all control panels when dropdown is closed
 function hideControlPanel() {
@@ -1313,6 +1462,75 @@ function hideControlPanel() {
         photoUploadPanel.style.display = 'none';
     }
 }
+
+// ============================
+// SECTION: Handle GPX Load 
+// ============================
+async function handleGpxUpload(file) {
+    const formData = new FormData();
+    formData.append('gpx', file);
+  
+    try {
+      const response = await fetch('/api/upload-gpx', {
+        method: 'POST',
+        body: formData
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to process GPX file');
+      }
+  
+      const { geojson } = await response.json();
+  
+      // Add to map as a new layer
+      const sourceId = `gpx-overlay-${Date.now()}`;
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: geojson
+      });
+  
+      // Add separate layers for different surface types
+      map.addLayer({
+        id: `${sourceId}-paved`,
+        type: 'line',
+        source: sourceId,
+        filter: ['==', ['get', 'surface'], 'paved'],
+        paint: {
+          'line-color': '#666666',
+          'line-width': 4,
+          'line-opacity': 0.7
+        }
+      });
+  
+      map.addLayer({
+        id: `${sourceId}-gravel`,
+        type: 'line',
+        source: sourceId,
+        filter: ['==', ['get', 'surface'], 'gravel'],
+        paint: {
+          'line-color': '#ffa801',
+          'line-width': 4,
+          'line-opacity': 0.7
+        }
+      });
+  
+      map.addLayer({
+        id: `${sourceId}-unknown`,
+        type: 'line',
+        source: sourceId,
+        filter: ['==', ['get', 'surface'], 'unknown'],
+        paint: {
+          'line-color': '#cccccc',
+          'line-width': 4,
+          'line-opacity': 0.7
+        }
+      });
+  
+    } catch (error) {
+      console.error('Error uploading GPX:', error);
+      alert('Failed to process GPX file');
+    }
+  }
 
 // ============================
 // SECTION: Loading Spinner
@@ -1409,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', initUI);
 window.toggleContributeDropdown = toggleContributeDropdown;
 window.showControlPanel = showControlPanel;
 window.showPhotoUploadPanel = showPhotoUploadPanel;
-window.showTempOverlay = showTempOverlay;
+window.showGpxOverlay = showGpxOverlay;
 window.hideControlPanel = hideControlPanel;
 window.setActiveDropdownTab = setActiveDropdownTab;
 window.resetActiveDropdownTabs = resetActiveDropdownTabs;
