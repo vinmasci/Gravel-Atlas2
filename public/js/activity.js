@@ -63,85 +63,73 @@ const ActivityFeed = {
         // Add styles
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-                .activity-columns {
-                    display: flex;
-                    gap: 20px;
-                    margin-top: 20px;
-                }
-
-                .activity-column {
-                    flex: 1;
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 8px;
-                    padding: 15px;
-                }
-
-                .activity-content {
-                    max-height: 500px;
-                    overflow-y: auto;
-                }
-
+            .activity-tabs {
+                display: none;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+        
+            .tab-btn {
+                flex: 1;
+                padding: 8px;
+                background: #343a40;
+                border: none;
+                color: white;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+        
+            .tab-btn.active {
+                background: #FF652F;
+            }
+        
+            .activity-item {
+                background: rgba(255, 255, 255, 0.05);
+                margin-bottom: 10px;
+                padding: 12px;
+                border-radius: 6px;
+                transition: background 0.2s;
+                cursor: pointer;
+            }
+        
+            .activity-item .username {
+                color: #FF652F;
+                font-weight: 600;
+            }
+        
+            .interaction-item {
+                background-color: rgba(255,102,47,0.05);
+                border-left: 3px solid #FF652F;
+            }
+        
+            @media (max-width: 768px) {
                 .activity-tabs {
+                    display: flex;
+                }
+                
+                .activity-column {
                     display: none;
-                    gap: 10px;
-                    margin-bottom: 15px;
                 }
-
-                .tab-btn {
-                    flex: 1;
-                    padding: 8px;
-                    background: #343a40;
-                    border: none;
-                    color: white;
-                    border-radius: 4px;
-                    cursor: pointer;
+                
+                .activity-column.active {
+                    display: block;
                 }
-
-                .tab-btn.active {
-                    background: #FF652F;
-                }
-
-                .activity-item {
-                    background: rgba(255, 255, 255, 0.05);
-                    margin-bottom: 10px;
-                    padding: 12px;
-                    border-radius: 6px;
-                    transition: background 0.2s;
-                    cursor: pointer;
-                }
-
-                .activity-item:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                }
-
-                .activity-item .username {
-                    color: #FF652F;
-                    font-weight: 600;
-                }
-
-                .interaction-item {
-                    background-color: rgba(255,102,47,0.05);
-                    border-left: 3px solid #FF652F;
-                }
-
-                @media (max-width: 768px) {
-                    .activity-columns {
-                        flex-direction: column;
-                    }
-                    
-                    .activity-tabs {
-                        display: flex;
-                    }
-                    
-                    .activity-column {
-                        display: none;
-                    }
-                    
-                    .activity-column.active {
-                        display: block;
-                    }
-                }
-            `;
+            }
+        
+            .activity-count {
+                position: absolute;
+                top: 0;
+                right: 0;
+                background: #FF652F;
+                color: white;
+                border-radius: 10px;
+                padding: 0 6px;
+                font-size: 10px;
+                min-width: 16px;
+                text-align: center;
+            }
+        `;
             
             const styleSheet = document.createElement("style");
             styleSheet.id = 'activity-feed-styles';
