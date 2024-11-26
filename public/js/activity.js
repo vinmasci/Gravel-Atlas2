@@ -157,6 +157,8 @@ const ActivityFeed = {
             });
         });
 
+        
+
         // Show interactions by default on mobile
         if (window.innerWidth <= 768) {
             document.getElementById('interactions-container').classList.add('active');
@@ -171,6 +173,41 @@ const ActivityFeed = {
 
         this.initialized = true;
         console.log('Activity feed initialized successfully');
+    },
+
+    handleToggleClick(e) {
+        e.preventDefault();
+        console.log('Handling activity toggle click');
+        
+        // Close other sections
+        ['aboutSection', 'faqSection'].forEach(sectionId => {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.remove('show');
+            }
+        });
+    
+        // Toggle activity section
+        const activitySection = document.getElementById('activitySection');
+        if (activitySection) {
+            const isVisible = activitySection.classList.contains('show');
+            
+            if (!isVisible) {
+                activitySection.classList.add('show');
+                this.loadActivities(true); // Load activities when opening
+            } else {
+                activitySection.classList.remove('show');
+            }
+    
+            // Update map position
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                const anySectionOpen = ['aboutSection', 'faqSection', 'activitySection']
+                    .some(id => document.getElementById(id)?.classList.contains('show'));
+                
+                mapElement.classList.toggle('nav-section-open', anySectionOpen);
+            }
+        }
     },
 
 
