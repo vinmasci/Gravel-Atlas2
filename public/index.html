@@ -2099,7 +2099,7 @@
 }
     </style>
     
-<!-- Updated navbarV2 -->
+<!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <a class="navbar-brand" href="#">
         <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas Beta
@@ -2110,7 +2110,6 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">
-            <!-- Only "About" and "FAQ" remain -->
             <li class="nav-item">
                 <a class="nav-link" href="#" id="aboutToggle">About</a>
             </li>
@@ -2130,7 +2129,6 @@
 <div id="aboutSection" class="nav-section collapse">
     <div class="section-content">
         <div class="row">
-            <!-- Left Column: About Content -->
             <div class="col-md-6">
                 <h2>About GravelAtlas</h2>
                 <p>Gravel Atlas is designed to be a tool that helps you navigate to the gravel roads of the world via bike.</p>
@@ -2138,7 +2136,6 @@
                 <p>So go forth and explore and share with us what you find. (Also bugs, share site bugs please).</p>
                 <p>Vince Masci - <a href="http://www.bikeroutes.com.au">BikeRoutes.com.au</a></p>
             </div>
-            <!-- Right Column: Contact Form -->
             <div class="col-md-6">
                 <h2>Get in Touch</h2>
                 <div class="contact-form">
@@ -2152,7 +2149,6 @@
                         <div class="form-group">
                             <textarea name="message" class="form-control" id="message" rows="3" placeholder="Your Message" required></textarea>
                         </div>
-                        <!-- Include a hidden field to redirect the user after submission (optional)h -->
                         <input type="hidden" name="_next" value="https://yourwebsite.com/thank-you">
                         <button type="submit" class="btn btn-outline-light">Send Message</button>
                     </form>
@@ -2167,9 +2163,7 @@
     <div class="section-content">
         <h2>Frequently Asked Questions</h2>
         <div class="row">
-            <!-- First Column -->
             <div class="col-md-6">
-                <!-- FAQ Item 1 -->
                 <div class="faq-item">
                     <h3>How do I add a route?</h3>
                     <p>
@@ -2181,24 +2175,21 @@
                         <br><em>*Please only draw one road / path or lane per save.</em>
                     </p>
                 </div>
-                <!-- FAQ Item 2 -->
                 <div class="faq-item">
                     <h3>What do the different colors mean?</h3>
                     <p>
                         <b>The colours represent different gravel or trail technical difficulty:</b><br>
                         <br>I suppose the idea is that the grade of difficulty is open for interpretation through the eyes of the contributer and then for other users to help refine by sharing photos or comments. From how I have been grading things so far:<br>
-                        <i class="fa-solid fa-circle" style="color: #01bf11;"></i> <strong>Green</strong> - Easiest (Smooth hardpack gravel, easy riding) - Suitable for begijnners or families;<br>
+                        <i class="fa-solid fa-circle" style="color: #01bf11;"></i> <strong>Green</strong> - Easiest (Smooth hardpack gravel, easy riding) - Suitable for beginners or families;<br>
                         <i class="fa-solid fa-square" style="color: #ffa801"></i> <strong>Yellow</strong> - Intermediate (Rougher, slippery, or slightly rocky gravel and/or a moderately steep incline);<br>
                         <i class="fa-solid fa-diamond" style="color: #c0392b;"></i> <strong>Red</strong> - Difficult (Technical gravel with slippery sections, washouts, tyre ruts, or large rocks to navigate and/or a very steep incline);<br>
-                        <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i>  <strong>Dark Red</strong> - Extreme (Hike-a-bike or MTB territory);<br>
+                        <i class="fa-sharp fa-solid fa-diamond-exclamation" style="color: #751203;"></i> <strong>Dark Red</strong> - Extreme (Hike-a-bike or MTB territory);<br>
                         <i class="fa-solid fa-route-highway" style="color: #0050c1"></i> <strong>Blue</strong> - Rail Trail or Bike Path (Rail trail or bike path off the road that isn't specifically gravel);<br>
                         <i class="fa-solid fa-road-circle-xmark" style="color: #2f3542;"></i> <strong>Black</strong> - Closed road or private property. Do not enter!
                     </p>
                 </div>
             </div>
-            <!-- Second Column -->
             <div class="col-md-6">
-                <!-- FAQ Item 3 -->
                 <div class="faq-item">
                     <h3>Can I add photos?</h3>
                     <p>
@@ -2211,49 +2202,41 @@
                         • Photos will automatically compress on upload. 
                     </p>
                 </div>
-                             <!-- FAQ Item 4 -->
-                                <div class="faq-item">
-                                <h3>Wish list</h3>
-                                 <p>
-                                        • Interaction notifications. When you click the bell (if you are logged-in), you will see all the latest contributions. I also want to add notifications if another user interacts with your comment or segment; ✅ <br>
-                                        • Google Street View. A really handy tool to link up the quiet roads where gravel doesn't exist; ✅ Not Google Maps, but Mapillary which is kind of more our style<br>
-                                        • Mobile UI. I want to fix the navbar and bottom toolbar so that it works on mobile;<br>
-                                        • POI. I want to add the POI tab so we can highlight water points, cafes, supermarkets and anything really;<br>
-                                        • Photo preview. When you load photos, a preview function before you upload them.<br>
-                                        • Routes. Another overlay that shows popular routes that will open a new page or modal and display details like Bikeroutes and will also give you an option to download the GPX. 
-                                    </p>
-                                </div>
+                <div class="faq-item">
+                    <h3>Wish list</h3>
+                    <p>
+                        • Interaction notifications. When you click the bell (if you are logged-in), you will see all the latest contributions. I also want to add notifications if another user interacts with your comment or segment; ✅ <br>
+                        • Google Street View. A really handy tool to link up the quiet roads where gravel doesn't exist; ✅ Not Google Maps, but Mapillary which is kind of more our style<br>
+                        • Mobile UI. I want to fix the navbar and bottom toolbar so that it works on mobile;<br>
+                        • POI. I want to add the POI tab so we can highlight water points, cafes, supermarkets and anything really;<br>
+                        • Photo preview. When you load photos, a preview function before you upload them.<br>
+                        • Routes. Another overlay that shows popular routes that will open a new page or modal and display details like Bikeroutes and will also give you an option to download the GPX. 
+                    </p>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
 
-            <!-- Activity Section -->
+<!-- Activity Section -->
 <div id="activitySection" class="nav-section collapse">
     <div class="section-content">
-        <!-- Mobile View: Tabs for switching -->
         <div class="activity-tabs d-md-none">
             <button class="tab-btn active" data-tab="interactions">Interactions</button>
             <button class="tab-btn" data-tab="activities">All Activities</button>
         </div>
-        
-        <!-- Desktop: Side by side, Mobile: Stacked -->
         <div class="activity-columns">
-            <!-- Interactions Column -->
             <div class="activity-column" id="interactions-container">
                 <h3>Interactions</h3>
                 <div id="interactions-content" class="activity-content"></div>
             </div>
-            
-            <!-- Activities Column -->
             <div class="activity-column" id="activities-container">
                 <h3>All Activities</h3>
                 <div id="activities-content" class="activity-content"></div>
             </div>
         </div>
-        
         <div id="activity-feed-loader" style="display: none;">
             <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-        </div>
-    </div>
-</div>
         </div>
     </div>
 </div>
