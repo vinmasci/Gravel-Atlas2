@@ -184,31 +184,19 @@ const ActivityFeed = {
             const section = document.getElementById(sectionId);
             if (section) {
                 section.classList.remove('show');
-                const toggle = document.getElementById(sectionId.replace('Section', 'Toggle'));
-                if (toggle) {
-                    toggle.classList.remove('active');
-                }
             }
         });
     
         // Toggle activity section
         const activitySection = document.getElementById('activitySection');
         if (activitySection) {
-            // Use Bootstrap's collapse functionality
-            $(activitySection).collapse('toggle');  // Add this line if using jQuery/Bootstrap
-    
-            // Or toggle classes manually
-            activitySection.classList.toggle('show');
+            const isVisible = activitySection.classList.contains('show');
             
-            // Load activities if showing
-            if (activitySection.classList.contains('show')) {
-                this.loadActivities(true);
-            }
-    
-            // Toggle active state on the button
-            const toggle = document.getElementById('activityFeedToggle');
-            if (toggle) {
-                toggle.parentElement.classList.toggle('active');
+            if (!isVisible) {
+                activitySection.classList.add('show');
+                this.loadActivities(true); // Load activities when opening
+            } else {
+                activitySection.classList.remove('show');
             }
     
             // Update map position
@@ -217,11 +205,7 @@ const ActivityFeed = {
                 const anySectionOpen = ['aboutSection', 'faqSection', 'activitySection']
                     .some(id => document.getElementById(id)?.classList.contains('show'));
                 
-                if (anySectionOpen) {
-                    mapElement.classList.add('nav-section-open');
-                } else {
-                    mapElement.classList.remove('nav-section-open');
-                }
+                mapElement.classList.toggle('nav-section-open', anySectionOpen);
             }
         }
     },
