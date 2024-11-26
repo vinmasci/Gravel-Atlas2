@@ -1349,6 +1349,18 @@ function showGpxOverlay() {
     document.body.appendChild(containerDiv);
 }
 
+function clearGpxOverlay() {
+    ['gpx-paved', 'gpx-gravel', 'gpx-unknown'].forEach(layerId => {
+        if (map.getLayer(layerId)) {
+            map.removeLayer(layerId);
+        }
+    });
+
+    if (map.getSource('gpx-overlay')) {
+        map.removeSource('gpx-overlay');
+    }
+}
+
 async function handleGpxUpload(file) {
     try {
         // Read the file contents
