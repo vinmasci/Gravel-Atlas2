@@ -1995,7 +1995,12 @@
 /* ============================
    SECTION: Mapillary Popup Styles
    ============================ */
-.mapillary-popup-loading {
+   .mapboxgl-popup {
+    z-index: 1000;
+}
+
+
+   .mapillary-popup-loading {
     padding: 10px;
     text-align: center;
     color: #666;
@@ -2012,7 +2017,14 @@
 .mapboxgl-popup-content {
     padding: 8px;
     border-radius: 8px;
+    position: relative;
+    z-index: 1001;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Make sure your photo preview has a lower z-index */
+.photo-preview {
+    z-index: 999;
 }
     </style>
     

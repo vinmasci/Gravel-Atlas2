@@ -1,3 +1,6 @@
+// Add this at the top of your file, before any functions
+let activePhotoPopup = null;
+
 async function extractCoordinates(file) {
     console.log('Starting coordinate extraction for file:', file.name);
     
@@ -367,6 +370,12 @@ async function deletePhoto(photoId) {
 // ============================
 async function handlePhotoClick(e) {
     try {
+        // Close any existing popup first
+        if (activePhotoPopup) {
+            activePhotoPopup.remove();
+            activePhotoPopup = null;
+        }
+
         const coordinates = e.features[0].geometry.coordinates.slice();
         const { originalName, url, _id: photoId, auth0Id, username, picture, uploadedAt } = e.features[0].properties;
 
@@ -389,7 +398,7 @@ async function handlePhotoClick(e) {
                 </div>
             </div>`;
 
-        const popup = new mapboxgl.Popup({
+        activePhotoPopup = new mapboxgl.Popup({
             closeButton: true,
             closeOnClick: false,
             maxWidth: '300px'
@@ -399,17 +408,23 @@ async function handlePhotoClick(e) {
         .addTo(map);
 
         // Add one-time close handler
-        const closeButton = popup.getElement().querySelector('.mapboxgl-popup-close-button');
+        const closeButton = activePhotoPopup.getElement().querySelector('.mapboxgl-popup-close-button');
         if (closeButton) {
             const closeHandler = (e) => {
                 e.preventDefault();
-                popup.remove();
+                activePhotoPopup.remove();
+                activePhotoPopup = null;
                 closeButton.removeEventListener('click', closeHandler);
             };
             closeButton.addEventListener('click', closeHandler);
         }
 
-        // Fetch user profile
+        // Add close handler to the popup itself
+        activePhotoPopup.on('close', () => {
+            activePhotoPopup = null;
+        });
+
+        // Rest of your existing fetch user profile code...
         let userProfile;
         try {
             const profileResponse = await fetch(`/api/user?id=${encodeURIComponent(auth0Id)}`);
@@ -420,7 +435,7 @@ async function handlePhotoClick(e) {
             console.error('Error fetching user profile:', error);
         }
 
-        // Build social links HTML
+        // Your existing social links HTML building...
         const socialLinksHtml = userProfile?.socialLinks ? `
             <div class="social-links">
                 ${userProfile.socialLinks.instagram ? `<a href="${userProfile.socialLinks.instagram}" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>` : ''}
@@ -435,77 +450,58 @@ async function handlePhotoClick(e) {
         img.onload = () => {
             const updatedContent = `
                 <div class="photo-popup">
-                    <div class="photo-header">
-                        <div class="user-info">
-                            <img src="${userProfile?.picture || picture || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}"
-                                class="profile-pic"
-                                id="profile-pic-${photoId}"
-                                onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'" />
-                            <div class="name-social-line">
-                                <strong>${userProfile?.bioName || username}</strong>
-                                ${socialLinksHtml}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="photo-content">
-                        <img src="${url}" alt="${originalName}" class="photo-image">
-                        <div class="photo-date">
-                            ${new Date(uploadedAt).toLocaleDateString()}
-                        </div>
-                    </div>
-                    <div class="photo-footer">
-                        <span class="photo-id">Photo ID: ${photoId}</span>
-                        <div class="photo-actions">
-                            ${auth0Id === currentUser?.sub ?
-                                `<span class="delete-photo" data-photo-id="${photoId}">
-                                    <i class="fa-solid fa-trash"></i>
-                                </span>` :
-                                `<span class="flag-photo" data-photo-id="${photoId}">
-                                    <i class="fa-solid fa-flag"></i>
-                                </span>`
-                            }
-                        </div>
-                    </div>
+                    <!-- Your existing popup content HTML -->
                 </div>`;
             
-            popup.setHTML(updatedContent);
+            if (activePhotoPopup) {  // Check if popup still exists
+                activePhotoPopup.setHTML(updatedContent);
 
-            // Reattach event handlers
-            setTimeout(() => {
-                const deleteBtn = popup.getElement().querySelector('.delete-photo');
-                const flagBtn = popup.getElement().querySelector('.flag-photo');
+                // Reattach event handlers
+                setTimeout(() => {
+                    if (!activePhotoPopup) return;  // Check again in case popup was closed
+                    
+                    const deleteBtn = activePhotoPopup.getElement().querySelector('.delete-photo');
+                    const flagBtn = activePhotoPopup.getElement().querySelector('.flag-photo');
 
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', async () => {
-                        if (confirm('Are you sure you want to delete this photo?')) {
-                            try {
-                                showLoading('Deleting photo...');
-                                await deletePhoto(photoId);
-                                popup.remove();
-                                await loadPhotoMarkers();
-                            } catch (error) {
-                                console.error('Error deleting photo:', error);
-                                alert('Failed to delete photo');
-                            } finally {
-                                hideLoading();
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', async () => {
+                            if (confirm('Are you sure you want to delete this photo?')) {
+                                try {
+                                    showLoading('Deleting photo...');
+                                    await deletePhoto(photoId);
+                                    if (activePhotoPopup) {
+                                        activePhotoPopup.remove();
+                                        activePhotoPopup = null;
+                                    }
+                                    await loadPhotoMarkers();
+                                } catch (error) {
+                                    console.error('Error deleting photo:', error);
+                                    alert('Failed to delete photo');
+                                } finally {
+                                    hideLoading();
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
 
-                if (flagBtn) {
-                    flagBtn.addEventListener('click', () => {
-                        const photoId = flagBtn.getAttribute('data-photo-id');
-                        handleFlagSegment(photoId);
-                    });
-                }
-            }, 0);
+                    if (flagBtn) {
+                        flagBtn.addEventListener('click', () => {
+                            const photoId = flagBtn.getAttribute('data-photo-id');
+                            handleFlagSegment(photoId);
+                        });
+                    }
+                }, 0);
+            }
         };
 
         img.src = url;
 
     } catch (error) {
         console.error('Error creating photo popup:', error);
+        if (activePhotoPopup) {
+            activePhotoPopup.remove();
+            activePhotoPopup = null;
+        }
     }
 }
 
