@@ -2562,47 +2562,54 @@
             await initCore();
             console.log('Application initialized successfully');
             
-            // Handle all nav section toggles
-            const sections = ['about', 'faq'];
-            const mapElement = document.getElementById('map');
+        // Handle all nav section toggles
+        const sections = ['about', 'faq', 'activity'];  // Added 'activity'
+        const mapElement = document.getElementById('map');
+        
+        sections.forEach(section => {
+            const toggle = document.getElementById(`${section}Toggle`);
+            const sectionEl = document.getElementById(`${section}Section`);
             
-            sections.forEach(section => {
-                const toggle = document.getElementById(`${section}Toggle`);
-                const sectionEl = document.getElementById(`${section}Section`);
-                
-                if (toggle && sectionEl) {
-                    toggle.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        
-                        // Close other sections
-                        sections.forEach(otherSection => {
-                            if (otherSection !== section) {
-                                document.getElementById(`${otherSection}Section`)?.classList.remove('show');
-                                document.getElementById(`${otherSection}Toggle`)?.parentElement.classList.remove('active');
-                            }
-                        });
-                        
-                        // Toggle this section
-                        sectionEl.classList.toggle('show');
-                        this.parentElement.classList.toggle('active');
-
-                        // Check if any section is open
-                        const anySectionOpen = sections.some(sec => document.getElementById(`${sec}Section`).classList.contains('show'));
-                        
-                        // Add or remove class based on section state
-                        if (anySectionOpen) {
-                            mapElement.classList.add('nav-section-open');
-                        } else {
-                            mapElement.classList.remove('nav-section-open');
-                        }
-
-                        // Scroll into view on mobile devices
-                        if (window.innerWidth <= 768 && sectionEl.classList.contains('show')) {
-                            sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (toggle && sectionEl) {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Close other sections
+                    sections.forEach(otherSection => {
+                        if (otherSection !== section) {
+                            document.getElementById(`${otherSection}Section`)?.classList.remove('show');
+                            document.getElementById(`${otherSection}Toggle`)?.parentElement.classList.remove('active');
                         }
                     });
-                }
-            });
+                    
+                    // Toggle this section
+                    sectionEl.classList.toggle('show');
+                    this.parentElement.classList.toggle('active');
+
+                    // If this is the activity section and it's being shown, load activities
+                    if (section === 'activity' && sectionEl.classList.contains('show')) {
+                        window.ActivityFeed.loadActivities(true);
+                    }
+
+                    // Check if any section is open
+                    const anySectionOpen = sections.some(sec => 
+                        document.getElementById(`${sec}Section`).classList.contains('show')
+                    );
+                    
+                    // Add or remove class based on section state
+                    if (anySectionOpen) {
+                        mapElement.classList.add('nav-section-open');
+                    } else {
+                        mapElement.classList.remove('nav-section-open');
+                    }
+
+                    // Scroll into view on mobile devices
+                    if (window.innerWidth <= 768 && sectionEl.classList.contains('show')) {
+                        sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+        });
 
             // Your existing function checks
             console.log('Final function check:', {
