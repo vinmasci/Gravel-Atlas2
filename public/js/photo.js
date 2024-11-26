@@ -1,5 +1,4 @@
-// Add this at the top of your file, before any functions
-let activePhotoPopup = null;
+
 
 async function extractCoordinates(file) {
     console.log('Starting coordinate extraction for file:', file.name);
