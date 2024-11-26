@@ -2112,13 +2112,46 @@
 .activity-item {
     background: rgba(255, 255, 255, 0.05);
     margin-bottom: 10px;
-    padding: 12px;
+    font-size: 0.75rem; /* Half size */
+    padding: 6px;
     border-radius: 6px;
     transition: background 0.2s;
 }
 
 .activity-item:hover {
     background: rgba(255, 255, 255, 0.1);
+}
+
+.activity-meta {
+    font-size: 0.7rem;
+}
+
+.activity-column h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Add pagination controls */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.5rem;
+}
+
+.pagination-controls button {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background: #343a40;
+    border: none;
+    color: white;
+    border-radius: 4px;
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
     </style>
     
@@ -2259,10 +2292,18 @@
                 <div class="activity-column" id="interactions-container">
                     <h3>Interactions</h3>
                     <div id="interactions-content" class="activity-content"></div>
+                    <div class="pagination-controls">
+                        <button id="prevPage" disabled>Previous</button>
+                        <button id="nextPage">Next</button>
+                    </div>
                 </div>
                 <div class="activity-column" id="activities-container">
                     <h3>All Activities</h3>
                     <div id="activities-content" class="activity-content"></div>
+                    <div class="pagination-controls">
+                        <button id="prevPage" disabled>Previous</button>
+                        <button id="nextPage">Next</button>
+                    </div>
                 </div>
             </div>
             <div id="activity-feed-loader" style="display: none;">

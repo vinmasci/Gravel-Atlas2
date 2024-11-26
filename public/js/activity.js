@@ -5,32 +5,26 @@ const ActivityFeed = {
     initialized: false,
 
     async init() {
-        // Prevent double initialization
-        if (this.initialized) {
-            console.log('Activity feed already initialized');
-            return;
-        }
+        if (this.initialized) return;
     
-
-    
-        // Add styles
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
                 .activity-tabs {
                     display: none;
-                    gap: 10px;
-                    margin-bottom: 15px;
+                    gap: 8px;
+                    margin-bottom: 12px;
                 }
             
                 .tab-btn {
                     flex: 1;
-                    padding: 8px;
+                    padding: 6px;
                     background: #343a40;
                     border: none;
                     color: white;
                     border-radius: 4px;
                     cursor: pointer;
                     transition: background-color 0.2s;
+                    font-size: 0.75rem;
                 }
             
                 .tab-btn.active {
@@ -39,21 +33,56 @@ const ActivityFeed = {
             
                 .activity-item {
                     background: rgba(255, 255, 255, 0.05);
-                    margin-bottom: 10px;
-                    padding: 12px;
-                    border-radius: 6px;
+                    margin-bottom: 6px;
+                    padding: 6px;
+                    border-radius: 4px;
                     transition: background 0.2s;
                     cursor: pointer;
+                    font-size: 0.75rem;
                 }
             
                 .activity-item .username {
                     color: #FF652F;
                     font-weight: 600;
+                    font-size: 0.8rem;
                 }
             
+                .activity-meta {
+                    font-size: 0.7rem;
+                    color: rgba(255, 255, 255, 0.6);
+                }
+
                 .interaction-item {
                     background-color: rgba(255,102,47,0.05);
                     border-left: 3px solid #FF652F;
+                }
+
+                .activity-column h3 {
+                    font-size: 0.9rem;
+                    margin-bottom: 0.5rem;
+                }
+
+                .pagination-controls {
+                    display: flex;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    margin-top: 0.75rem;
+                    padding: 0.5rem;
+                }
+
+                .pagination-controls button {
+                    font-size: 0.7rem;
+                    padding: 0.25rem 0.75rem;
+                    background: #343a40;
+                    border: none;
+                    color: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+
+                .pagination-controls button:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
                 }
             
                 @media (max-width: 768px) {
@@ -76,10 +105,10 @@ const ActivityFeed = {
                     right: 0;
                     background: #FF652F;
                     color: white;
-                    border-radius: 10px;
-                    padding: 0 6px;
-                    font-size: 10px;
-                    min-width: 16px;
+                    border-radius: 8px;
+                    padding: 0 4px;
+                    font-size: 0.6rem;
+                    min-width: 14px;
                     text-align: center;
                 }
             `;
@@ -90,7 +119,6 @@ const ActivityFeed = {
             document.head.appendChild(styleSheet);
         }
     
-        // Set up mobile tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -102,24 +130,29 @@ const ActivityFeed = {
             });
         });
     
-        // Show interactions by default on mobile
         if (window.innerWidth <= 768) {
             document.getElementById('interactions-container')?.classList.add('active');
         }
+
+        const paginationControls = `
+            <div class="pagination-controls">
+                <button class="prev-page" disabled>Previous</button>
+                <button class="next-page">Next</button>
+            </div>
+        `;
+        ['activities-content', 'interactions-content'].forEach(id => {
+            const container = document.getElementById(id);
+            if (container) {
+                container.insertAdjacentHTML('afterend', paginationControls);
+            }
+        });
     
         this.initialized = true;
-        console.log('Activity feed initialized successfully');
     },
 
-    // Added toggleFeed method
     async toggleFeed() {
-        console.log('Toggling feed visibility');
         const activitySection = document.getElementById('activitySection');
-        
-        if (!activitySection) {
-            console.error('Activity section not found');
-            return;
-        }
+        if (!activitySection) return;
 
         const isVisible = activitySection.classList.contains('show');
         
@@ -135,25 +168,22 @@ const ActivityFeed = {
         if (this.isLoading || (!reset && !this.hasMore)) return;
     
         try {
-            console.log('Loading activities, reset:', reset);
             this.isLoading = true;
             const loader = document.getElementById('activity-feed-loader');
             if (loader) loader.style.display = 'block';
     
             if (reset) {
                 this.currentPage = 1;
-                const activitiesContent = document.getElementById('activities-content');
-                const interactionsContent = document.getElementById('interactions-content');
-                if (activitiesContent) activitiesContent.innerHTML = '';
-                if (interactionsContent) interactionsContent.innerHTML = '';
+                ['activities-content', 'interactions-content'].forEach(id => {
+                    const container = document.getElementById(id);
+                    if (container) container.innerHTML = '';
+                });
             }
     
-            // Get auth token and user
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
             const user = await auth0.getUser();
     
-            console.log('Fetching activities for page:', this.currentPage);
             const response = await fetch(`/api/activity?page=${this.currentPage}&limit=20`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -161,38 +191,31 @@ const ActivityFeed = {
                 }
             });
     
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     
             const data = await response.json();
-            console.log('Received activities:', data);
-    
             await this.renderActivities(data.activities, user?.sub);
             this.hasMore = data.pagination.hasMore;
-            this.currentPage++;
+            this.handlePagination();
     
-            // Update notification count
             if (reset) {
                 const countEl = document.querySelector('.activity-count');
-                if (countEl) {
-                    countEl.style.display = 'none';
-                }
+                if (countEl) countEl.style.display = 'none';
             }
     
         } catch (error) {
             console.error('Error loading activities:', error);
             const errorContent = `
                 <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
-                    <i class="fa-solid fa-exclamation-circle" style="font-size: 24px; margin-bottom: 8px;"></i>
-                    <div>Error loading activities</div>
+                    <i class="fa-solid fa-exclamation-circle" style="font-size: 16px; margin-bottom: 6px;"></i>
+                    <div style="font-size: 0.75rem;">Error loading activities</div>
                 </div>
             `;
             
-            const activitiesContent = document.getElementById('activities-content');
-            const interactionsContent = document.getElementById('interactions-content');
-            if (activitiesContent) activitiesContent.innerHTML = errorContent;
-            if (interactionsContent) interactionsContent.innerHTML = errorContent;
+            ['activities-content', 'interactions-content'].forEach(id => {
+                const container = document.getElementById(id);
+                if (container) container.innerHTML = errorContent;
+            });
         } finally {
             this.isLoading = false;
             const loader = document.getElementById('activity-feed-loader');
@@ -200,22 +223,44 @@ const ActivityFeed = {
         }
     },
 
+    handlePagination() {
+        document.querySelectorAll('.pagination-controls').forEach(controls => {
+            const prevBtn = controls.querySelector('.prev-page');
+            const nextBtn = controls.querySelector('.next-page');
+            
+            if (prevBtn && nextBtn) {
+                prevBtn.disabled = this.currentPage === 1;
+                nextBtn.disabled = !this.hasMore;
+
+                prevBtn.onclick = () => {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.loadActivities();
+                    }
+                };
+
+                nextBtn.onclick = () => {
+                    if (this.hasMore) {
+                        this.currentPage++;
+                        this.loadActivities();
+                    }
+                };
+            }
+        });
+    },
+
     async renderActivities(activities) {
-        console.log('Rendering activities:', activities);
         const activitiesContainer = document.getElementById('activities-content');
         const interactionsContainer = document.getElementById('interactions-content');
 
-        if (!activitiesContainer || !interactionsContainer) {
-            console.error('Activity containers not found');
-            return;
-        }
+        if (!activitiesContainer || !interactionsContainer) return;
     
-        if (!activities || activities.length === 0) {
+        if (!activities?.length) {
             const emptyState = `
                 <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
-                    <i class="fa-solid fa-inbox" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
-                    <div>No activities yet</div>
-                    <div style="font-size: 12px; margin-top: 4px;">
+                    <i class="fa-solid fa-inbox" style="font-size: 16px; margin-bottom: 6px; display: block;"></i>
+                    <div style="font-size: 0.75rem;">No activities yet</div>
+                    <div style="font-size: 0.7rem; margin-top: 4px;">
                         Activities will appear here when you add segments, photos, or comments
                     </div>
                 </div>
@@ -226,13 +271,9 @@ const ActivityFeed = {
         }
 
         activities.forEach(async activity => {
-            // Get current user
             const auth0 = await window.auth0;
             const currentUser = await auth0.getUser();
             
-            const item = document.createElement('div');
-            item.className = 'activity-item';
-    
             const content = this.formatActivityContent(activity, currentUser?.sub);
             const timeAgo = this.formatTimeAgo(activity.createdAt);
             
@@ -241,7 +282,7 @@ const ActivityFeed = {
                         activity.type === 'comment' ? 'fa-comment' : 'fa-circle';
     
             const baseHtml = `
-                <div style="display: flex; align-items: start; gap: 10px;">
+                <div style="display: flex; align-items: start; gap: 8px;">
                     <div style="padding-top: 2px;">
                         <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
                     </div>
@@ -252,14 +293,12 @@ const ActivityFeed = {
                 </div>
             `;
 
-            // Add to activities feed
             const activityItem = document.createElement('div');
             activityItem.className = 'activity-item';
             activityItem.innerHTML = baseHtml;
             this.addLocationHandling(activityItem, activity);
             activitiesContainer.appendChild(activityItem);
 
-            // If this is an interaction, add to interactions column
             if (content.interaction && activity.auth0Id !== currentUser?.sub) {
                 const interactionItem = document.createElement('div');
                 interactionItem.className = 'activity-item interaction-item';
@@ -293,7 +332,6 @@ const ActivityFeed = {
     },
 
     formatActivityContent(activity, currentUserId) {
-        // Initial username from email
         const defaultUsername = activity.username?.split('@')[0] || 'Anonymous';
         let username = defaultUsername;
     
@@ -302,7 +340,6 @@ const ActivityFeed = {
             interaction: ''
         };
     
-        // Create content with initial username
         const createContent = (username) => {
             switch (activity.type) {
                 case 'segment':
@@ -324,7 +361,6 @@ const ActivityFeed = {
     
         content.regular = createContent(username);
     
-        // After rendering, fetch and update bio names
         setTimeout(() => {
             if (activity.auth0Id) {
                 fetch(`/api/user?id=${encodeURIComponent(activity.auth0Id)}`)
@@ -364,25 +400,15 @@ const ActivityFeed = {
         }
     },
 
-    async loadMore() {
-        console.log('Loading more activities...');
-        await this.loadActivities();
-    },
-
     async recordActivity(type, action, metadata = {}) {
         try {
-            console.log('Starting recordActivity with:', { type, action, metadata });
-            
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
             const user = await auth0.getUser();
             
-            if (!user || !user.sub) {
-                throw new Error('User not authenticated');
-            }
+            if (!user?.sub) throw new Error('User not authenticated');
 
             const username = user.name || user.email || 'Anonymous User';
-            console.log('User details:', { username, sub: user.sub });
 
             const activityData = {
                 type,
@@ -392,8 +418,6 @@ const ActivityFeed = {
                 auth0Id: user.sub
             };
 
-            console.log('Sending activity data:', activityData);
-
             const response = await fetch('/api/activity', {
                 method: 'POST',
                 headers: {
@@ -401,21 +425,17 @@ const ActivityFeed = {
                     'Content-Type': 'application/json',
                     'x-user-sub': user.sub
                 },
+
                 body: JSON.stringify(activityData)
             });
 
-            console.log('Activity API response status:', response.status);
-
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('API Error details:', errorData);
                 throw new Error(errorData.error || 'Failed to record activity');
             }
 
             const result = await response.json();
-            console.log('Activity recorded successfully:', result);
 
-            // Update notification count
             const countEl = document.querySelector('.activity-count');
             if (countEl) {
                 const count = parseInt(countEl.textContent || '0') + 1;
@@ -425,7 +445,7 @@ const ActivityFeed = {
 
             return result;
         } catch (error) {
-            console.error('Detailed error in recordActivity:', {
+            console.error('Error in recordActivity:', {
                 name: error.name,
                 message: error.message,
                 stack: error.stack
@@ -435,7 +455,6 @@ const ActivityFeed = {
     }
 };
 
-// Initialize when DOM is ready - but only once
 if (!window.activityFeedInitialized) {
     window.activityFeedInitialized = true;
     document.addEventListener('DOMContentLoaded', () => {
@@ -443,5 +462,4 @@ if (!window.activityFeedInitialized) {
     });
 }
 
-// Make available globally
 window.ActivityFeed = ActivityFeed;
