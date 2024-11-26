@@ -191,12 +191,14 @@ const ActivityFeed = {
         const activitySection = document.getElementById('activitySection');
         if (activitySection) {
             const isVisible = activitySection.classList.contains('show');
-            
+    
             if (!isVisible) {
                 activitySection.classList.add('show');
-                this.loadActivities(true); // Load activities when opening
+                $(activitySection).collapse('show'); // Add Bootstrap collapse
+                this.loadActivities(true);
             } else {
                 activitySection.classList.remove('show');
+                $(activitySection).collapse('hide'); // Add Bootstrap collapse
             }
     
             // Update map position
@@ -204,7 +206,6 @@ const ActivityFeed = {
             if (mapElement) {
                 const anySectionOpen = ['aboutSection', 'faqSection', 'activitySection']
                     .some(id => document.getElementById(id)?.classList.contains('show'));
-                
                 mapElement.classList.toggle('nav-section-open', anySectionOpen);
             }
         }
