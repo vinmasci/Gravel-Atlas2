@@ -2070,6 +2070,29 @@
         margin-bottom: 15px;
     }
     
+    .activity-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 10px;
+            min-width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            background-color: #FF652F;
+            border-radius: 8px;
+            padding: 0 4px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        #activitySection .section-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
     .tab-btn {
         flex: 1;
         padding: 8px;
@@ -2099,31 +2122,38 @@
 }
     </style>
     
-<!-- Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-    <a class="navbar-brand" href="#">
-        <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas Beta
-    </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="#" id="aboutToggle">About</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" id="faqToggle">FAQ</a>
-            </li>
-        </ul>
-        <div id="auth-container" class="navbar-nav">
-            <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
-            <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
-            <span id="userInfo" style="display: none; color: white; margin-left: 10px;"></span>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <a class="navbar-brand" href="#">
+            <i class="fa-duotone fa-solid fa-earth-oceania"></i> GravelAtlas Beta
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="aboutToggle">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="faqToggle">FAQ</a>
+                </li>
+                <!-- Add Activity Feed Button Here -->
+                <li class="nav-item">
+                    <a class="nav-link position-relative" href="#" id="activityToggle">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="activity-count badge badge-danger" style="display: none;">0</span>
+                    </a>
+                </li>
+            </ul>
+            <div id="auth-container" class="navbar-nav">
+                <button id="loginBtn" class="btn btn-outline-light my-2 my-sm-0">Log In</button>
+                <button id="logoutBtn" class="btn btn-outline-light my-2 my-sm-0" style="display: none;">Log Out</button>
+                <span id="userInfo" style="display: none; color: white; margin-left: 10px;"></span>
+            </div>
         </div>
-    </div>
-</nav>
+    </nav>
 
 <!-- About Section -->
 <div id="aboutSection" class="nav-section collapse">
@@ -2218,28 +2248,28 @@
     </div>
 </div>
 
-<!-- Activity Section -->
-<div id="activitySection" class="nav-section collapse">
-    <div class="section-content">
-        <div class="activity-tabs d-md-none">
-            <button class="tab-btn active" data-tab="interactions">Interactions</button>
-            <button class="tab-btn" data-tab="activities">All Activities</button>
-        </div>
-        <div class="activity-columns">
-            <div class="activity-column" id="interactions-container">
-                <h3>Interactions</h3>
-                <div id="interactions-content" class="activity-content"></div>
+    <!-- Activity Section -->
+    <div id="activitySection" class="nav-section collapse">
+        <div class="section-content">
+            <div class="activity-tabs d-md-none">
+                <button class="tab-btn active" data-tab="interactions">Interactions</button>
+                <button class="tab-btn" data-tab="activities">All Activities</button>
             </div>
-            <div class="activity-column" id="activities-container">
-                <h3>All Activities</h3>
-                <div id="activities-content" class="activity-content"></div>
+            <div class="activity-columns">
+                <div class="activity-column" id="interactions-container">
+                    <h3>Interactions</h3>
+                    <div id="interactions-content" class="activity-content"></div>
+                </div>
+                <div class="activity-column" id="activities-container">
+                    <h3>All Activities</h3>
+                    <div id="activities-content" class="activity-content"></div>
+                </div>
             </div>
-        </div>
-        <div id="activity-feed-loader" style="display: none;">
-            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+            <div id="activity-feed-loader" style="display: none;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+            </div>
         </div>
     </div>
-</div>
 
     
 <!-- Map container should be empty -->
@@ -2562,6 +2592,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initCore();
         console.log('Application initialized successfully');
 
+        // Initialize ActivityFeed if available
+        if (window.ActivityFeed && !window.activityFeedInitialized) {
+            await window.ActivityFeed.init();
+        }
+
         // Handle all nav section toggles
         const sections = ['about', 'faq', 'activity'];
         const mapElement = document.getElementById('map');
@@ -2571,7 +2606,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sectionEl = document.getElementById(`${section}Section`);
 
             if (toggle && sectionEl) {
-                toggle.addEventListener('click', function(e) {
+                toggle.addEventListener('click', async function(e) {
                     e.preventDefault();
                     
                     // Close other sections
@@ -2588,7 +2623,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // If this is the activity section and it's being shown, load activities
                     if (section === 'activity' && sectionEl.classList.contains('show')) {
-                        window.ActivityFeed.loadActivities(true);
+                        await window.ActivityFeed.loadActivities(true);
                     }
 
                     // Check if any section is open
@@ -2611,28 +2646,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-            // Your existing function checks
-            console.log('Final function check:', {
-                // Map functions
-                loadSegments: typeof window.loadSegments === 'function',
-                removeSegments: typeof window.removeSegments === 'function',
-                initGeoJSONSource: typeof window.initGeoJSONSource === 'function',
-                
-                // Photo functions
-                loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
-                removePhotoMarkers: typeof window.removePhotoMarkers === 'function',
-                
-                // POI functions
-                loadPOIMarkers: typeof window.loadPOIMarkers === 'function',
-                removePOIMarkers: typeof window.removePOIMarkers === 'function',
-                
-                // GeoJSON functions
-                parseTrackPoints: typeof window.parseTrackPoints === 'function'
-            });
-        } catch (error) {
-            console.error('Error initializing application:', error);
-        }
-    });
+        // Your existing function checks
+        console.log('Final function check:', {
+            // Map functions
+            loadSegments: typeof window.loadSegments === 'function',
+            removeSegments: typeof window.removeSegments === 'function',
+            initGeoJSONSource: typeof window.initGeoJSONSource === 'function',
+            
+            // Photo functions
+            loadPhotoMarkers: typeof window.loadPhotoMarkers === 'function',
+            removePhotoMarkers: typeof window.removePhotoMarkers === 'function',
+            
+            // POI functions
+            loadPOIMarkers: typeof window.loadPOIMarkers === 'function',
+            removePOIMarkers: typeof window.removePOIMarkers === 'function',
+            
+            // GeoJSON functions
+            parseTrackPoints: typeof window.parseTrackPoints === 'function'
+        });
+
+    } catch (error) {
+        console.error('Error initializing application:', error);
+    }
+});
 </script>
 
 <div id="flag-segment-modal">
