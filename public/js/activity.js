@@ -11,20 +11,7 @@ const ActivityFeed = {
             return;
         }
     
-        // Add activity feed button to navbar if it doesn't exist
-        const existingButton = document.getElementById('activityFeedToggle');
-        if (!existingButton) {
-            const navbarNav = document.querySelector('.navbar-nav');
-            const activityButton = `
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="activityFeedToggle">
-                        <i class="fa-solid fa-bell"></i>
-                        <span class="activity-count" style="display: none;">0</span>
-                    </a>
-                </li>
-            `;
-            navbarNav.insertAdjacentHTML('beforeend', activityButton);
-        }
+
     
         // Add styles
         if (!document.getElementById('activity-feed-styles')) {
