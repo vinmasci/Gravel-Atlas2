@@ -2550,26 +2550,26 @@
 
 <!-- Initialize -->
 <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            // Wait for map to load if it's not already loaded
-            if (!map.loaded()) {
-                await new Promise(resolve => map.on('load', resolve));
-            }
-            console.log('Map loaded successfully');
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Wait for map to load if it's not already loaded
+        if (!map.loaded()) {
+            await new Promise(resolve => map.on('load', resolve));
+        }
+        console.log('Map loaded successfully');
 
-            // Initialize core
-            await initCore();
-            console.log('Application initialized successfully');
-            
+        // Initialize core
+        await initCore();
+        console.log('Application initialized successfully');
+
         // Handle all nav section toggles
-        const sections = ['about', 'faq', 'activity'];  // Added 'activity'
+        const sections = ['about', 'faq', 'activity'];
         const mapElement = document.getElementById('map');
-        
+
         sections.forEach(section => {
             const toggle = document.getElementById(`${section}Toggle`);
             const sectionEl = document.getElementById(`${section}Section`);
-            
+
             if (toggle && sectionEl) {
                 toggle.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -2581,7 +2581,7 @@
                             document.getElementById(`${otherSection}Toggle`)?.parentElement.classList.remove('active');
                         }
                     });
-                    
+
                     // Toggle this section
                     sectionEl.classList.toggle('show');
                     this.parentElement.classList.toggle('active');
@@ -2593,9 +2593,9 @@
 
                     // Check if any section is open
                     const anySectionOpen = sections.some(sec => 
-                        document.getElementById(`${sec}Section`).classList.contains('show')
+                        document.getElementById(`${sec}Section`)?.classList.contains('show')
                     );
-                    
+
                     // Add or remove class based on section state
                     if (anySectionOpen) {
                         mapElement.classList.add('nav-section-open');

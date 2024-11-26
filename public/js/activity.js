@@ -10,7 +10,7 @@ const ActivityFeed = {
             console.log('Activity feed already initialized');
             return;
         }
-
+    
         // Add activity feed button to navbar if it doesn't exist
         const existingButton = document.getElementById('activityFeedToggle');
         if (!existingButton) {
@@ -25,126 +25,84 @@ const ActivityFeed = {
             `;
             navbarNav.insertAdjacentHTML('beforeend', activityButton);
         }
-
-        // Create activity section if it doesn't exist
-        if (!document.getElementById('activitySection')) {
-            const activitySection = `
-                <div id="activitySection" class="nav-section collapse">
-                    <div class="section-content">
-                        <!-- Mobile Tabs -->
-                        <div class="activity-tabs d-md-none">
-                            <button class="tab-btn active" data-tab="interactions">Interactions</button>
-                            <button class="tab-btn" data-tab="activities">All Activities</button>
-                        </div>
-                        
-                        <!-- Activity Columns -->
-                        <div class="activity-columns">
-                            <!-- Interactions Column -->
-                            <div class="activity-column" id="interactions-container">
-                                <h3>Interactions</h3>
-                                <div id="interactions-content" class="activity-content"></div>
-                            </div>
-                            
-                            <!-- Activities Column -->
-                            <div class="activity-column" id="activities-container">
-                                <h3>All Activities</h3>
-                                <div id="activities-content" class="activity-content"></div>
-                            </div>
-                        </div>
-                        <div id="activity-feed-loader" style="display: none;">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', activitySection);
-        }
-
+    
         // Add styles
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-            .activity-tabs {
-                display: none;
-                gap: 10px;
-                margin-bottom: 15px;
-            }
-        
-            .tab-btn {
-                flex: 1;
-                padding: 8px;
-                background: #343a40;
-                border: none;
-                color: white;
-                border-radius: 4px;
-                cursor: pointer;
-                transition: background-color 0.2s;
-            }
-        
-            .tab-btn.active {
-                background: #FF652F;
-            }
-        
-            .activity-item {
-                background: rgba(255, 255, 255, 0.05);
-                margin-bottom: 10px;
-                padding: 12px;
-                border-radius: 6px;
-                transition: background 0.2s;
-                cursor: pointer;
-            }
-        
-            .activity-item .username {
-                color: #FF652F;
-                font-weight: 600;
-            }
-        
-            .interaction-item {
-                background-color: rgba(255,102,47,0.05);
-                border-left: 3px solid #FF652F;
-            }
-        
-            @media (max-width: 768px) {
                 .activity-tabs {
-                    display: flex;
-                }
-                
-                .activity-column {
                     display: none;
+                    gap: 10px;
+                    margin-bottom: 15px;
                 }
-                
-                .activity-column.active {
-                    display: block;
-                }
-            }
-        
-            .activity-count {
-                position: absolute;
-                top: 0;
-                right: 0;
-                background: #FF652F;
-                color: white;
-                border-radius: 10px;
-                padding: 0 6px;
-                font-size: 10px;
-                min-width: 16px;
-                text-align: center;
-            }
-        `;
             
+                .tab-btn {
+                    flex: 1;
+                    padding: 8px;
+                    background: #343a40;
+                    border: none;
+                    color: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+            
+                .tab-btn.active {
+                    background: #FF652F;
+                }
+            
+                .activity-item {
+                    background: rgba(255, 255, 255, 0.05);
+                    margin-bottom: 10px;
+                    padding: 12px;
+                    border-radius: 6px;
+                    transition: background 0.2s;
+                    cursor: pointer;
+                }
+            
+                .activity-item .username {
+                    color: #FF652F;
+                    font-weight: 600;
+                }
+            
+                .interaction-item {
+                    background-color: rgba(255,102,47,0.05);
+                    border-left: 3px solid #FF652F;
+                }
+            
+                @media (max-width: 768px) {
+                    .activity-tabs {
+                        display: flex;
+                    }
+                    
+                    .activity-column {
+                        display: none;
+                    }
+                    
+                    .activity-column.active {
+                        display: block;
+                    }
+                }
+            
+                .activity-count {
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    background: #FF652F;
+                    color: white;
+                    border-radius: 10px;
+                    padding: 0 6px;
+                    font-size: 10px;
+                    min-width: 16px;
+                    text-align: center;
+                }
+            `;
+                
             const styleSheet = document.createElement("style");
             styleSheet.id = 'activity-feed-styles';
             styleSheet.textContent = styles;
             document.head.appendChild(styleSheet);
         }
-
-        // Set up event listeners
-        const toggleButton = document.getElementById('activityFeedToggle');
-        if (toggleButton) {
-            console.log('Setting up activity feed toggle button');
-            toggleButton.removeEventListener('click', this.handleToggleClick);
-            toggleButton.addEventListener('click', this.handleToggleClick.bind(this));
-        }
-
+    
         // Set up mobile tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -156,60 +114,14 @@ const ActivityFeed = {
                 document.getElementById(`${tabName}-container`).classList.add('active');
             });
         });
-
-        
-
+    
         // Show interactions by default on mobile
         if (window.innerWidth <= 768) {
-            document.getElementById('interactions-container').classList.add('active');
+            document.getElementById('interactions-container')?.classList.add('active');
         }
-
-        // Handle infinite scroll
-        const activitySection = document.getElementById('activitySection');
-        if (activitySection) {
-            activitySection.removeEventListener('scroll', this.handleScroll);
-            activitySection.addEventListener('scroll', this.handleScroll.bind(this));
-        }
-
+    
         this.initialized = true;
         console.log('Activity feed initialized successfully');
-    },
-
-    handleToggleClick(e) {
-        e.preventDefault();
-        console.log('Handling activity toggle click');
-        
-        // Close other sections
-        ['aboutSection', 'faqSection'].forEach(sectionId => {
-            const section = document.getElementById(sectionId);
-            if (section) {
-                section.classList.remove('show');
-                section.style.display = 'none';
-            }
-        });
-    
-        // Toggle activity section
-        const activitySection = document.getElementById('activitySection');
-        if (activitySection) {
-            const isVisible = activitySection.classList.contains('show');
-    
-            if (!isVisible) {
-                activitySection.classList.add('show');
-                activitySection.style.display = 'block';
-                this.loadActivities(true);
-            } else {
-                activitySection.classList.remove('show');
-                activitySection.style.display = 'none';
-            }
-    
-            // Update map position
-            const mapElement = document.getElementById('map');
-            if (mapElement) {
-                const anySectionOpen = ['aboutSection', 'faqSection', 'activitySection']
-                    .some(id => document.getElementById(id)?.classList.contains('show'));
-                mapElement.classList.toggle('nav-section-open', anySectionOpen);
-            }
-        }
     },
 
     // Added toggleFeed method
