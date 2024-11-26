@@ -1288,9 +1288,7 @@ function showPhotoUploadPanel() {
     setActiveDropdownTab('photo-upload-dropdown');
 }
 
-
 function showGpxOverlay() {
-    // Create container for GPX upload
     const containerDiv = document.createElement('div');
     containerDiv.id = 'gpx-overlay-container';
     containerDiv.style.position = 'absolute';
@@ -1351,32 +1349,23 @@ function showGpxOverlay() {
     document.body.appendChild(containerDiv);
 }
 
-// Function to clear current overlay
-function clearGpxOverlay() {
-    // Remove existing overlay layers
-    ['gpx-paved', 'gpx-gravel', 'gpx-unknown'].forEach(layerId => {
-        if (map.getLayer(layerId)) {
-            map.removeLayer(layerId);
-        }
-    });
-
-    // Remove source
-    if (map.getSource('gpx-overlay')) {
-        map.removeSource('gpx-overlay');
-    }
-}
-
 async function handleGpxUpload(file) {
-    // Clear any existing overlay first
-    clearGpxOverlay();
-
-    const formData = new FormData();
-    formData.append('gpx', file);
-
     try {
+        // Read the file contents
+        const reader = new FileReader();
+        const gpxData = await new Promise((resolve, reject) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file);
+        });
+
+        // Send the GPX data to the API
         const response = await fetch('/api/upload-gpx', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'text/xml'
+            },
+            body: gpxData
         });
 
         if (!response.ok) {
@@ -1385,7 +1374,10 @@ async function handleGpxUpload(file) {
 
         const { geojson } = await response.json();
 
-        // Add new source
+        // Clear existing overlay
+        clearGpxOverlay();
+
+        // Add new overlay to map
         map.addSource('gpx-overlay', {
             type: 'geojson',
             data: geojson
@@ -1463,74 +1455,6 @@ function hideControlPanel() {
     }
 }
 
-// ============================
-// SECTION: Handle GPX Load 
-// ============================
-async function handleGpxUpload(file) {
-    const formData = new FormData();
-    formData.append('gpx', file);
-  
-    try {
-      const response = await fetch('/api/upload-gpx', {
-        method: 'POST',
-        body: formData
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to process GPX file');
-      }
-  
-      const { geojson } = await response.json();
-  
-      // Add to map as a new layer
-      const sourceId = `gpx-overlay-${Date.now()}`;
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: geojson
-      });
-  
-      // Add separate layers for different surface types
-      map.addLayer({
-        id: `${sourceId}-paved`,
-        type: 'line',
-        source: sourceId,
-        filter: ['==', ['get', 'surface'], 'paved'],
-        paint: {
-          'line-color': '#666666',
-          'line-width': 4,
-          'line-opacity': 0.7
-        }
-      });
-  
-      map.addLayer({
-        id: `${sourceId}-gravel`,
-        type: 'line',
-        source: sourceId,
-        filter: ['==', ['get', 'surface'], 'gravel'],
-        paint: {
-          'line-color': '#ffa801',
-          'line-width': 4,
-          'line-opacity': 0.7
-        }
-      });
-  
-      map.addLayer({
-        id: `${sourceId}-unknown`,
-        type: 'line',
-        source: sourceId,
-        filter: ['==', ['get', 'surface'], 'unknown'],
-        paint: {
-          'line-color': '#cccccc',
-          'line-width': 4,
-          'line-opacity': 0.7
-        }
-      });
-  
-    } catch (error) {
-      console.error('Error uploading GPX:', error);
-      alert('Failed to process GPX file');
-    }
-  }
 
 // ============================
 // SECTION: Loading Spinner
