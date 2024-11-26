@@ -184,6 +184,7 @@ const ActivityFeed = {
             const section = document.getElementById(sectionId);
             if (section) {
                 section.classList.remove('show');
+                section.style.display = 'none';
             }
         });
     
@@ -194,11 +195,11 @@ const ActivityFeed = {
     
             if (!isVisible) {
                 activitySection.classList.add('show');
-                $(activitySection).collapse('show'); // Add Bootstrap collapse
+                activitySection.style.display = 'block';
                 this.loadActivities(true);
             } else {
                 activitySection.classList.remove('show');
-                $(activitySection).collapse('hide'); // Add Bootstrap collapse
+                activitySection.style.display = 'none';
             }
     
             // Update map position
@@ -210,7 +211,6 @@ const ActivityFeed = {
             }
         }
     },
-
 
     // Added toggleFeed method
     async toggleFeed() {
