@@ -1,3 +1,5 @@
+let activePhotoPopup = null;
+
 async function extractCoordinates(file) {
     console.log('Starting coordinate extraction for file:', file.name);
     
@@ -367,6 +369,12 @@ async function deletePhoto(photoId) {
 // ============================
 async function handlePhotoClick(e) {
     try {
+        // Clean up any existing popup
+        if (activePhotoPopup) {
+            activePhotoPopup.remove();
+            activePhotoPopup = null;
+        }
+
         const coordinates = e.features[0].geometry.coordinates.slice();
         const { originalName, url, _id: photoId, auth0Id, username, picture, uploadedAt } = e.features[0].properties;
 
@@ -389,25 +397,19 @@ async function handlePhotoClick(e) {
                 </div>
             </div>`;
 
-        const popup = new mapboxgl.Popup({
+        activePhotoPopup = new mapboxgl.Popup({
             closeButton: true,
-            closeOnClick: false,
+            closeOnClick: true,  // Changed to true
             maxWidth: '300px'
         })
         .setLngLat(coordinates)
         .setHTML(popupContent)
         .addTo(map);
 
-        // Add one-time close handler
-        const closeButton = popup.getElement().querySelector('.mapboxgl-popup-close-button');
-        if (closeButton) {
-            const closeHandler = (e) => {
-                e.preventDefault();
-                popup.remove();
-                closeButton.removeEventListener('click', closeHandler);
-            };
-            closeButton.addEventListener('click', closeHandler);
-        }
+        // Add simple close handler
+        activePhotoPopup.on('close', () => {
+            activePhotoPopup = null;
+        });
 
         // Fetch user profile
         let userProfile;
@@ -433,6 +435,8 @@ async function handlePhotoClick(e) {
         // Preload image
         const img = new Image();
         img.onload = () => {
+            if (!activePhotoPopup) return; // Check if popup was closed while loading
+
             const updatedContent = `
                 <div class="photo-popup">
                     <div class="photo-header">
@@ -468,44 +472,55 @@ async function handlePhotoClick(e) {
                     </div>
                 </div>`;
             
-            popup.setHTML(updatedContent);
+            if (activePhotoPopup) {
+                activePhotoPopup.setHTML(updatedContent);
 
-            // Reattach event handlers
-            setTimeout(() => {
-                const deleteBtn = popup.getElement().querySelector('.delete-photo');
-                const flagBtn = popup.getElement().querySelector('.flag-photo');
+                // Reattach event handlers
+                setTimeout(() => {
+                    if (!activePhotoPopup) return; // Check again in case popup was closed
 
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', async () => {
-                        if (confirm('Are you sure you want to delete this photo?')) {
-                            try {
-                                showLoading('Deleting photo...');
-                                await deletePhoto(photoId);
-                                popup.remove();
-                                await loadPhotoMarkers();
-                            } catch (error) {
-                                console.error('Error deleting photo:', error);
-                                alert('Failed to delete photo');
-                            } finally {
-                                hideLoading();
+                    const deleteBtn = activePhotoPopup.getElement()?.querySelector('.delete-photo');
+                    const flagBtn = activePhotoPopup.getElement()?.querySelector('.flag-photo');
+
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', async () => {
+                            if (confirm('Are you sure you want to delete this photo?')) {
+                                try {
+                                    showLoading('Deleting photo...');
+                                    await deletePhoto(photoId);
+                                    if (activePhotoPopup) {
+                                        activePhotoPopup.remove();
+                                        activePhotoPopup = null;
+                                    }
+                                    await loadPhotoMarkers();
+                                } catch (error) {
+                                    console.error('Error deleting photo:', error);
+                                    alert('Failed to delete photo');
+                                } finally {
+                                    hideLoading();
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
 
-                if (flagBtn) {
-                    flagBtn.addEventListener('click', () => {
-                        const photoId = flagBtn.getAttribute('data-photo-id');
-                        handleFlagSegment(photoId);
-                    });
-                }
-            }, 0);
+                    if (flagBtn) {
+                        flagBtn.addEventListener('click', () => {
+                            const photoId = flagBtn.getAttribute('data-photo-id');
+                            handleFlagSegment(photoId);
+                        });
+                    }
+                }, 0);
+            }
         };
 
         img.src = url;
 
     } catch (error) {
         console.error('Error creating photo popup:', error);
+        if (activePhotoPopup) {
+            activePhotoPopup.remove();
+            activePhotoPopup = null;
+        }
     }
 }
 
