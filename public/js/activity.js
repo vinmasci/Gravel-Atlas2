@@ -6,7 +6,7 @@ const ActivityFeed = {
 
     async init() {
         // Prevent double initialization
-        if (this.initialized || document.getElementById('activity-feed')) {
+        if (this.initialized) {
             console.log('Activity feed already initialized');
             return;
         }
@@ -26,179 +26,130 @@ const ActivityFeed = {
             navbarNav.insertAdjacentHTML('beforeend', activityButton);
         }
 
-        // Create feed container if it doesn't exist
-        if (!document.getElementById('activity-feed')) {
-            const feedContainer = `
-    <div id="activity-feed" class="activity-feed" style="display: none;">
-        <div class="activity-feed-header">
-            <h5>Activity Feed</h5>
-        </div>
-        <div class="feed-columns">
-            <div class="feed-column">
-                <div class="column-header">All Activities</div>
-                <div id="activities-content" class="column-content"></div>
-            </div>
-            <div class="feed-column">
-                <div class="column-header">Interactions</div>
-                <div id="interactions-content" class="column-content"></div>
-            </div>
-        </div>
-        <div id="activity-feed-loader" style="display: none;">
-            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-        </div>
-    </div>
-`;
-            document.body.insertAdjacentHTML('beforeend', feedContainer);
+        // Create activity section if it doesn't exist
+        if (!document.getElementById('activitySection')) {
+            const activitySection = `
+                <div id="activitySection" class="nav-section collapse">
+                    <div class="section-content">
+                        <!-- Mobile Tabs -->
+                        <div class="activity-tabs d-md-none">
+                            <button class="tab-btn active" data-tab="interactions">Interactions</button>
+                            <button class="tab-btn" data-tab="activities">All Activities</button>
+                        </div>
+                        
+                        <!-- Activity Columns -->
+                        <div class="activity-columns">
+                            <!-- Interactions Column -->
+                            <div class="activity-column" id="interactions-container">
+                                <h3>Interactions</h3>
+                                <div id="interactions-content" class="activity-content"></div>
+                            </div>
+                            
+                            <!-- Activities Column -->
+                            <div class="activity-column" id="activities-container">
+                                <h3>All Activities</h3>
+                                <div id="activities-content" class="activity-content"></div>
+                            </div>
+                        </div>
+                        <div id="activity-feed-loader" style="display: none;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', activitySection);
         }
 
-        // Add styles only if they haven't been added
+        // Add styles
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-            .activity-feed {
-                position: fixed;
-                top: 60px;
-                left: 20px;
-                width: 600px;
-                max-height: calc(100vh - 80px);
-                background-color: #212529;
-                color: #fff;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                z-index: 1000;
-                overflow-y: auto;
-                font-family: 'DM Sans', sans-serif;
-                font-size: 12px;
-            }
-            
-            .activity-feed-header {
-                padding: 12px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                background-color: #343a40;
-            }
-            
-            .activity-feed-header h5 {
-                font-size: 14px;
-                margin: 0;
-            }
-            
-            .feed-columns {
-                display: flex;
-                gap: 1px;
-                background-color: rgba(255,255,255,0.1);
-            }
-            
-            .feed-column {
-                flex: 1;
-                background-color: #212529;
-            }
-            
-            .column-header {
-                padding: 10px;
-                font-weight: 600;
-                font-size: 13px;
-                background-color: #343a40;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                text-align: center;
-            }
-            
-            .column-content {
-                max-height: calc(100vh - 160px);
-                overflow-y: auto;
-            }
-            
-            .activity-item {
-                padding: 10px 12px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                cursor: pointer;
-                position: relative;
-                line-height: 1.4;
-            }
-            
-            .activity-item .username {
-                color: #FF652F;
-                font-weight: 600;
-            }
-            
-            .activity-item:hover {
-                background-color: #343a40;
-            }
-            
-            .activity-meta {
-                font-size: 11px;
-                color: rgba(255,255,255,0.6);
-                margin-top: 3px;
-            }
-            
-            .activity-item i {
-                font-size: 12px;
-            }
-            
-            .activity-count {
-                position: absolute;
-                top: 0;
-                right: 0;
-                background: #FF652F;
-                color: white;
-                border-radius: 10px;
-                padding: 0 6px;
-                font-size: 10px;
-                min-width: 16px;
-                text-align: center;
-            }
-            
-            .column-content::-webkit-scrollbar {
-                width: 6px;
-            }
-            
-            .column-content::-webkit-scrollbar-track {
-                background: #343a40;
-            }
-            
-            .column-content::-webkit-scrollbar-thumb {
-                background: #666;
-                border-radius: 3px;
-            }
-            
-            .column-content::-webkit-scrollbar-thumb:hover {
-                background: #888;
-            }
-            
-            #activity-feed-loader {
-                color: rgba(255,255,255,0.8);
-                text-align: center;
-                padding: 10px;
-            }
-            
-            .interaction-item {
-                background-color: rgba(255,102,47,0.05);
-                border-left: 3px solid #FF652F;
-            }
-            
-            .empty-state {
-                text-align: center;
-                color: rgba(255,255,255,0.6);
-                padding: 20px;
-            }
-            
-            .empty-state i {
-                font-size: 24px;
-                margin-bottom: 8px;
-                display: block;
-            }
-            
-            .empty-state .message {
-                font-size: 12px;
-                margin-top: 4px;
-            }
+                .activity-columns {
+                    display: flex;
+                    gap: 20px;
+                    margin-top: 20px;
+                }
+
+                .activity-column {
+                    flex: 1;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 8px;
+                    padding: 15px;
+                }
+
+                .activity-content {
+                    max-height: 500px;
+                    overflow-y: auto;
+                }
+
+                .activity-tabs {
+                    display: none;
+                    gap: 10px;
+                    margin-bottom: 15px;
+                }
+
+                .tab-btn {
+                    flex: 1;
+                    padding: 8px;
+                    background: #343a40;
+                    border: none;
+                    color: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+
+                .tab-btn.active {
+                    background: #FF652F;
+                }
+
+                .activity-item {
+                    background: rgba(255, 255, 255, 0.05);
+                    margin-bottom: 10px;
+                    padding: 12px;
+                    border-radius: 6px;
+                    transition: background 0.2s;
+                    cursor: pointer;
+                }
+
+                .activity-item:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+
+                .activity-item .username {
+                    color: #FF652F;
+                    font-weight: 600;
+                }
+
+                .interaction-item {
+                    background-color: rgba(255,102,47,0.05);
+                    border-left: 3px solid #FF652F;
+                }
+
+                @media (max-width: 768px) {
+                    .activity-columns {
+                        flex-direction: column;
+                    }
+                    
+                    .activity-tabs {
+                        display: flex;
+                    }
+                    
+                    .activity-column {
+                        display: none;
+                    }
+                    
+                    .activity-column.active {
+                        display: block;
+                    }
+                }
             `;
-        
+            
             const styleSheet = document.createElement("style");
             styleSheet.id = 'activity-feed-styles';
             styleSheet.textContent = styles;
             document.head.appendChild(styleSheet);
         }
 
-        // Add event listeners
+        // Set up event listeners
         const toggleButton = document.getElementById('activityFeedToggle');
         if (toggleButton) {
             console.log('Setting up activity feed toggle button');
@@ -206,49 +157,52 @@ const ActivityFeed = {
             toggleButton.addEventListener('click', this.handleToggleClick.bind(this));
         }
 
+        // Set up mobile tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.activity-column').forEach(c => c.classList.remove('active'));
+                
+                e.target.classList.add('active');
+                const tabName = e.target.dataset.tab;
+                document.getElementById(`${tabName}-container`).classList.add('active');
+            });
+        });
+
+        // Show interactions by default on mobile
+        if (window.innerWidth <= 768) {
+            document.getElementById('interactions-container').classList.add('active');
+        }
+
         // Handle infinite scroll
-        const feedElement = document.getElementById('activity-feed');
-        if (feedElement) {
-            feedElement.removeEventListener('scroll', this.handleScroll);
-            feedElement.addEventListener('scroll', this.handleScroll.bind(this));
+        const activitySection = document.getElementById('activitySection');
+        if (activitySection) {
+            activitySection.removeEventListener('scroll', this.handleScroll);
+            activitySection.addEventListener('scroll', this.handleScroll.bind(this));
         }
 
         this.initialized = true;
         console.log('Activity feed initialized successfully');
     },
 
-    // New method to handle toggle click
-    handleToggleClick(e) {
-        console.log('Toggle button clicked');
-        e.preventDefault();
-        this.toggleFeed();
-    },
-
-    // New method to handle scroll
-    handleScroll(e) {
-        const feed = e.target;
-        if (feed.scrollHeight - feed.scrollTop <= feed.clientHeight + 100) {
-            this.loadMore();
-        }
-    },
 
     // Added toggleFeed method
     async toggleFeed() {
         console.log('Toggling feed visibility');
-        const feed = document.getElementById('activity-feed');
-        if (!feed) {
-            console.error('Feed element not found');
+        const activitySection = document.getElementById('activitySection');
+        
+        if (!activitySection) {
+            console.error('Activity section not found');
             return;
         }
 
-        const isVisible = feed.style.display === 'block';
-        console.log('Current feed visibility:', isVisible);
-        
-        feed.style.display = isVisible ? 'none' : 'block';
+        const isVisible = activitySection.classList.contains('show');
         
         if (!isVisible) {
-            console.log('Loading activities...');
+            activitySection.classList.add('show');
             await this.loadActivities(true);
+        } else {
+            activitySection.classList.remove('show');
         }
     },
 
