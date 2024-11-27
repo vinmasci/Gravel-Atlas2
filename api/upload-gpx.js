@@ -1,80 +1,97 @@
-async function getOSMData(coordinates) {
-    try {
-        // Buffer the bounding box slightly
-        const buffer = 0.001; // ~100m
-        const minLat = Math.min(...coordinates.map(c => c[1])) - buffer;
-        const maxLat = Math.max(...coordinates.map(c => c[1])) + buffer;
-        const minLon = Math.min(...coordinates.map(c => c[0])) - buffer;
-        const maxLon = Math.max(...coordinates.map(c => c[0])) + buffer;
+import { DOMParser } from '@xmldom/xmldom';
+import toGeoJSON from '@mapbox/togeojson';
+import fetch from 'node-fetch';
 
-        const query = `
-            [out:json][timeout:25];
-            way(${minLat},${minLon},${maxLat},${maxLon})[highway];
-            (._;>;);
-            out body;
-        `;
-
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: query
-        });
-
-        if (!response.ok) throw new Error('OSM API error');
-        return await response.json();
-    } catch (error) {
-        console.error('OSM fetch error:', error);
-        return null;
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+            bodyParser: false,
+        }
     }
-}
+};
 
-async function processSurfaceTypes(coordinates) {
-    const osmData = await getOSMData(coordinates);
-    if (!osmData?.elements) return 'unknown';
-
-    // Find nearest way to these coordinates
-    const nearestWay = osmData.elements.find(e => e.type === 'way' && e.tags);
+function determineSurfaceType(feature) {
+    if (feature.properties) {
+        const { highway, surface, tracktype } = feature.properties;
+        
+        if (surface === 'asphalt' || surface === 'paved') return 'paved';
+        if (surface === 'gravel' || surface === 'unpaved') return 'gravel';
+        
+        if (highway) {
+            if (['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential'].includes(highway)) {
+                return 'paved';
+            }
+            if (['track', 'path', 'bridleway'].includes(highway)) {
+                return 'gravel';
+            }
+        }
+        
+        if (tracktype) {
+            return tracktype === 'grade1' ? 'paved' : 'gravel';
+        }
+    }
     
-    if (!nearestWay?.tags) return 'unknown';
+    if (feature.geometry?.coordinates?.length > 1) {
+        let roughnessCount = 0;
+        for (let i = 1; i < feature.geometry.coordinates.length; i++) {
+            const prevPoint = feature.geometry.coordinates[i - 1];
+            const currPoint = feature.geometry.coordinates[i];
+            if (currPoint[2] && prevPoint[2] && Math.abs(currPoint[2] - prevPoint[2]) > 5) {
+                roughnessCount++;
+            }
+        }
+        const roughnessRatio = roughnessCount / feature.geometry.coordinates.length;
+        if (roughnessRatio > 0.3) return 'gravel';
+        if (roughnessRatio < 0.1) return 'paved';
+    }
     
-    const { surface, highway, tracktype } = nearestWay.tags;
-
-    // Check surface tag first
-    if (surface) {
-        if (['paved', 'asphalt', 'concrete'].includes(surface)) return 'paved';
-        if (['unpaved', 'gravel', 'dirt', 'track'].includes(surface)) return 'gravel';
-    }
-
-    // Then check highway type
-    if (highway) {
-        if (['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential'].includes(highway)) 
-            return 'paved';
-        if (['track', 'path', 'bridleway', 'cycleway'].includes(highway)) 
-            return 'gravel';
-    }
-
     return 'unknown';
 }
 
-// Update the handler to process each coordinate segment
 export default async function handler(req, res) {
     try {
-        const gpxContent = req.body;
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') return res.status(200).end();
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+        const chunks = [];
+        for await (const chunk of req) chunks.push(chunk);
+        const gpxContent = Buffer.concat(chunks).toString();
+
+        if (!gpxContent) return res.status(400).json({ error: 'No GPX data provided' });
+
         const parser = new DOMParser();
         const gpxDoc = parser.parseFromString(gpxContent, 'text/xml');
         const geoJSON = toGeoJSON.gpx(gpxDoc);
 
-        // Process each track segment
-        for (const feature of geoJSON.features) {
-            if (feature.geometry?.coordinates?.length) {
-                const surfaceType = await processSurfaceTypes(feature.geometry.coordinates);
-                feature.properties.surface = surfaceType;
-            }
+        if (!geoJSON?.features?.length) {
+            return res.status(400).json({ error: 'Invalid GPX data' });
         }
 
-        res.status(200).json({ geojson: geoJSON });
+        const processedFeatures = geoJSON.features.map(feature => ({
+            ...feature,
+            properties: {
+                ...feature.properties,
+                surface: determineSurfaceType(feature)
+            }
+        }));
+
+        res.status(200).json({
+            geojson: {
+                type: 'FeatureCollection',
+                features: processedFeatures
+            }
+        });
+
     } catch (error) {
-        console.error('GPX processing error:', error);
-        res.status(500).json({ error: 'Processing failed' });
+        console.error('Error processing GPX:', error);
+        res.status(500).json({
+            error: 'Failed to process GPX file',
+            details: error.message
+        });
     }
 }
