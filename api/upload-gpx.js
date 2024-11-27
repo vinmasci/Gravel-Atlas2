@@ -16,17 +16,15 @@ async function getOSMData(coordinates) {
         const point = coordinates[Math.floor(coordinates.length / 2)];
         const query = `
         [out:json][timeout:25];
-        way(around:25,${point[1]},${point[0]})
-          ["highway"]
-          ["surface"~".",i];
-        (._;>;);
-        out body;
-        way(around:25,${point[1]},${point[0]})
-          ["highway"]["tracktype"];
+        (
+            way(around:25,${point[1]},${point[0]})["highway"];
+            way(around:25,${point[1]},${point[0]})["surface"];
+            way(around:25,${point[1]},${point[0]})["tracktype"];
+            way(around:25,${point[1]},${point[0]})["smoothness"];
+        );
         (._;>;);
         out body;
         `;
-
         const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -42,38 +40,59 @@ async function getOSMData(coordinates) {
 
 function determineSurfaceType(tags) {
     if (!tags) return 'unknown';
-
+    
     const { surface, highway, tracktype, smoothness } = tags;
 
-    // Definite gravel indicators
-    if (['gravel', 'unpaved', 'compacted', 'fine_gravel', 'dirt', 'earth',
-         'ground', 'pebblestone', 'sand', 'rock'].includes(surface)) {
-        return 'gravel';
-    }
-
     // Definite paved indicators
-    if (['asphalt', 'paved', 'concrete', 'paving_stones', 'sett'].includes(surface)) {
-        return 'paved';
+    const pavedSurfaces = [
+        'paved', 'asphalt', 'concrete', 'paving_stones',
+        'sett', 'concrete:plates', 'concrete:lanes',
+        'metal', 'wood', 'rubber'
+    ];
+    
+    // Definite gravel/unpaved indicators
+    const gravelSurfaces = [
+        'unpaved', 'gravel', 'fine_gravel', 'compacted',
+        'dirt', 'earth', 'soil', 'ground', 'sand',
+        'rock', 'pebblestone', 'limestone', 'shells',
+        'mud', 'grass', 'woodchips'
+    ];
+
+    // Check surface tag first
+    if (surface) {
+        if (pavedSurfaces.includes(surface)) return 'paved';
+        if (gravelSurfaces.includes(surface)) return 'gravel';
     }
 
-    // Track classifications
+    // Check tracktype (grade1 is usually paved, grade2+ usually unpaved)
     if (tracktype) {
-        return ['grade1', 'grade2'].includes(tracktype) ? 'paved' : 'gravel';
+        if (tracktype === 'grade1') return 'paved';
+        if (['grade2', 'grade3', 'grade4', 'grade5'].includes(tracktype)) return 'gravel';
     }
 
-    // Highway type check for unpaved routes
-    if (['track', 'path', 'bridleway'].includes(highway)) {
-        return 'gravel';
+    // Check highway type for common paved roads
+    if (highway) {
+        const pavedHighways = [
+            'motorway', 'trunk', 'primary', 'secondary', 
+            'tertiary', 'residential', 'service', 'living_street'
+        ];
+        const gravelHighways = [
+            'track', 'path', 'bridleway', 'cycleway',
+            'footway', 'pedestrian', 'trail'
+        ];
+
+        if (pavedHighways.includes(highway)) return 'paved';
+        if (gravelHighways.includes(highway)) return 'gravel';
     }
 
-    // Smoothness indicators
-    if (smoothness && ['bad', 'very_bad', 'horrible', 'very_horrible', 'impassable'].includes(smoothness)) {
-        return 'gravel';
-    }
-
-    // Common paved roads
-    if (['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential'].includes(highway)) {
-        return 'paved';
+    // Check smoothness as last resort
+    if (smoothness) {
+        const roughSmoothness = [
+            'bad', 'very_bad', 'horrible', 'very_horrible', 
+            'impassable', 'intermediate'
+        ];
+        if (roughSmoothness.includes(smoothness)) return 'gravel';
+        if (['excellent', 'good', 'intermediate'].includes(smoothness)) return 'paved';
     }
 
     return 'unknown';
