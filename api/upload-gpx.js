@@ -13,46 +13,48 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        // Use all coordinates for 1:1 sampling
-        const batchSize = 3;
+        const samplingRate = 5;
+        const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
+        const batchSize = 2;
         let allElements = [];
 
-        for (let i = 0; i < coordinates.length; i += batchSize) {
-            const batchPoints = coordinates.slice(i, i + batchSize);
+        console.log(`Sampling ${sampledPoints.length} points from ${coordinates.length} total`);
+
+        for (let i = 0; i < sampledPoints.length; i += batchSize) {
+            const batchPoints = sampledPoints.slice(i, i + batchSize);
             const pointQueries = batchPoints.map(point => `
                 way(around:50,${point[1]},${point[0]})["highway"];
                 way(around:50,${point[1]},${point[0]})["surface"];
                 way(around:50,${point[1]},${point[0]})["tracktype"];
                 way(around:50,${point[1]},${point[0]})["smoothness"];
-                way(around:50,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
             `).join('\n');
 
-            const query = `
-            [out:json][timeout:60];
-            (${pointQueries});
-            (._;>;);
-            out body;`;
+            const query = `[out:json][timeout:180];(${pointQueries});(._;>;);out body;`;
 
-            await new Promise(resolve => setTimeout(resolve, 100)); // Rate limiting
-            console.log(`Processing points ${i} to ${Math.min(i + batchSize, coordinates.length)}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            const response = await fetch('https://overpass-api.de/api/interpreter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: query
-            });
+            try {
+                const response = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: query
+                });
 
-            if (!response.ok) {
-                console.error(`Batch failed at point ${i}:`, await response.text());
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const uniqueWays = data.elements.filter(e => 
+                    e.type === 'way' && 
+                    !allElements.some(existing => existing.id === e.id)
+                );
+                allElements.push(...uniqueWays);
+                console.log(`Batch ${i/batchSize + 1}: Found ${uniqueWays.length} new ways`);
+            } catch (batchError) {
+                console.error(`Batch ${i/batchSize + 1} failed:`, batchError);
                 continue;
             }
-
-            const data = await response.json();
-            const uniqueWays = data.elements.filter(e => 
-                e.type === 'way' && 
-                !allElements.some(existing => existing.id === e.id)
-            );
-            allElements.push(...uniqueWays);
         }
 
         return { elements: allElements };
