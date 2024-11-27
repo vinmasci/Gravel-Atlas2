@@ -13,46 +13,52 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        console.log('getOSMData called with coordinates:', coordinates);
-        const point = coordinates[Math.floor(coordinates.length / 2)];
-        console.log('Using center point:', point);
+        const samplingRate = Math.max(1, Math.floor(coordinates.length / 10));
+        const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
+        console.log('Sampling points:', sampledPoints.length);
 
-        const query = `
-        [out:json][timeout:25];
-        (
-            way(around:25,${point[1]},${point[0]})["highway"];
-            way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
-            way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
-            way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
-            way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
-        );
-        (._;>;);
-        out body;`;
-        
-        console.log('Sending Overpass query:', query);
+        let allElements = [];
+        const batchSize = 5; // Process points in batches to avoid timeout
 
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: query
-        });
+        for (let i = 0; i < sampledPoints.length; i += batchSize) {
+            const batchPoints = sampledPoints.slice(i, i + batchSize);
+            const pointQueries = batchPoints.map(point => `
+                way(around:50,${point[1]},${point[0]})["highway"];
+                way(around:50,${point[1]},${point[0]})["surface"];
+                way(around:50,${point[1]},${point[0]})["tracktype"];
+                way(around:50,${point[1]},${point[0]})["smoothness"];
+                way(around:50,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
+            `).join('\n');
 
-        console.log('Overpass API response status:', response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error response:', errorText);
-            return null;
+            const query = `
+            [out:json][timeout:60];
+            (
+                ${pointQueries}
+            );
+            (._;>;);
+            out body;`;
+
+            console.log(`Querying batch ${i/batchSize + 1}/${Math.ceil(sampledPoints.length/batchSize)}`);
+            
+            const response = await fetch('https://overpass-api.de/api/interpreter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: query
+            });
+
+            if (!response.ok) {
+                console.error('Batch query failed:', await response.text());
+                continue;
+            }
+
+            const data = await response.json();
+            const ways = data.elements.filter(e => e.type === 'way');
+            console.log(`Found ${ways.length} ways in batch`);
+            allElements.push(...data.elements);
         }
 
-        const data = await response.json();
-        console.log('Overpass API response data:', {
-            totalElements: data.elements?.length || 0,
-            elements: data.elements?.slice(0, 3), // Log first 3 elements as preview
-            raw: data // Full data for inspection
-        });
-
-        return data;
+        console.log('Total elements found:', allElements.length);
+        return { elements: allElements };
     } catch (error) {
         console.error('Detailed OSM error:', {
             name: error.name,
