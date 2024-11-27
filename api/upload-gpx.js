@@ -13,17 +13,23 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        const samplingRate = 5;
+        // Sample multiple points along the track
+        const samplingRate = Math.max(1, Math.floor(coordinates.length / 10));
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
-        const point = coordinates[Math.floor(coordinates.length / 2)];
+        console.log('Sampling points:', sampledPoints.length);
+
+        // Build a union of queries for each point
+        const pointQueries = sampledPoints.map(point => `
+            way(around:50,${point[1]},${point[0]})["highway"];
+            way(around:50,${point[1]},${point[0]})["surface"];
+            way(around:50,${point[1]},${point[0]})["tracktype"];
+            way(around:50,${point[1]},${point[0]})["smoothness"];
+        `).join('\n');
+
         const query = `
-        [out:json][timeout:25];
+        [out:json][timeout:60];
         (
-            way(around:25,${point[1]},${point[0]})["highway"];
-            way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
-            way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
-            way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
-            way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
+            ${pointQueries}
         );
         (._;>;);
         out body;`;
@@ -34,108 +40,15 @@ async function getOSMData(coordinates) {
             body: query
         });
 
-        return response.ok ? await response.json() : null;
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        console.log('Found ways:', data.elements.filter(e => e.type === 'way').length);
+        return data;
     } catch (error) {
         console.error('OSM error:', error);
         return null;
     }
-}
-
-
-function determineSurfaceType(tags) {
-    console.log('determineSurfaceType called with tags:', tags);
-
-    if (!tags) {
-        console.log('No tags provided, returning unknown');
-        return 'unknown';
-    }
-
-    const { surface, highway, tracktype, smoothness } = tags;
-    console.log('Extracted properties:', { surface, highway, tracktype, smoothness });
-
-    // Definite paved indicators
-    const pavedSurfaces = [
-        'paved', 'asphalt', 'concrete', 'paving_stones',
-        'sett', 'concrete:plates', 'concrete:lanes',
-        'metal', 'wood', 'rubber'
-    ];
-    
-    // Definite gravel/unpaved indicators
-    const gravelSurfaces = [
-        'unpaved', 'gravel', 'fine_gravel', 'compacted',
-        'dirt', 'earth', 'soil', 'ground', 'sand',
-        'rock', 'pebblestone', 'limestone', 'shells',
-        'mud', 'grass', 'woodchips'
-    ];
-
-    // Surface check
-    if (surface) {
-        console.log('Checking surface tag:', surface);
-        if (pavedSurfaces.includes(surface)) {
-            console.log(`Surface "${surface}" matched as paved`);
-            return 'paved';
-        }
-        if (gravelSurfaces.includes(surface)) {
-            console.log(`Surface "${surface}" matched as gravel`);
-            return 'gravel';
-        }
-    }
-
-    // Tracktype check
-    if (tracktype) {
-        console.log('Checking tracktype:', tracktype);
-        if (tracktype === 'grade1') {
-            console.log('Tracktype grade1 matched as paved');
-            return 'paved';
-        }
-        if (['grade2', 'grade3', 'grade4', 'grade5'].includes(tracktype)) {
-            console.log(`Tracktype "${tracktype}" matched as gravel`);
-            return 'gravel';
-        }
-    }
-
-    // Highway check
-    if (highway) {
-        console.log('Checking highway type:', highway);
-        const pavedHighways = [
-            'motorway', 'trunk', 'primary', 'secondary',
-            'tertiary', 'residential', 'service', 'living_street'
-        ];
-        const gravelHighways = [
-            'track', 'path', 'bridleway', 'cycleway',
-            'footway', 'pedestrian', 'trail'
-        ];
-
-        if (pavedHighways.includes(highway)) {
-            console.log(`Highway type "${highway}" matched as paved`);
-            return 'paved';
-        }
-        if (gravelHighways.includes(highway)) {
-            console.log(`Highway type "${highway}" matched as gravel`);
-            return 'gravel';
-        }
-    }
-
-    // Smoothness check
-    if (smoothness) {
-        console.log('Checking smoothness:', smoothness);
-        const roughSmoothness = [
-            'bad', 'very_bad', 'horrible', 'very_horrible',
-            'impassable', 'intermediate'
-        ];
-        
-        if (roughSmoothness.includes(smoothness)) {
-            console.log(`Smoothness "${smoothness}" matched as gravel`);
-            return 'gravel';
-        }
-        if (['excellent', 'good', 'intermediate'].includes(smoothness)) {
-            console.log(`Smoothness "${smoothness}" matched as paved`);
-            return 'paved';
-        }
-    }
-
-    console.log('No matches found, returning unknown');
-    return 'unknown';
 }
 
 export default async function handler(req, res) {
