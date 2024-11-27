@@ -13,15 +13,12 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        const samplingRate = Math.max(1, Math.floor(coordinates.length / 10));
-        const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
-        console.log('Sampling points:', sampledPoints.length);
-
+        // Use all coordinates for 1:1 sampling
+        const batchSize = 3;
         let allElements = [];
-        const batchSize = 5; // Process points in batches to avoid timeout
 
-        for (let i = 0; i < sampledPoints.length; i += batchSize) {
-            const batchPoints = sampledPoints.slice(i, i + batchSize);
+        for (let i = 0; i < coordinates.length; i += batchSize) {
+            const batchPoints = coordinates.slice(i, i + batchSize);
             const pointQueries = batchPoints.map(point => `
                 way(around:50,${point[1]},${point[0]})["highway"];
                 way(around:50,${point[1]},${point[0]})["surface"];
@@ -32,14 +29,13 @@ async function getOSMData(coordinates) {
 
             const query = `
             [out:json][timeout:60];
-            (
-                ${pointQueries}
-            );
+            (${pointQueries});
             (._;>;);
             out body;`;
 
-            console.log(`Querying batch ${i/batchSize + 1}/${Math.ceil(sampledPoints.length/batchSize)}`);
-            
+            await new Promise(resolve => setTimeout(resolve, 100)); // Rate limiting
+            console.log(`Processing points ${i} to ${Math.min(i + batchSize, coordinates.length)}`);
+
             const response = await fetch('https://overpass-api.de/api/interpreter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -47,24 +43,21 @@ async function getOSMData(coordinates) {
             });
 
             if (!response.ok) {
-                console.error('Batch query failed:', await response.text());
+                console.error(`Batch failed at point ${i}:`, await response.text());
                 continue;
             }
 
             const data = await response.json();
-            const ways = data.elements.filter(e => e.type === 'way');
-            console.log(`Found ${ways.length} ways in batch`);
-            allElements.push(...data.elements);
+            const uniqueWays = data.elements.filter(e => 
+                e.type === 'way' && 
+                !allElements.some(existing => existing.id === e.id)
+            );
+            allElements.push(...uniqueWays);
         }
 
-        console.log('Total elements found:', allElements.length);
         return { elements: allElements };
     } catch (error) {
-        console.error('Detailed OSM error:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
-        });
+        console.error('OSM error:', error);
         return null;
     }
 }
