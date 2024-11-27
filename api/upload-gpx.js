@@ -13,12 +13,10 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        const samplingRate = 50; // Start with 50, adjust as needed
+        const samplingRate = 100; // Increase sampling rate to reduce points
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
 
-        const batchSize = 10; // Number of points per batch
-        const delayBetweenBatches = 1000; // 1 second delay
-
+        const batchSize = 5; // Number of points per batch
         const batches = [];
         for (let i = 0; i < sampledPoints.length; i += batchSize) {
             batches.push(sampledPoints.slice(i, i + batchSize));
@@ -52,8 +50,8 @@ async function getOSMData(coordinates) {
                 console.error('OSM API error:', response.statusText);
             }
 
-            // Wait before sending the next batch
-            await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+            // Delay between requests to respect Overpass API limits
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         return osmDataResults;
