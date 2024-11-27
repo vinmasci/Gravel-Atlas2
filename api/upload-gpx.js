@@ -13,27 +13,23 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
+        console.log('getOSMData called with coordinates:', coordinates);
         const point = coordinates[Math.floor(coordinates.length / 2)];
+        console.log('Using center point:', point);
+
         const query = `
         [out:json][timeout:25];
         (
-            // Get all roads and paths
             way(around:25,${point[1]},${point[0]})["highway"];
-            
-            // Specifically target unpaved/gravel surfaces
             way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
-            
-            // Get all track types
             way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
-            
-            // Get poor surface conditions
             way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
-            
-            // Get specific highway types that are likely unpaved
             way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
         );
         (._;>;);
         out body;`;
+        
+        console.log('Sending Overpass query:', query);
 
         const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
@@ -41,17 +37,42 @@ async function getOSMData(coordinates) {
             body: query
         });
 
-        return response.ok ? await response.json() : null;
+        console.log('Overpass API response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error response:', errorText);
+            return null;
+        }
+
+        const data = await response.json();
+        console.log('Overpass API response data:', {
+            totalElements: data.elements?.length || 0,
+            elements: data.elements?.slice(0, 3), // Log first 3 elements as preview
+            raw: data // Full data for inspection
+        });
+
+        return data;
     } catch (error) {
-        console.error('OSM error:', error);
+        console.error('Detailed OSM error:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         return null;
     }
 }
 
 function determineSurfaceType(tags) {
-    if (!tags) return 'unknown';
-    
+    console.log('determineSurfaceType called with tags:', tags);
+
+    if (!tags) {
+        console.log('No tags provided, returning unknown');
+        return 'unknown';
+    }
+
     const { surface, highway, tracktype, smoothness } = tags;
+    console.log('Extracted properties:', { surface, highway, tracktype, smoothness });
 
     // Definite paved indicators
     const pavedSurfaces = [
@@ -68,22 +89,37 @@ function determineSurfaceType(tags) {
         'mud', 'grass', 'woodchips'
     ];
 
-    // Check surface tag first
+    // Surface check
     if (surface) {
-        if (pavedSurfaces.includes(surface)) return 'paved';
-        if (gravelSurfaces.includes(surface)) return 'gravel';
+        console.log('Checking surface tag:', surface);
+        if (pavedSurfaces.includes(surface)) {
+            console.log(`Surface "${surface}" matched as paved`);
+            return 'paved';
+        }
+        if (gravelSurfaces.includes(surface)) {
+            console.log(`Surface "${surface}" matched as gravel`);
+            return 'gravel';
+        }
     }
 
-    // Check tracktype (grade1 is usually paved, grade2+ usually unpaved)
+    // Tracktype check
     if (tracktype) {
-        if (tracktype === 'grade1') return 'paved';
-        if (['grade2', 'grade3', 'grade4', 'grade5'].includes(tracktype)) return 'gravel';
+        console.log('Checking tracktype:', tracktype);
+        if (tracktype === 'grade1') {
+            console.log('Tracktype grade1 matched as paved');
+            return 'paved';
+        }
+        if (['grade2', 'grade3', 'grade4', 'grade5'].includes(tracktype)) {
+            console.log(`Tracktype "${tracktype}" matched as gravel`);
+            return 'gravel';
+        }
     }
 
-    // Check highway type for common paved roads
+    // Highway check
     if (highway) {
+        console.log('Checking highway type:', highway);
         const pavedHighways = [
-            'motorway', 'trunk', 'primary', 'secondary', 
+            'motorway', 'trunk', 'primary', 'secondary',
             'tertiary', 'residential', 'service', 'living_street'
         ];
         const gravelHighways = [
@@ -91,20 +127,35 @@ function determineSurfaceType(tags) {
             'footway', 'pedestrian', 'trail'
         ];
 
-        if (pavedHighways.includes(highway)) return 'paved';
-        if (gravelHighways.includes(highway)) return 'gravel';
+        if (pavedHighways.includes(highway)) {
+            console.log(`Highway type "${highway}" matched as paved`);
+            return 'paved';
+        }
+        if (gravelHighways.includes(highway)) {
+            console.log(`Highway type "${highway}" matched as gravel`);
+            return 'gravel';
+        }
     }
 
-    // Check smoothness as last resort
+    // Smoothness check
     if (smoothness) {
+        console.log('Checking smoothness:', smoothness);
         const roughSmoothness = [
-            'bad', 'very_bad', 'horrible', 'very_horrible', 
+            'bad', 'very_bad', 'horrible', 'very_horrible',
             'impassable', 'intermediate'
         ];
-        if (roughSmoothness.includes(smoothness)) return 'gravel';
-        if (['excellent', 'good', 'intermediate'].includes(smoothness)) return 'paved';
+        
+        if (roughSmoothness.includes(smoothness)) {
+            console.log(`Smoothness "${smoothness}" matched as gravel`);
+            return 'gravel';
+        }
+        if (['excellent', 'good', 'intermediate'].includes(smoothness)) {
+            console.log(`Smoothness "${smoothness}" matched as paved`);
+            return 'paved';
+        }
     }
 
+    console.log('No matches found, returning unknown');
     return 'unknown';
 }
 
