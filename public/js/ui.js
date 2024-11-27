@@ -1439,9 +1439,9 @@ async function handleGpxUpload(file) {
         });
 
         const surfaceTypes = [
-            { id: 'paved', color: '#666666', width: 4 },
-            { id: 'gravel', color: '#ffa801', width: 4 },
-            { id: 'unknown', color: '#cccccc', width: 4 }
+            { id: 'paved', color: '#ff6b6b', width: 4 },
+            { id: 'gravel', color: '#48dbfb', width: 4 },
+            { id: 'unknown', color: '#ff9f43', width: 4 }
         ];
 
         surfaceTypes.forEach(({ id, color, width }) => {
