@@ -15,18 +15,19 @@ async function getOSMData(coordinates) {
     try {
         const samplingRate = 10;
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
-        const point = coordinates[Math.floor(coordinates.length / 2)];
-        const query = `
-        [out:json][timeout:25];
-        (
-            way(around:25,${point[1]},${point[0]})["highway"];
-            way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
-            way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
-            way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
-            way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
-        );
-        (._;>;);
-        out body;`;
+
+        // Build the Overpass query by iterating over sampledPoints
+        let query = `[out:json][timeout:25];\n(\n`;
+        for (const point of sampledPoints) {
+            query += `
+                way(around:25,${point[1]},${point[0]})["highway"];
+                way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
+                way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
+                way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
+                way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
+            `;
+        }
+        query += `);\n(._;>;);\nout body;`;
 
         const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
@@ -40,6 +41,7 @@ async function getOSMData(coordinates) {
         return null;
     }
 }
+
 
 
 function determineSurfaceType(tags) {
