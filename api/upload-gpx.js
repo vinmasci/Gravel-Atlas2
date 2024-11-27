@@ -13,16 +13,19 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        const buffer = 0.001; // ~100m buffer
-        const minLat = Math.min(...coordinates.map(c => c[1])) - buffer;
-        const maxLat = Math.max(...coordinates.map(c => c[1])) + buffer;
-        const minLon = Math.min(...coordinates.map(c => c[0])) - buffer;
-        const maxLon = Math.max(...coordinates.map(c => c[0])) + buffer;
-
-        const query = `[out:json][timeout:25];
-            way[highway](${minLat},${minLon},${maxLat},${maxLon});
-            (._;>;);
-            out body;`;
+        const point = coordinates[Math.floor(coordinates.length / 2)];
+        const query = `
+        [out:json][timeout:25];
+        way(around:25,${point[1]},${point[0]})
+          ["highway"]
+          ["surface"~".",i];
+        (._;>;);
+        out body;
+        way(around:25,${point[1]},${point[0]})
+          ["highway"]["tracktype"];
+        (._;>;);
+        out body;
+        `;
 
         const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
@@ -30,34 +33,47 @@ async function getOSMData(coordinates) {
             body: query
         });
 
-        if (!response.ok) throw new Error('OSM API error');
-        return await response.json();
+        return response.ok ? await response.json() : null;
     } catch (error) {
-        console.error('OSM fetch error:', error);
+        console.error('OSM error:', error);
         return null;
     }
 }
 
-function determineSurfaceType(wayTags) {
-    if (!wayTags) return 'unknown';
+function determineSurfaceType(tags) {
+    if (!tags) return 'unknown';
 
-    const { highway, surface, tracktype } = wayTags;
+    const { surface, highway, tracktype, smoothness } = tags;
 
-    // Check surface tag first
-    if (surface) {
-        if (['paved', 'asphalt', 'concrete', 'paving_stones'].includes(surface)) return 'paved';
-        if (['unpaved', 'gravel', 'dirt', 'track', 'compacted', 'ground'].includes(surface)) return 'gravel';
+    // Definite gravel indicators
+    if (['gravel', 'unpaved', 'compacted', 'fine_gravel', 'dirt', 'earth',
+         'ground', 'pebblestone', 'sand', 'rock'].includes(surface)) {
+        return 'gravel';
     }
 
-    // Then check highway type
-    if (highway) {
-        if (['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential'].includes(highway)) return 'paved';
-        if (['track', 'path', 'bridleway', 'cycleway'].includes(highway)) return 'gravel';
+    // Definite paved indicators
+    if (['asphalt', 'paved', 'concrete', 'paving_stones', 'sett'].includes(surface)) {
+        return 'paved';
     }
 
-    // Check tracktype
+    // Track classifications
     if (tracktype) {
-        return tracktype === 'grade1' ? 'paved' : 'gravel';
+        return ['grade1', 'grade2'].includes(tracktype) ? 'paved' : 'gravel';
+    }
+
+    // Highway type check for unpaved routes
+    if (['track', 'path', 'bridleway'].includes(highway)) {
+        return 'gravel';
+    }
+
+    // Smoothness indicators
+    if (smoothness && ['bad', 'very_bad', 'horrible', 'very_horrible', 'impassable'].includes(smoothness)) {
+        return 'gravel';
+    }
+
+    // Common paved roads
+    if (['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential'].includes(highway)) {
+        return 'paved';
     }
 
     return 'unknown';
