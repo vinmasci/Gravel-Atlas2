@@ -13,29 +13,49 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        const samplingRate = 10;
+        const samplingRate = 50; // Increase sampling rate to reduce points
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
 
-        // Build the Overpass query by iterating over sampledPoints
-        let query = `[out:json][timeout:25];\n(\n`;
-        for (const point of sampledPoints) {
-            query += `
-                way(around:25,${point[1]},${point[0]})["highway"];
-                way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
-                way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
-                way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
-                way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
-            `;
+        const batchSize = 5; // Number of points per batch
+        const batches = [];
+        for (let i = 0; i < sampledPoints.length; i += batchSize) {
+            batches.push(sampledPoints.slice(i, i + batchSize));
         }
-        query += `);\n(._;>;);\nout body;`;
 
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: query
-        });
+        const osmDataResults = [];
 
-        return response.ok ? await response.json() : null;
+        for (const batch of batches) {
+            let query = `[out:json][timeout:25];\n(\n`;
+            for (const point of batch) {
+                query += `
+                    way(around:25,${point[1]},${point[0]})["highway"];
+                    way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
+                    way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
+                    way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
+                    way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
+                `;
+            }
+            query += `);\n(._;>;);\nout body;`;
+
+            const response = await fetch('https://overpass-api.de/api/interpreter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: query
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                osmDataResults.push(...data.elements);
+            } else {
+                console.error('OSM API error:', response.statusText);
+            }
+
+            // Delay between requests to respect Overpass API limits
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        return osmDataResults;
+
     } catch (error) {
         console.error('OSM error:', error);
         return null;
