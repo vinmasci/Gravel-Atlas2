@@ -1362,91 +1362,184 @@ function clearGpxOverlay() {
 }
 
 async function handleGpxUpload(file) {
+    if (!file || !file.name.endsWith('.gpx')) {
+        alert('Please select a valid GPX file');
+        return;
+    }
+
     try {
-        // Read the file contents
-        const reader = new FileReader();
+        showLoading('Processing GPX file...');
+
+        // Validate file size
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_FILE_SIZE) {
+            throw new Error('File size exceeds 10MB limit');
+        }
+
         const gpxData = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
+            reader.onerror = (e) => reject(new Error('Failed to read GPX file'));
             reader.readAsText(file);
         });
 
-        // Send the GPX data to the API
+        // Validate GPX content
+        if (!gpxData.includes('<?xml') || !gpxData.includes('<gpx')) {
+            throw new Error('Invalid GPX file format');
+        }
+
         const response = await fetch('/api/upload-gpx', {
             method: 'POST',
             headers: {
-                'Content-Type': 'text/xml'
+                'Content-Type': 'text/xml',
+                'Accept': 'application/json'
             },
             body: gpxData
         });
 
         if (!response.ok) {
-            throw new Error('Failed to process GPX file');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to process GPX file');
         }
 
         const { geojson } = await response.json();
+        console.log('Received GeoJSON:', geojson);
 
-        // Clear existing overlay
+        if (!geojson?.features?.length) {
+            throw new Error('No valid route data found in GPX file');
+        }
+
+        await ensureMapLoaded();
         clearGpxOverlay();
 
-        // Add new overlay to map
+        // Add source with clustering enabled
         map.addSource('gpx-overlay', {
             type: 'geojson',
-            data: geojson
+            data: geojson,
+            lineMetrics: true
         });
 
-        // Add layers for different surface types
+        // Background layer for better visibility
         map.addLayer({
-            id: 'gpx-paved',
+            id: 'gpx-background',
             type: 'line',
             source: 'gpx-overlay',
-            filter: ['==', ['get', 'surface'], 'paved'],
+            layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
             paint: {
-                'line-color': '#666666',
-                'line-width': 4,
-                'line-opacity': 0.7
+                'line-color': '#ffffff',
+                'line-width': ['interpolate', ['linear'], ['zoom'],
+                    10, 6,
+                    15, 8
+                ],
+                'line-opacity': 0.6
             }
         });
 
-        map.addLayer({
-            id: 'gpx-gravel',
-            type: 'line',
-            source: 'gpx-overlay',
-            filter: ['==', ['get', 'surface'], 'gravel'],
-            paint: {
-                'line-color': '#ffa801',
-                'line-width': 4,
-                'line-opacity': 0.7
-            }
-        });
+        const surfaceTypes = [
+            { id: 'paved', color: '#666666', width: 4 },
+            { id: 'gravel', color: '#ffa801', width: 4 },
+            { id: 'unknown', color: '#cccccc', width: 4 }
+        ];
 
-        map.addLayer({
-            id: 'gpx-unknown',
-            type: 'line',
-            source: 'gpx-overlay',
-            filter: ['==', ['get', 'surface'], 'unknown'],
-            paint: {
-                'line-color': '#cccccc',
-                'line-width': 4,
-                'line-opacity': 0.7
-            }
-        });
-
-        // Fit map to the GPX route bounds
-        const bounds = new mapboxgl.LngLatBounds();
-        geojson.features.forEach(feature => {
-            feature.geometry.coordinates.forEach(coord => {
-                bounds.extend(coord);
+        surfaceTypes.forEach(({ id, color, width }) => {
+            map.addLayer({
+                id: `gpx-${id}`,
+                type: 'line',
+                source: 'gpx-overlay',
+                filter: ['==', ['get', 'surface'], id],
+                layout: {
+                    'line-join': 'round',
+                    'line-cap': 'round',
+                    'visibility': 'visible'
+                },
+                paint: {
+                    'line-color': color,
+                    'line-width': ['interpolate', ['linear'], ['zoom'],
+                        10, width,
+                        15, width * 1.5
+                    ],
+                    'line-opacity': 0.8,
+                    'line-gradient': [
+                        'interpolate',
+                        ['linear'],
+                        ['line-progress'],
+                        0, color,
+                        1, color
+                    ]
+                }
             });
         });
-        map.fitBounds(bounds, { padding: 50 });
+
+        fitToBounds(geojson);
+        addRouteHoverEffects();
 
     } catch (error) {
-        console.error('Error uploading GPX:', error);
-        alert('Failed to process GPX file');
+        console.error('Error processing GPX:', error);
+        alert(error.message || 'Failed to process GPX file');
+    } finally {
+        hideLoading();
     }
 }
-  
+
+function ensureMapLoaded() {
+    return new Promise(resolve => {
+        if (map.loaded()) resolve();
+        else map.on('load', resolve);
+    });
+}
+
+function fitToBounds(geojson) {
+    const bounds = new mapboxgl.LngLatBounds();
+    let hasCoordinates = false;
+
+    geojson.features.forEach(feature => {
+        if (feature.geometry?.coordinates?.length) {
+            feature.geometry.coordinates.forEach(coord => {
+                bounds.extend(coord);
+                hasCoordinates = true;
+            });
+        }
+    });
+
+    if (hasCoordinates) {
+        map.fitBounds(bounds, {
+            padding: { top: 50, bottom: 50, left: 50, right: 50 },
+            duration: 1000,
+            maxZoom: 15
+        });
+    }
+}
+
+function addRouteHoverEffects() {
+    const hoverStates = ['paved', 'gravel', 'unknown'];
+    
+    hoverStates.forEach(state => {
+        const layerId = `gpx-${state}`;
+        
+        map.on('mouseenter', layerId, () => {
+            map.getCanvas().style.cursor = 'pointer';
+            map.setPaintProperty(layerId, 'line-width', 
+                ['interpolate', ['linear'], ['zoom'],
+                    10, 6,
+                    15, 9
+                ]
+            );
+        });
+
+        map.on('mouseleave', layerId, () => {
+            map.getCanvas().style.cursor = '';
+            map.setPaintProperty(layerId, 'line-width', 
+                ['interpolate', ['linear'], ['zoom'],
+                    10, 4,
+                    15, 6
+                ]
+            );
+        });
+    });
+}
 
 // Hide all control panels when dropdown is closed
 function hideControlPanel() {
@@ -1582,3 +1675,5 @@ window.handleFlagSegment = handleFlagSegment;
 window.closeFlagModal = closeFlagModal;
 // Add this to your existing window exports
 window.cleanupAfterSave = cleanupAfterSave;
+
+window.ensureMapLoaded = ensureMapLoaded;
