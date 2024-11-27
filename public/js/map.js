@@ -781,6 +781,135 @@ function initDrawingSource() {
 }
 
 // ============================
+// SECTION: Add surface layers 
+// ============================
+// Surface layer colors
+const surfaceColors = {
+    'asphalt': '#333333',
+    'concrete': '#666666',
+    'paved': '#444444',
+    'gravel': '#B8860B',
+    'unpaved': '#8B4513',
+    'dirt': '#8B4513',
+    'sand': '#F4A460',
+    'unknown': '#999999'
+};
+
+// Add surface toggle control
+const surfaceControl = document.createElement('div');
+surfaceControl.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+surfaceControl.innerHTML = `
+    <button type="button" class="surface-toggle">
+        <i class="fa-solid fa-road"></i>
+    </button>
+`;
+
+map.addControl({
+    onAdd: function() {
+        surfaceControl.onclick = toggleSurfaceLayers;
+        return surfaceControl;
+    },
+    onRemove: function() {
+        surfaceControl.remove();
+    }
+}, 'top-right');
+
+let surfaceLayersVisible = false;
+
+// Add source and layers
+map.on('load', () => {
+    map.addSource('road-surfaces', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        maxzoom: 16
+    });
+
+    // Background layer
+    map.addLayer({
+        'id': 'road-surfaces-bg',
+        'type': 'line',
+        'source': 'road-surfaces',
+        'layout': {
+            'visibility': 'none',
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': '#ffffff',
+            'line-width': ['interpolate', ['linear'], ['zoom'],
+                10, 3,
+                16, 8
+            ],
+            'line-opacity': 0.7
+        }
+    });
+
+    // Surface layer
+    map.addLayer({
+        'id': 'road-surfaces-layer',
+        'type': 'line',
+        'source': 'road-surfaces',
+        'layout': {
+            'visibility': 'none',
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': ['match',
+                ['get', 'surface'],
+                ...Object.entries(surfaceColors).flat(),
+                '#999999'
+            ],
+            'line-width': ['interpolate', ['linear'], ['zoom'],
+                10, 2,
+                16, 6
+            ],
+            'line-opacity': 0.9
+        }
+    });
+});
+
+// Toggle function
+async function toggleSurfaceLayers() {
+    surfaceLayersVisible = !surfaceLayersVisible;
+    const visibility = surfaceLayersVisible ? 'visible' : 'none';
+    
+    map.setLayoutProperty('road-surfaces-bg', 'visibility', visibility);
+    map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
+    
+    if (surfaceLayersVisible) {
+        surfaceControl.classList.add('active');
+        await updateSurfaceData();
+    } else {
+        surfaceControl.classList.remove('active');
+    }
+}
+
+// Update data based on viewport
+async function updateSurfaceData() {
+    if (!surfaceLayersVisible) return;
+    
+    const bounds = map.getBounds();
+    const bbox = [
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth()
+    ].join(',');
+    
+    try {
+        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}`);
+        const data = await response.json();
+        map.getSource('road-surfaces').setData(data);
+    } catch (error) {
+        console.error('Error fetching surface data:', error);
+    }
+}
+
+// Update data when map moves
+map.on('moveend', updateSurfaceData);
+
+// ============================
 // SECTION: Initialize Event Listeners
 // ============================
 function initEventListeners() {
