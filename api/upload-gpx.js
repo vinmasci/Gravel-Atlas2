@@ -13,7 +13,7 @@ export const config = {
 
 async function getOSMData(coordinates) {
     try {
-        const samplingRate = 100; // Increase sampling rate to reduce points
+        const samplingRate = 75; // Increase sampling rate to reduce points
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
 
         const batchSize = 5; // Number of points per batch
