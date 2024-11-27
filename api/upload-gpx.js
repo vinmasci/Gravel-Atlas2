@@ -15,49 +15,26 @@ async function getOSMData(coordinates) {
     try {
         const samplingRate = 10;
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
-        const batchSize = 1; 
-        let allElements = [];
+        const point = coordinates[Math.floor(coordinates.length / 2)];
+        const query = `
+        [out:json][timeout:25];
+        (
+            way(around:25,${point[1]},${point[0]})["highway"];
+            way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
+            way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
+            way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
+            way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
+        );
+        (._;>;);
+        out body;`;
 
-        for (let i = 0; i < sampledPoints.length; i += batchSize) {
-            const batchPoints = sampledPoints.slice(i, i + batchSize);
-            const pointQueries = batchPoints.map(point => `
-                way(around:50,${point[1]},${point[0]})["highway"];
-                way(around:50,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
-                way(around:50,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
-                way(around:50,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
-                way(around:50,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
-            `).join('\n');
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: query
+        });
 
-            const query = `[out:json][timeout:180];(${pointQueries});(._;>;);out body;`;
-
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds between requests
-
-            try {
-                const response = await fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: query
-                });
-
-                if (!response.ok) {
-                    console.error(`Request failed with status ${response.status}`);
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay on failure
-                    continue;
-                }
-
-                const data = await response.json();
-                const ways = data.elements.filter(e => e.type === 'way');
-                allElements.push(...ways);
-                
-                // Additional cooldown between successful requests
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (error) {
-                console.error('Request error:', error);
-                await new Promise(resolve => setTimeout(resolve, 5000));
-            }
-        }
-
-        return { elements: allElements };
+        return response.ok ? await response.json() : null;
     } catch (error) {
         console.error('OSM error:', error);
         return null;
