@@ -17,14 +17,24 @@ async function getOSMData(coordinates) {
         const query = `
         [out:json][timeout:25];
         (
+            // Get all roads and paths
             way(around:25,${point[1]},${point[0]})["highway"];
-            way(around:25,${point[1]},${point[0]})["surface"];
-            way(around:25,${point[1]},${point[0]})["tracktype"];
-            way(around:25,${point[1]},${point[0]})["smoothness"];
+            
+            // Specifically target unpaved/gravel surfaces
+            way(around:25,${point[1]},${point[0]})["surface"~"gravel|unpaved|fine_gravel|compacted|dirt|earth|ground|sand"];
+            
+            // Get all track types
+            way(around:25,${point[1]},${point[0]})["tracktype"~"grade[2-5]"];
+            
+            // Get poor surface conditions
+            way(around:25,${point[1]},${point[0]})["smoothness"~"bad|very_bad|horrible"];
+            
+            // Get specific highway types that are likely unpaved
+            way(around:25,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
         );
         (._;>;);
-        out body;
-        `;
+        out body;`;
+
         const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
