@@ -15,7 +15,7 @@ async function getOSMData(coordinates) {
     try {
         const samplingRate = 5;
         const sampledPoints = coordinates.filter((_, i) => i % samplingRate === 0);
-        const batchSize = 1; // Reduced to 1 point per request
+        const batchSize = 1; 
         let allElements = [];
 
         for (let i = 0; i < sampledPoints.length; i += batchSize) {
@@ -28,25 +28,33 @@ async function getOSMData(coordinates) {
                 way(around:50,${point[1]},${point[0]})["highway"~"track|path|bridleway|trail"];
             `).join('\n');
 
-            const query = `[out:json][timeout:90];(${pointQueries});(._;>;);out body;`;
+            const query = `[out:json][timeout:180];(${pointQueries});(._;>;);out body;`;
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds between requests
 
-            const response = await fetch('https://overpass-api.de/api/interpreter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: query
-            });
+            try {
+                const response = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: query
+                });
 
-            if (!response.ok) {
-                console.error(`Batch failed with status ${response.status}`);
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Extra delay on failure
-                continue;
+                if (!response.ok) {
+                    console.error(`Request failed with status ${response.status}`);
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay on failure
+                    continue;
+                }
+
+                const data = await response.json();
+                const ways = data.elements.filter(e => e.type === 'way');
+                allElements.push(...ways);
+                
+                // Additional cooldown between successful requests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (error) {
+                console.error('Request error:', error);
+                await new Promise(resolve => setTimeout(resolve, 5000));
             }
-
-            const data = await response.json();
-            const ways = data.elements.filter(e => e.type === 'way');
-            allElements.push(...ways);
         }
 
         return { elements: allElements };
