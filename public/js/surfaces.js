@@ -54,6 +54,7 @@ window.layers.updateSurfaceData = async function() {
     const zoomLevel = Math.floor(map.getZoom()); // Round down to ensure integer
     console.log(`Current zoom level: ${zoomLevel}`);
 
+    // Early return if zoom is too low
     if (zoomLevel < 11) { // Match MIN_ZOOM from API
         if (map.getSource('road-surfaces')) {
             console.log('Zoom level too low, clearing surface data');
@@ -80,20 +81,25 @@ window.layers.updateSurfaceData = async function() {
         bounds.getNorth()
     ].join(',');
 
-    const url = `/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`;
-    console.log('Fetching from URL:', url);
+    console.log(`Fetching roads for bbox: ${bbox} at zoom level: ${zoomLevel}`);
+    console.time('surfaceDataFetch');
 
     try {
-        const response = await fetch(url);
+        // Include zoom parameter in the request URL
+        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`);
+        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`);
         }
         
         const data = await response.json();
-        console.log('Received data:', data);
+        console.timeEnd('surfaceDataFetch');
+        console.log(`Loaded ${data.features?.length || 0} roads`);
 
+        // Validate GeoJSON before using it
         if (!data.type || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+            console.error('Invalid GeoJSON received:', data);
             throw new Error('Invalid GeoJSON response');
         }
 
@@ -106,10 +112,6 @@ window.layers.updateSurfaceData = async function() {
         }
     } catch (error) {
         console.error('Error updating surface data:', error);
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack
-        });
         if (surfaceToggle) {
             surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading roads';
             setTimeout(() => {
