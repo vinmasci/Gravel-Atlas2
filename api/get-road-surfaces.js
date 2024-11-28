@@ -1,5 +1,4 @@
 const { MongoClient } = require('mongodb');
-const compression = require('compression');
 const uri = process.env.MONGODB_URI;
 
 // Cache and threshold configurations
@@ -24,8 +23,7 @@ const UNPAVED_SURFACES = [
     'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
 ];
 
-// Create the handler with compression
-const handler = compression()(async (req, res) => {
+module.exports = async (req, res) => {
     const startTime = Date.now();
     const { bbox, zoom } = req.query;
 
@@ -116,7 +114,6 @@ const handler = compression()(async (req, res) => {
             .toArray();
         console.timeEnd('queryExecution');
 
-        // Transform to GeoJSON and simplify properties
         const geojson = {
             type: 'FeatureCollection',
             features: roads.map(road => ({
@@ -169,6 +166,4 @@ const handler = compression()(async (req, res) => {
             await client.close();
         }
     }
-});
-
-module.exports = handler;
+};
