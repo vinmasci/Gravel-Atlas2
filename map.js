@@ -561,60 +561,66 @@ function initGeoJSONSources() {
             }
         });
     }
-
-    // Add road surfaces source and layers
-    if (!map.getSource('road-surfaces')) {
-        map.addSource('road-surfaces', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] },
-            maxzoom: 16
-        });
-
-        // Background layer
-        map.addLayer({
-            'id': 'road-surfaces-bg',
-            'type': 'line',
-            'source': 'road-surfaces',
-            'layout': {
-                'visibility': 'none',
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#ffffff',
-                'line-width': ['interpolate', ['linear'], ['zoom'],
-                    10, 3,
-                    16, 8
-                ],
-                'line-opacity': 0.7
-            }
-        });
-
-        // Surface layer
-        map.addLayer({
-            'id': 'road-surfaces-layer',
-            'type': 'line',
-            'source': 'road-surfaces',
-            'layout': {
-                'visibility': 'none',
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': ['match',
-                    ['get', 'surface'],
-                    ...Object.entries(surfaceColors).flat(),
-                    '#999999'
-                ],
-                'line-width': ['interpolate', ['linear'], ['zoom'],
-                    10, 2,
-                    16, 6
-                ],
-                'line-opacity': 0.9
-            }
-        });
-    }
 }
+
+// ============================
+// SECTION: Add surface layers 
+// ============================
+map.on('load', () => {
+    // Initialize base sources
+    initGeoJSONSources();
+    
+    // Add road surfaces
+    map.addSource('road-surfaces', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        maxzoom: 16
+    });
+
+    // Background layer
+    map.addLayer({
+        'id': 'road-surfaces-bg',
+        'type': 'line',
+        'source': 'road-surfaces',
+        'layout': {
+            'visibility': 'none',
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': '#ffffff',
+            'line-width': ['interpolate', ['linear'], ['zoom'],
+                10, 3,
+                16, 8
+            ],
+            'line-opacity': 0.7
+        }
+    });
+
+    // Surface layer
+    map.addLayer({
+        'id': 'road-surfaces-layer',
+        'type': 'line',
+        'source': 'road-surfaces',
+        'layout': {
+            'visibility': 'none',
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': ['match',
+                ['get', 'surface'],
+                ...Object.entries(surfaceColors).flat(),
+                '#999999'
+            ],
+            'line-width': ['interpolate', ['linear'], ['zoom'],
+                10, 2,
+                16, 6
+            ],
+            'line-opacity': 0.9
+        }
+    });
+});
 
 
 async function loadSegments() {
