@@ -49,11 +49,11 @@ window.layers.initSurfaceLayers = function() {
 
 window.layers.updateSurfaceData = async function() {
     if (!window.layerVisibility.surfaces) return;
-
+ 
     const surfaceToggle = document.querySelector('.surface-toggle');
     const zoomLevel = Math.floor(map.getZoom()); // Round down to ensure integer
     console.log(`Current zoom level: ${zoomLevel}`);
-
+ 
     // Early return if zoom is too low
     if (zoomLevel < 11) { // Match MIN_ZOOM from API
         if (map.getSource('road-surfaces')) {
@@ -68,50 +68,82 @@ window.layers.updateSurfaceData = async function() {
         }
         return;
     }
-
+ 
     if (surfaceToggle) {
         surfaceToggle.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading roads...';
     }
-
+ 
     const bounds = map.getBounds();
-    const bbox = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth()
-    ].join(',');
-
-    console.log(`Fetching roads for bbox: ${bbox} at zoom level: ${zoomLevel}`);
+    
+    // Create URL parameters properly
+    const params = new URLSearchParams({
+        bbox: [
+            bounds.getWest(),
+            bounds.getSouth(),
+            bounds.getEast(),
+            bounds.getNorth()
+        ].join(','),
+        zoom: zoomLevel.toString()
+    });
+ 
+    const url = `/api/get-road-surfaces?${params.toString()}`;
+    console.log('Making request to:', url);
     console.time('surfaceDataFetch');
-
+ 
     try {
-        // Include zoom parameter in the request URL
-        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`);
+        const response = await fetch(url);
         
+        // Check if response is ok and try to get error details if not
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`);
+            let errorMessage = 'HTTP error!';
+            try {
+                const errorData = await response.json();
+                errorMessage = JSON.stringify(errorData);
+            } catch (e) {
+                errorMessage = response.statusText;
+            }
+            throw new Error(`${errorMessage} (status: ${response.status})`);
         }
-        
+ 
         const data = await response.json();
         console.timeEnd('surfaceDataFetch');
-        console.log(`Loaded ${data.features?.length || 0} roads`);
-
+        
+        // Log the received data for debugging
+        console.log('Received data:', {
+            type: data.type,
+            featureCount: data.features?.length || 0,
+            sampleFeature: data.features?.[0]
+        });
+ 
         // Validate GeoJSON before using it
         if (!data.type || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
             console.error('Invalid GeoJSON received:', data);
             throw new Error('Invalid GeoJSON response');
         }
-
+ 
+        // If data has a message property, log it
+        if (data.message) {
+            console.log('Server message:', data.message);
+        }
+ 
         if (map.getSource('road-surfaces')) {
             map.getSource('road-surfaces').setData(data);
+            console.log('Surface data updated successfully');
+        } else {
+            console.error('road-surfaces source not found');
         }
-
+ 
         if (surfaceToggle) {
             surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
         }
+ 
     } catch (error) {
-        console.error('Error updating surface data:', error);
+        console.error('Error updating surface data:', {
+            message: error.message,
+            stack: error.stack,
+            url: url
+        });
+        
         if (surfaceToggle) {
             surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading roads';
             setTimeout(() => {
@@ -119,7 +151,7 @@ window.layers.updateSurfaceData = async function() {
             }, 3000);
         }
     }
-};
+ };
 
 window.layers.toggleSurfaceLayer = async function() {
     try {
