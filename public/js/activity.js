@@ -84,6 +84,38 @@ const ActivityFeed = {
                     opacity: 0.5;
                     cursor: not-allowed;
                 }
+
+                .activity-details {
+                    margin-left: 24px;
+                    padding: 8px;
+                    border-left: 2px solid rgba(255,255,255,0.1);
+                }
+
+                .detail-item {
+                    padding: 8px 0;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+
+                .detail-image {
+                    max-width: 200px;
+                    border-radius: 4px;
+                    margin: 4px 0;
+                }
+
+                .detail-meta {
+                    font-size: 0.7rem;
+                    color: rgba(255,255,255,0.5);
+                    margin-top: 4px;
+                }
+
+                .expand-icon {
+                    margin-left: auto;
+                    transition: transform 0.2s;
+                }
+
+                .expand-icon.expanded {
+                    transform: rotate(180deg);
+                }
             
                 @media (max-width: 768px) {
                     .activity-tabs {
@@ -182,7 +214,6 @@ const ActivityFeed = {
     
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
-            const user = await auth0.getUser();
     
             const response = await fetch(`/api/activity?page=${this.currentPage}&limit=20`, {
                 headers: {
@@ -194,7 +225,7 @@ const ActivityFeed = {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     
             const data = await response.json();
-            await this.renderActivities(data.activities, user?.sub);
+            await this.renderActivities(data.activities);
             this.hasMore = data.pagination.hasMore;
             this.handlePagination();
     
@@ -254,11 +285,11 @@ const ActivityFeed = {
         const interactionsContainer = document.getElementById('interactions-content');
 
         if (!activitiesContainer || !interactionsContainer) return;
-    
+
         if (!activities?.length) {
             const emptyState = `
                 <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
-                    <i class="fa-solid fa-inbox" style="font-size: 16px; margin-bottom: 6px; display: block;"></i>
+                    <i class="fa-solid fa-inbox" style="font-size: 16px; margin-bottom: 6px;"></i>
                     <div style="font-size: 0.75rem;">No activities yet</div>
                     <div style="font-size: 0.7rem; margin-top: 4px;">
                         Activities will appear here when you add segments, photos, or comments
@@ -270,25 +301,48 @@ const ActivityFeed = {
             return;
         }
 
-        activities.forEach(async activity => {
+        activities.forEach(async group => {
             const auth0 = await window.auth0;
             const currentUser = await auth0.getUser();
             
-            const content = this.formatActivityContent(activity, currentUser?.sub);
-            const timeAgo = this.formatTimeAgo(activity.createdAt);
-            
-            const icon = activity.type === 'segment' ? 'fa-route' :
-                        activity.type === 'photo' ? 'fa-camera' :
-                        activity.type === 'comment' ? 'fa-comment' : 'fa-circle';
-    
+            const icon = group.type === 'segment' ? 'fa-route' :
+                        group.type === 'photo' ? 'fa-camera' :
+                        group.type === 'comment' ? 'fa-comment' : 'fa-circle';
+
+            const getItemText = () => {
+                switch (group.type) {
+                    case 'photo':
+                        return `added ${group.count} photo${group.count > 1 ? 's' : ''}`;
+                    case 'segment':
+                        return `added ${group.count} segment${group.count > 1 ? 's' : ''}`;
+                    case 'comment':
+                        return `commented ${group.count} time${group.count > 1 ? 's' : ''}`;
+                    default:
+                        return `added ${group.count} item${group.count > 1 ? 's' : ''}`;
+                }
+            };
+
             const baseHtml = `
-                <div style="display: flex; align-items: start; gap: 8px;">
-                    <div style="padding-top: 2px;">
-                        <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
+                <div class="activity-group">
+                    <div class="activity-summary" onclick="ActivityFeed.toggleGroup('${group.auth0Id}_${group.type}')">
+                        <div style="display: flex; align-items: start; gap: 8px;">
+                            <div style="padding-top: 2px;">
+                                <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
+                            </div>
+                            <div style="flex-grow: 1;">
+                                <div>
+                                    <span class="username" data-auth0id="${group.auth0Id}">${group.username}</span> 
+                                    ${getItemText()}
+                                </div>
+                                <div class="activity-meta">${this.formatTimeAgo(group.createdAt)}</div>
+                            </div>
+                            <div class="expand-icon">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div style="flex-grow: 1;">
-                        <div>${content.regular}</div>
-                        <div class="activity-meta">${timeAgo}</div>
+                    <div id="group_${group.auth0Id}_${group.type}" class="activity-details" style="display: none;">
+                        ${group.items.map(item => this.formatDetailedActivity(item)).join('')}
                     </div>
                 </div>
             `;
@@ -296,18 +350,47 @@ const ActivityFeed = {
             const activityItem = document.createElement('div');
             activityItem.className = 'activity-item';
             activityItem.innerHTML = baseHtml;
-            this.addLocationHandling(activityItem, activity);
+            this.addLocationHandling(activityItem, group);
             activitiesContainer.appendChild(activityItem);
 
-            if (content.interaction && activity.auth0Id !== currentUser?.sub) {
-                const interactionItem = document.createElement('div');
-                interactionItem.className = 'activity-item interaction-item';
-                interactionItem.innerHTML = baseHtml;
-                interactionItem.querySelector('div > div > div:first-child').innerHTML = content.interaction;
-                this.addLocationHandling(interactionItem, activity);
+            const hasInteraction = group.items.some(item => 
+                item.metadata?.segmentCreatorId === currentUser?.sub ||
+                item.metadata?.previousCommenters?.includes(currentUser?.sub)
+            );
+
+            if (hasInteraction && group.auth0Id !== currentUser?.sub) {
+                const interactionItem = activityItem.cloneNode(true);
+                interactionItem.classList.add('interaction-item');
                 interactionsContainer.appendChild(interactionItem);
             }
         });
+    },
+
+    formatDetailedActivity(item) {
+        const timeAgo = this.formatTimeAgo(item.createdAt);
+        
+        switch (item.type) {
+            case 'photo':
+                return `
+                    <div class="detail-item">
+                        <img src="${item.metadata.photoUrl}" alt="Activity photo" class="detail-image">
+                        <div class="detail-meta">${timeAgo}</div>
+                    </div>`;
+            case 'segment':
+                return `
+                    <div class="detail-item">
+                        <div class="detail-title">${item.metadata.title || 'Unnamed segment'}</div>
+                        <div class="detail-meta">${timeAgo}</div>
+                    </div>`;
+            case 'comment':
+                return `
+                    <div class="detail-item">
+                        <div class="detail-text">${item.metadata.commentText}</div>
+                        <div class="detail-meta">${timeAgo}</div>
+                    </div>`;
+            default:
+                return '';
+        }
     },
 
     formatTimeAgo(date) {
@@ -331,54 +414,6 @@ const ActivityFeed = {
         return 'just now';
     },
 
-    formatActivityContent(activity, currentUserId) {
-        const defaultUsername = activity.username?.split('@')[0] || 'Anonymous';
-        let username = defaultUsername;
-    
-        const content = {
-            regular: '',
-            interaction: ''
-        };
-    
-        const createContent = (username) => {
-            switch (activity.type) {
-                case 'segment':
-                    return `<span class="username" data-auth0id="${activity.auth0Id}">${username}</span> added segment "${activity.metadata?.title || 'Unnamed segment'}"`;
-                case 'comment':
-                    const regular = `<span class="username" data-auth0id="${activity.auth0Id}">${username}</span> commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    if (activity.metadata?.segmentCreatorId === currentUserId) {
-                        content.interaction = `<span class="username" data-auth0id="${activity.auth0Id}">${username}</span> commented on your segment "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    } else if (activity.metadata?.previousCommenters?.includes(currentUserId)) {
-                        content.interaction = `<span class="username" data-auth0id="${activity.auth0Id}">${username}</span> also commented on "${activity.metadata?.title || 'Unnamed segment'}"`;
-                    }
-                    return regular;
-                case 'photo':
-                    return `<span class="username" data-auth0id="${activity.auth0Id}">${username}</span> added a new photo`;
-                default:
-                    return `Unknown activity type: ${activity.type}`;
-            }
-        };
-    
-        content.regular = createContent(username);
-    
-        setTimeout(() => {
-            if (activity.auth0Id) {
-                fetch(`/api/user?id=${encodeURIComponent(activity.auth0Id)}`)
-                    .then(response => response.json())
-                    .then(profile => {
-                        if (profile?.bioName) {
-                            document.querySelectorAll(`[data-auth0id="${activity.auth0Id}"]`).forEach(el => {
-                                el.textContent = profile.bioName;
-                            });
-                        }
-                    })
-                    .catch(error => console.error('Error fetching user profile:', error));
-            }
-        }, 0);
-    
-        return content;
-    },
-
     addLocationHandling(element, activity) {
         if (activity.metadata?.location?.coordinates) {
             element.style.cursor = 'pointer';
@@ -391,12 +426,21 @@ const ActivityFeed = {
                 this.toggleFeed();
             });
 
-            element.addEventListener('mouseenter', () => {
-                element.style.backgroundColor = '#3b4147';
-            });
             element.addEventListener('mouseleave', () => {
                 element.style.backgroundColor = '';
             });
+        }
+    },
+
+    toggleGroup(groupId) {
+        const details = document.getElementById(`group_${groupId}`);
+        const icon = details.previousElementSibling.querySelector('.expand-icon i');
+        
+        if (details && icon) {
+            const isHidden = details.style.display === 'none';
+            details.style.display = isHidden ? 'block' : 'none';
+            icon.classList.toggle('fa-chevron-down', !isHidden);
+            icon.classList.toggle('fa-chevron-up', isHidden);
         }
     },
 
@@ -425,7 +469,6 @@ const ActivityFeed = {
                     'Content-Type': 'application/json',
                     'x-user-sub': user.sub
                 },
-
                 body: JSON.stringify(activityData)
             });
 
