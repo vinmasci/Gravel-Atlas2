@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
         const roads = await client.db('gravelatlas')
             .collection('road_surfaces')
             .find(query)
-            .limit(2000)  // Limit results
+            .limit(1000)  // Limit results
             .toArray();
 
         const geojson = {
