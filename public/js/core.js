@@ -283,7 +283,10 @@ function waitForAuth0() {
         utils.toggleProfileSection();
     },
  
-    handleSurfaceToggle: () => {
+    handleSurfaceToggle: async () => {
+        if (!map.getSource('road-surfaces')) {
+            window.layers.initSurfaceLayers();
+        }
         layers.toggleSurfaceLayer();
     }
  };
