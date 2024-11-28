@@ -288,7 +288,6 @@ function waitForAuth0() {
     }
  };
  
- //Init Core
  async function initCore() {
     console.log('Initializing core...');
     try {
@@ -302,20 +301,19 @@ function waitForAuth0() {
             }
         });
         console.log('Map loaded successfully');
-
+ 
         await new Promise(resolve => {
             const checkMapFunctions = () => {
                 const requiredFunctions = [
                     'initGeoJSONSources',
                     'addSegmentLayers',
-                    'setupSegmentInteraction',
-                    'initSurfaceLayers'  // Add surface layers to required functions
+                    'setupSegmentInteraction'
                 ];
                 
                 const allFunctionsAvailable = requiredFunctions.every(
                     func => typeof window[func] === 'function'
                 );
-
+ 
                 if (allFunctionsAvailable) {
                     console.log('All map functions available');
                     resolve();
@@ -326,21 +324,18 @@ function waitForAuth0() {
             };
             checkMapFunctions();
         });
-
+ 
         await new Promise(resolve => {
             try {
                 window.initGeoJSONSources();
                 window.addSegmentLayers();
                 window.setupSegmentInteraction();
-                window.initSurfaceLayers();  // Initialize surface layers
                 
-                // Update surface data if source exists
                 if (map.getSource('road-surfaces')) {
-                    window.updateSurfaceData();
+                    layers.updateSurfaceData();
                 }
                 
-                // Add surface data update on map move
-                map.on('moveend', window.updateSurfaceData);
+                map.on('moveend', layers.updateSurfaceData);
                 
                 console.log('Map components initialized successfully');
             } catch (error) {
@@ -348,7 +343,7 @@ function waitForAuth0() {
             }
             setTimeout(resolve, 100);
         });
-
+ 
         if (window.ActivityFeed) {
             try {
                 await window.ActivityFeed.init();
@@ -357,13 +352,13 @@ function waitForAuth0() {
                 console.error('Error initializing Activity Feed:', error);
             }
         }
-
+ 
         utils.showTabLoading('segments-tab');
         utils.showTabLoading('photos-tab');
-
+ 
         console.log('Starting initial data load...');
         const loadingPromises = [];
-
+ 
         if (typeof window.loadSegments === 'function') {
             const segmentsPromise = (async () => {
                 try {
@@ -385,7 +380,7 @@ function waitForAuth0() {
             console.error('loadSegments function not available');
             utils.hideTabLoading('segments-tab');
         }
-
+ 
         if (typeof window.loadPhotoMarkers === 'function') {
             const photosPromise = window.loadPhotoMarkers()
                 .then(() => {
@@ -403,12 +398,12 @@ function waitForAuth0() {
             console.error('loadPhotoMarkers function not available');
             utils.hideTabLoading('photos-tab');
         }
-
+ 
         const auth0 = await auth0Promise;
         console.log('Auth0 initialization complete');
         const isAuthenticated = await auth0.isAuthenticated();
         console.log('Authentication status:', isAuthenticated);
-
+ 
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn && !document.getElementById(config.profileButton.id)) {
             const buttonContainer = loginBtn.parentElement;
@@ -419,7 +414,7 @@ function waitForAuth0() {
             buttonContainer.insertBefore(profileBtn, loginBtn);
             profileBtn.addEventListener('click', handlers.handleProfileClick);
         }
-
+ 
         if (isAuthenticated) {
             const profileBtn = document.getElementById(config.profileButton.id);
             if (profileBtn) {
@@ -429,44 +424,44 @@ function waitForAuth0() {
                 await window.userModule.initializeProfile();
             }
         }
-
+ 
         document.getElementById('photos-tab')?.addEventListener('click', handlers.handlePhotoTabClick);
         document.getElementById('segments-tab')?.addEventListener('click', handlers.handleSegmentsTabClick);
         document.getElementById('pois-tab')?.addEventListener('click', handlers.handlePOIsTabClick);
         document.getElementById('draw-route-tab')?.addEventListener('click', handlers.handleContributeClick);
-
+ 
         const surfaceToggle = document.querySelector('.surface-toggle');
         if (surfaceToggle) {
             surfaceToggle.addEventListener('click', handlers.handleSurfaceToggle);
         }
-
+ 
         initEventListeners();
+ 
+document.addEventListener('click', (event) => {
+    const profileSection = document.getElementById('profile-section');
+    const profileBtn = document.getElementById(config.profileButton.id);
+    
+    if (profileSection && !profileSection.contains(event.target) && 
+        profileBtn && !profileBtn.contains(event.target)) {
+        utils.hideProfileSection();
+    }
+});
 
-        document.addEventListener('click', (event) => {
-            const profileSection = document.getElementById('profile-section');
-            const profileBtn = document.getElementById(config.profileButton.id);
-            
-            if (profileSection && !profileSection.contains(event.target) && 
-                profileBtn && !profileBtn.contains(event.target)) {
-                utils.hideProfileSection();
-            }
-        });
-        
-        try {
-            await Promise.all(loadingPromises);
-            console.log('All data loaded successfully');
-        } catch (error) {
-            console.error('Error during data loading:', error);
-        }
-        
-        auth0.checkSession({}, function(err, result) {
-            if (err || !result) {
-                utils.hideProfileSection();
-            }
-        });
-        
-        console.log('Core initialization complete');
-        return { map, layerVisibility };
+try {
+    await Promise.all(loadingPromises);
+    console.log('All data loaded successfully');
+} catch (error) {
+    console.error('Error during data loading:', error);
+}
+
+auth0.checkSession({}, function(err, result) {
+    if (err || !result) {
+        utils.hideProfileSection();
+    }
+});
+
+console.log('Core initialization complete');
+return { map, layerVisibility };
     } catch (error) {
         console.error('Error in core initialization:', error);
         console.error('Error details:', {
