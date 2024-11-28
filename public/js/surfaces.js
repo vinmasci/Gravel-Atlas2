@@ -1,13 +1,18 @@
-// Add this code to a new file: ./public/js/surfaces.js
-
+// Initialize surface layer visibility if not already set
 if (!window.layerVisibility) {
-    window.layerVisibility = {
-        surfaces: false
-    };
+    window.layerVisibility = {};
+}
+window.layerVisibility.surfaces = false;
+
+// Initialize layers object if not exists
+if (!window.layers) {
+    window.layers = {};
 }
 
-const layers = {
-    initSurfaceLayers: function() {
+// Surface layer initialization
+window.layers.initSurfaceLayers = function() {
+    console.log('Initializing surface layers...');
+    try {
         if (!map.getSource('road-surfaces')) {
             map.addSource('road-surfaces', {
                 type: 'geojson',
@@ -17,6 +22,7 @@ const layers = {
                 }
             });
 
+            // Add background layer for better visibility
             map.addLayer({
                 'id': 'road-surfaces-bg',
                 'type': 'line',
@@ -32,6 +38,7 @@ const layers = {
                 }
             });
 
+            // Add main surface layer with color coding
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
@@ -58,12 +65,19 @@ const layers = {
                     'line-width': 3
                 }
             });
-        }
-    },
 
-    updateSurfaceData: async function() {
-        if (!layerVisibility.surfaces) return;
-        
+            console.log('Surface layers initialized successfully');
+        }
+    } catch (error) {
+        console.error('Error initializing surface layers:', error);
+    }
+};
+
+// Update surface data based on current map bounds
+window.layers.updateSurfaceData = async function() {
+    if (!window.layerVisibility.surfaces) return;
+    
+    try {
         const bounds = map.getBounds();
         const bbox = [
             bounds.getWest(),
@@ -72,48 +86,83 @@ const layers = {
             bounds.getNorth()
         ].join(',');
         
-        try {
-            const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            
-            if (map.getSource('road-surfaces')) {
-                map.getSource('road-surfaces').setData(data);
-            }
-        } catch (error) {
-            console.error('Error fetching surface data:', error);
+        console.log('Fetching surface data for bbox:', bbox);
+        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    },
-
-    toggleSurfaceLayer: async function() {
-        try {
-            if (!map.loaded()) {
-                await new Promise(resolve => map.on('load', resolve));
-            }
-
-            layerVisibility.surfaces = !layerVisibility.surfaces;
-            const visibility = layerVisibility.surfaces ? 'visible' : 'none';
-            
-            map.setLayoutProperty('road-surfaces-bg', 'visibility', visibility);
-            map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
-            
-            if (layerVisibility.surfaces) {
-                await layers.updateSurfaceData();
-                const surfaceControl = document.querySelector('.surface-toggle');
-                if (surfaceControl) surfaceControl.classList.add('active');
-            } else {
-                const surfaceControl = document.querySelector('.surface-toggle');
-                if (surfaceControl) surfaceControl.classList.remove('active');
-            }
-        } catch (error) {
-            console.error('Error toggling surface layer:', error);
+        
+        const data = await response.json();
+        if (map.getSource('road-surfaces')) {
+            map.getSource('road-surfaces').setData(data);
+            console.log('Surface data updated successfully');
         }
+    } catch (error) {
+        console.error('Error updating surface data:', error);
     }
 };
 
-// Export functions for global use
-window.initSurfaceLayers = layers.initSurfaceLayers;
-window.toggleSurfaceLayer = layers.toggleSurfaceLayer;
-window.updateSurfaceData = layers.updateSurfaceData;
+// Toggle surface layer visibility
+window.layers.toggleSurfaceLayer = async function() {
+    try {
+        if (!map.loaded()) {
+            await new Promise(resolve => map.on('load', resolve));
+        }
+
+        window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
+        const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
+        
+        map.setLayoutProperty('road-surfaces-bg', 'visibility', visibility);
+        map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
+        
+        if (window.layerVisibility.surfaces) {
+            await window.layers.updateSurfaceData();
+            const surfaceControl = document.querySelector('.surface-toggle');
+            if (surfaceControl) {
+                surfaceControl.classList.add('active');
+            }
+        } else {
+            const surfaceControl = document.querySelector('.surface-toggle');
+            if (surfaceControl) {
+                surfaceControl.classList.remove('active');
+            }
+        }
+        
+        console.log('Surface layer visibility toggled:', window.layerVisibility.surfaces);
+    } catch (error) {
+        console.error('Error toggling surface layer:', error);
+    }
+};
+
+// Add necessary event listeners once map is loaded
+map.on('load', () => {
+    try {
+        // Initialize surface layers
+        window.layers.initSurfaceLayers();
+        
+        // Add moveend listener for updating surface data
+        map.on('moveend', () => {
+            if (window.layerVisibility.surfaces) {
+                window.layers.updateSurfaceData();
+            }
+        });
+        
+        console.log('Surface layer event listeners initialized');
+    } catch (error) {
+        console.error('Error setting up surface layer events:', error);
+    }
+});
+
+// Add click handler for surface toggle button if it exists
+document.addEventListener('DOMContentLoaded', () => {
+    const surfaceToggle = document.querySelector('.surface-toggle');
+    if (surfaceToggle) {
+        surfaceToggle.addEventListener('click', window.layers.toggleSurfaceLayer);
+        console.log('Surface toggle button handler initialized');
+    }
+});
+
+// Export functions globally
+window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
+window.updateSurfaceData = window.layers.updateSurfaceData;

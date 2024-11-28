@@ -2340,9 +2340,7 @@
 <!-- Map container should be empty -->
 <div id="map"></div>
 <div id="street-view-panorama"></div>
-<button id="surfaceToggle" class="surface-toggle"></button>
-    <i class="fa-solid fa-road"></i> Surface Types
-</button>
+
 
 <div class="map-layer-options">
     <select id="tileLayerSelect" class="form-control">
@@ -2354,6 +2352,11 @@
         <option value="mapillary">Mapillary Coverage</option>
     </select>
 </div>
+
+<!-- Add this where you want the toggle button to appear -->
+<button class="surface-toggle">
+    <i class="fa-solid fa-road"></i> Surface Types
+</button>
 
 <!-- Elevation Preview -->
 <div id="elevation-preview" class="elevation-preview">
