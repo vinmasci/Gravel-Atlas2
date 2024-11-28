@@ -46,9 +46,6 @@ window.layers.initSurfaceLayers = function() {
                 'line-color': [
                     'match',
                     ['get', 'surface'],
-                    'asphalt', '#444444',
-                    'paved', '#666666',
-                    'concrete', '#888888',
                     'unpaved', '#8B4513',
                     'gravel', '#CD853F',
                     'dirt', '#8B4513',
@@ -56,7 +53,8 @@ window.layers.initSurfaceLayers = function() {
                     'grass', '#228B22',
                     '#A0522D'
                 ],
-                'line-width': 3
+                'line-width': 3,
+                'line-opacity': 0.6  // Added transparency
             }
         });
     }

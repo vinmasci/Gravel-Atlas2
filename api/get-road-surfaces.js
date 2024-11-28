@@ -15,26 +15,30 @@ module.exports = async (req, res) => {
         await client.connect();
 
         const query = {
-            geometry: {
-                $geoIntersects: {
-                    $geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [west, south],
-                            [east, south],
-                            [east, north],
-                            [west, north],
-                            [west, south]
-                        ]]
-                    }
-                }
-            }
-        };
+          geometry: {
+              $geoIntersects: {
+                  $geometry: {
+                      type: 'Polygon',
+                      coordinates: [[
+                          [west, south],
+                          [east, south],
+                          [east, north],
+                          [west, north],
+                          [west, south]
+                      ]]
+                  }
+              }
+          },
+          // Only fetch unpaved roads
+          'properties.surface': {
+              $in: ['unpaved', 'gravel', 'dirt', 'sand', 'grass']
+          }
+      };
 
         const roads = await client.db('gravelatlas')
             .collection('road_surfaces')
             .find(query)
-            .limit(1000)  // Limit results
+            .limit(2000)  // Limit results
             .toArray();
 
         const geojson = {
