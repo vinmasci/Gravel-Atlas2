@@ -51,11 +51,10 @@ window.layers.updateSurfaceData = async function() {
     if (!window.layerVisibility.surfaces) return;
 
     const surfaceToggle = document.querySelector('.surface-toggle');
-    const zoomLevel = map.getZoom();
+    const zoomLevel = Math.floor(map.getZoom()); // Round down to ensure integer
     console.log(`Current zoom level: ${zoomLevel}`);
 
-    // Early return if zoom is too low
-    if (zoomLevel < 13) {
+    if (zoomLevel < 11) { // Match MIN_ZOOM from API
         if (map.getSource('road-surfaces')) {
             console.log('Zoom level too low, clearing surface data');
             map.getSource('road-surfaces').setData({
@@ -81,20 +80,22 @@ window.layers.updateSurfaceData = async function() {
         bounds.getNorth()
     ].join(',');
 
-    console.log(`Fetching roads for bbox: ${bbox} at zoom level: ${zoomLevel}`);
-    console.time('surfaceDataFetch');
+    const url = `/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`;
+    console.log('Fetching from URL:', url);
 
     try {
-        // Add zoom parameter to API call
-        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`);
+        const response = await fetch(url);
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            const errorData = await response.json();
+            throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`);
         }
         
         const data = await response.json();
-        console.timeEnd('surfaceDataFetch');
-        console.log(`Loaded ${data.features.length} roads`);
+        console.log('Received data:', data);
+
+        if (!data.type || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+            throw new Error('Invalid GeoJSON response');
+        }
 
         if (map.getSource('road-surfaces')) {
             map.getSource('road-surfaces').setData(data);
@@ -105,6 +106,10 @@ window.layers.updateSurfaceData = async function() {
         }
     } catch (error) {
         console.error('Error updating surface data:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack
+        });
         if (surfaceToggle) {
             surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading roads';
             setTimeout(() => {
