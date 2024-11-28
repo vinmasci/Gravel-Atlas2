@@ -2,62 +2,59 @@ const { MongoClient } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
-  const { bbox } = req.query;
-  if (!bbox) {
-    return res.status(400).json({ error: 'Bounding box required' });
-  }
+    const { bbox } = req.query;
+    if (!bbox) {
+        return res.status(400).json({ error: 'Bounding box required' });
+    }
 
-  const [west, south, east, north] = bbox.split(',').map(Number);
+    const [west, south, east, north] = bbox.split(',').map(Number);
+    let client;
 
-  try {
-    const client = new MongoClient(uri);
-    await client.connect();
+    try {
+        client = new MongoClient(uri);
+        await client.connect();
 
-    // Corrected geospatial query using $geometry
-    const query = {
-      geometry: {
-        $geoWithin: {
-          $geometry: {
-            type: 'Polygon',
-            coordinates: [[
-              [west, south],
-              [east, south],
-              [east, north],
-              [west, north],
-              [west, south] // Closing the loop
-            ]]
-          }
-        }
-      }
-    };
+        const query = {
+            geometry: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [west, south],
+                            [east, south],
+                            [east, north],
+                            [west, north],
+                            [west, south]
+                        ]]
+                    }
+                }
+            }
+        };
 
-    // Ensure the 2dsphere index exists
-    await client.db('gravelatlas')
-      .collection('road_surfaces')
-      .createIndex({ geometry: '2dsphere' });
+        const roads = await client.db('gravelatlas')
+            .collection('road_surfaces')
+            .find(query)
+            .toArray();
 
-    const roads = await client.db('gravelatlas')
-      .collection('road_surfaces')
-      .find(query)
-      .toArray();
+        const geojson = {
+            type: 'FeatureCollection',
+            features: roads.map(road => ({
+                type: 'Feature',
+                geometry: road.geometry,
+                properties: {
+                    surface: road.properties?.surface || 'unknown',
+                    highway: road.properties?.highway,
+                    name: road.properties?.name
+                }
+            }))
+        };
 
-    const geojson = {
-      type: 'FeatureCollection',
-      features: roads.map(road => ({
-        type: 'Feature',
-        geometry: road.geometry,
-        properties: {
-          surface: road.properties.surface || 'unknown',
-          highway: road.properties.highway,
-          name: road.properties.name
-        }
-      }))
-    };
+        return res.json(geojson);
 
-    await client.close();
-    res.json(geojson);
-  } catch (error) {
-    console.error('Error in API:', error);
-    res.status(500).json({ error: error.message });
-  }
+    } catch (error) {
+        console.error('Error in API:', error);
+        return res.status(500).json({ error: error.message });
+    } finally {
+        if (client) await client.close();
+    }
 };
