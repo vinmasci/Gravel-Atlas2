@@ -22,6 +22,12 @@ module.exports = async (req, res) => {
         client = new MongoClient(uri);
         await client.connect();
         
+        // Define the unpaved surface types
+        const unpavedSurfaces = [
+            'gravel', 'dirt', 'unpaved', 'sand', 'ground', 
+            'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
+        ];
+        
         const query = {
             geometry: {
                 $geoIntersects: {
@@ -39,6 +45,9 @@ module.exports = async (req, res) => {
             },
             'properties.highway': { 
                 $nin: ['motorway', 'motorway_link', 'trunk', 'trunk_link']
+            },
+            'properties.surface': {
+                $in: unpavedSurfaces
             }
         };
 
