@@ -2,7 +2,13 @@
 if (!window.layerVisibility) {
     window.layerVisibility = {};
 }
-wiwindow.layers.initSurfaceLayers = function() {
+window.layerVisibility.surfaces = false;
+
+if (!window.layers) {
+    window.layers = {};
+}
+
+window.layers.initSurfaceLayers = function() {
     if (!map.getSource('road-surfaces')) {
         map.addSource('road-surfaces', {
             type: 'geojson',
@@ -108,9 +114,9 @@ window.layers.toggleSurfaceLayer = async function() {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        map.setLayoutProperty('road-surfaces-bg', 'visibility', visibility);
         map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
-        
+        // Removed 'road-surfaces-bg' layer since it doesn't exist
+
         if (window.layerVisibility.surfaces) {
             await window.layers.updateSurfaceData();
             const surfaceControl = document.querySelector('.surface-toggle');
