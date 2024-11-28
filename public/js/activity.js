@@ -1,103 +1,37 @@
 const ActivityFeed = {
-    currentPage: 1,
     isLoading: false,
-    hasMore: true,
     initialized: false,
-    toggleGroup(groupId) {
-        const details = document.getElementById(`group_${groupId}`);
-        const icon = details.previousElementSibling.querySelector('.expand-icon');
-        
-        const isHidden = details.style.display === 'none';
-        details.style.display = isHidden ? 'block' : 'none';
-        icon.classList.toggle('fa-chevron-up', isHidden);
-        icon.classList.toggle('fa-chevron-down', !isHidden);
-    },
-    
+
     async init() {
         if (this.initialized) return;
     
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-                .activity-tabs {
-                    display: none;
-                    gap: 8px;
-                    margin-bottom: 12px;
-                }
-            
-                .tab-btn {
-                    flex: 1;
-                    padding: 6px;
-                    background: #343a40;
-                    border: none;
-                    color: white;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                    font-size: 0.75rem;
-                }
-            
-                .tab-btn.active {
-                    background: #FF652F;
-                }
-            
-                .activity-item {
+                .activity-group {
                     background: rgba(255, 255, 255, 0.05);
                     margin-bottom: 6px;
-                    padding: 6px;
                     border-radius: 4px;
                     transition: background 0.2s;
-                    cursor: pointer;
-                    font-size: 0.75rem;
-                }
-            
-                .activity-item .username {
-                    color: #FF652F;
-                    font-weight: 600;
-                    font-size: 0.8rem;
-                }
-            
-                .activity-meta {
-                    font-size: 0.7rem;
-                    color: rgba(255, 255, 255, 0.6);
                 }
 
-                .interaction-item {
-                    background-color: rgba(255,102,47,0.05);
-                    border-left: 3px solid #FF652F;
-                }
-
-                .activity-column h3 {
-                    font-size: 0.9rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .pagination-controls {
-                    display: flex;
-                    justify-content: center;
-                    gap: 0.5rem;
-                    margin-top: 0.75rem;
-                    padding: 0.5rem;
-                }
-
-                .pagination-controls button {
-                    font-size: 0.7rem;
-                    padding: 0.25rem 0.75rem;
-                    background: #343a40;
-                    border: none;
-                    color: white;
-                    border-radius: 4px;
+                .activity-summary {
+                    padding: 8px;
                     cursor: pointer;
                 }
 
-                .pagination-controls button:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
+                .activity-summary:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+
+                .activity-content {
+                    flex: 1;
                 }
 
                 .activity-details {
                     margin-left: 24px;
                     padding: 8px;
                     border-left: 2px solid rgba(255,255,255,0.1);
+                    display: none;
                 }
 
                 .detail-item {
@@ -125,33 +59,6 @@ const ActivityFeed = {
                 .expand-icon.expanded {
                     transform: rotate(180deg);
                 }
-            
-                @media (max-width: 768px) {
-                    .activity-tabs {
-                        display: flex;
-                    }
-                    
-                    .activity-column {
-                        display: none;
-                    }
-                    
-                    .activity-column.active {
-                        display: block;
-                    }
-                }
-            
-                .activity-count {
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    background: #FF652F;
-                    color: white;
-                    border-radius: 8px;
-                    padding: 0 4px;
-                    font-size: 0.6rem;
-                    min-width: 14px;
-                    text-align: center;
-                }
             `;
                 
             const styleSheet = document.createElement("style");
@@ -174,39 +81,12 @@ const ActivityFeed = {
         if (window.innerWidth <= 768) {
             document.getElementById('interactions-container')?.classList.add('active');
         }
-
-        const paginationControls = `
-            <div class="pagination-controls">
-                <button class="prev-page" disabled>Previous</button>
-                <button class="next-page">Next</button>
-            </div>
-        `;
-        ['activities-content', 'interactions-content'].forEach(id => {
-            const container = document.getElementById(id);
-            if (container) {
-                container.insertAdjacentHTML('afterend', paginationControls);
-            }
-        });
     
         this.initialized = true;
     },
 
-    async toggleFeed() {
-        const activitySection = document.getElementById('activitySection');
-        if (!activitySection) return;
-
-        const isVisible = activitySection.classList.contains('show');
-        
-        if (!isVisible) {
-            activitySection.classList.add('show');
-            await this.loadActivities(true);
-        } else {
-            activitySection.classList.remove('show');
-        }
-    },
-
     async loadActivities(reset = false) {
-        if (this.isLoading || (!reset && !this.hasMore)) return;
+        if (this.isLoading) return;
     
         try {
             this.isLoading = true;
@@ -214,7 +94,6 @@ const ActivityFeed = {
             if (loader) loader.style.display = 'block';
     
             if (reset) {
-                this.currentPage = 1;
                 ['activities-content', 'interactions-content'].forEach(id => {
                     const container = document.getElementById(id);
                     if (container) container.innerHTML = '';
@@ -223,8 +102,9 @@ const ActivityFeed = {
     
             const auth0 = await window.auth0;
             const token = await auth0.getTokenSilently();
+            const currentUser = await auth0.getUser();
     
-            const response = await fetch(`/api/activity?page=${this.currentPage}&limit=20`, {
+            const response = await fetch('/api/activity', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -234,9 +114,7 @@ const ActivityFeed = {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     
             const data = await response.json();
-            await this.renderActivities(data.activities);
-            this.hasMore = data.pagination.hasMore;
-            this.handlePagination();
+            await this.renderActivities(data.activities, currentUser);
     
             if (reset) {
                 const countEl = document.querySelector('.activity-count');
@@ -263,33 +141,17 @@ const ActivityFeed = {
         }
     },
 
-    handlePagination() {
-        document.querySelectorAll('.pagination-controls').forEach(controls => {
-            const prevBtn = controls.querySelector('.prev-page');
-            const nextBtn = controls.querySelector('.next-page');
-            
-            if (prevBtn && nextBtn) {
-                prevBtn.disabled = this.currentPage === 1;
-                nextBtn.disabled = !this.hasMore;
-
-                prevBtn.onclick = () => {
-                    if (this.currentPage > 1) {
-                        this.currentPage--;
-                        this.loadActivities();
-                    }
-                };
-
-                nextBtn.onclick = () => {
-                    if (this.hasMore) {
-                        this.currentPage++;
-                        this.loadActivities();
-                    }
-                };
-            }
-        });
+    toggleGroup(groupId) {
+        const details = document.getElementById(`group_${groupId}`);
+        const icon = details.previousElementSibling.querySelector('.expand-icon');
+        
+        const isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        icon.classList.toggle('fa-chevron-up', isHidden);
+        icon.classList.toggle('fa-chevron-down', !isHidden);
     },
 
-    async renderActivities(activities) {
+    async renderActivities(activities, currentUser) {
         const activitiesContainer = document.getElementById('activities-content');
         const interactionsContainer = document.getElementById('interactions-content');
     
@@ -304,7 +166,7 @@ const ActivityFeed = {
             return;
         }
     
-        const createSummaryHTML = (group, currentUser) => {
+        const createSummaryHTML = (group) => {
             const icon = group.type === 'segment' ? 'fa-route' : 
                         group.type === 'photo' ? 'fa-camera' : 'fa-comment';
     
@@ -329,8 +191,7 @@ const ActivityFeed = {
     
         activities.forEach(group => {
             const activityItem = document.createElement('div');
-            activityItem.className = 'activity-item';
-            activityItem.innerHTML = createSummaryHTML(group, currentUser);
+            activityItem.innerHTML = createSummaryHTML(group);
             activitiesContainer.appendChild(activityItem);
     
             if (group.items.some(item => 
@@ -390,89 +251,6 @@ const ActivityFeed = {
         if (interval > 1) return Math.floor(interval) + ' minutes ago';
         
         return 'just now';
-    },
-
-    addLocationHandling(element, activity) {
-        if (activity.metadata?.location?.coordinates) {
-            element.style.cursor = 'pointer';
-            element.addEventListener('click', () => {
-                map.flyTo({
-                    center: activity.metadata.location.coordinates,
-                    zoom: 14,
-                    duration: 1000
-                });
-                this.toggleFeed();
-            });
-
-            element.addEventListener('mouseleave', () => {
-                element.style.backgroundColor = '';
-            });
-        }
-    },
-
-    toggleGroup(groupId) {
-        const details = document.getElementById(`group_${groupId}`);
-        const icon = details.previousElementSibling.querySelector('.expand-icon i');
-        
-        if (details && icon) {
-            const isHidden = details.style.display === 'none';
-            details.style.display = isHidden ? 'block' : 'none';
-            icon.classList.toggle('fa-chevron-down', !isHidden);
-            icon.classList.toggle('fa-chevron-up', isHidden);
-        }
-    },
-
-    async recordActivity(type, action, metadata = {}) {
-        try {
-            const auth0 = await window.auth0;
-            const token = await auth0.getTokenSilently();
-            const user = await auth0.getUser();
-            
-            if (!user?.sub) throw new Error('User not authenticated');
-
-            const username = user.name || user.email || 'Anonymous User';
-
-            const activityData = {
-                type,
-                action,
-                metadata,
-                username: username,
-                auth0Id: user.sub
-            };
-
-            const response = await fetch('/api/activity', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'x-user-sub': user.sub
-                },
-                body: JSON.stringify(activityData)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to record activity');
-            }
-
-            const result = await response.json();
-
-            const countEl = document.querySelector('.activity-count');
-            if (countEl) {
-                const count = parseInt(countEl.textContent || '0') + 1;
-                countEl.textContent = count;
-                countEl.style.display = 'block';
-            }
-
-            return result;
-        } catch (error) {
-            console.error('Error in recordActivity:', {
-                name: error.name,
-                message: error.message,
-                stack: error.stack
-            });
-            throw error;
-        }
     }
 };
 

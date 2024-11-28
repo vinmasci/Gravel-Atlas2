@@ -40,22 +40,21 @@ export default async function handler(req, res) {
         await connectDB();
 
         if (req.method === 'GET') {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
-
             const activities = await Activity.aggregate([
+                // Initial sort by creation date
                 { $sort: { createdAt: -1 } },
-                { $skip: (page - 1) * limit },
-                { $limit: limit * 3 },
+                
+                // Group by user, activity type, and time window
                 {
                     $group: {
                         _id: {
                             auth0Id: "$auth0Id",
                             type: "$type",
-                            date: { 
-                                $dateToString: { 
-                                    format: "%Y-%m-%d %H", 
-                                    date: "$createdAt" 
+                            // Group by hour window to aggregate recent activities
+                            timeWindow: {
+                                $dateToString: {
+                                    format: "%Y-%m-%d %H",
+                                    date: "$createdAt"
                                 }
                             }
                         },
@@ -65,32 +64,34 @@ export default async function handler(req, res) {
                         action: { $first: "$action" },
                         count: { $sum: 1 },
                         metadata: { $first: "$metadata" },
+                        // Store all individual items in an array
                         items: { $push: "$$ROOT" }
                     }
                 },
+                
+                // Sort grouped results by most recent first
                 { $sort: { createdAt: -1 } },
-                { $limit: limit }
+                
+                // Limit to most recent 50 groups to keep response size reasonable
+                { $limit: 50 }
             ]);
 
-            const total = await Activity.countDocuments();
+            // Transform the grouped activities for the client
+            const transformedActivities = activities.map(group => ({
+                auth0Id: group._id.auth0Id,
+                username: group.username,
+                type: group.type,
+                action: group.action,
+                createdAt: group.createdAt,
+                count: group.count,
+                metadata: group.metadata,
+                items: group.items.map(item => ({
+                    ...item,
+                    _id: item._id.toString()
+                }))
+            }));
 
-            return res.status(200).json({
-                activities: activities.map(group => ({
-                    auth0Id: group._id.auth0Id,
-                    username: group.username,
-                    type: group.type,
-                    action: group.action,
-                    createdAt: group.createdAt,
-                    count: group.count,
-                    metadata: group.metadata,
-                    items: group.items
-                })),
-                pagination: {
-                    current: page,
-                    pages: Math.ceil(total / limit),
-                    hasMore: page * limit < total
-                }
-            });
+            return res.status(200).json({ activities: transformedActivities });
         }
 
         if (req.method === 'POST') {
