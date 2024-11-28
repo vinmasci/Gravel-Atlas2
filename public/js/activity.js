@@ -7,57 +7,63 @@ const ActivityFeed = {
     
         if (!document.getElementById('activity-feed-styles')) {
             const styles = `
-                .activity-group {
-                    background: rgba(255, 255, 255, 0.05);
-                    margin-bottom: 6px;
-                    border-radius: 4px;
-                    transition: background 0.2s;
-                }
-
-                .activity-summary {
-                    padding: 8px;
-                    cursor: pointer;
-                }
-
-                .activity-summary:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                }
-
-                .activity-content {
-                    flex: 1;
-                }
-
-                .activity-details {
-                    margin-left: 24px;
-                    padding: 8px;
-                    border-left: 2px solid rgba(255,255,255,0.1);
+                .activity-tabs {
                     display: none;
+                    gap: 8px;
+                    margin-bottom: 12px;
+                }
+                
+                .activity-group {
+                    font-size: 0.75rem;
                 }
 
-                .detail-item {
-                    padding: 8px 0;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                }
-
-                .detail-image {
-                    max-width: 200px;
-                    border-radius: 4px;
-                    margin: 4px 0;
-                }
-
-                .detail-meta {
-                    font-size: 0.7rem;
-                    color: rgba(255,255,255,0.5);
-                    margin-top: 4px;
-                }
-
-                .expand-icon {
-                    margin-left: auto;
+                .clickable-item {
+                    position: relative;
+                    display: inline-block;
+                    cursor: pointer;
                     transition: transform 0.2s;
                 }
 
-                .expand-icon.expanded {
-                    transform: rotate(180deg);
+                .clickable-item:hover {
+                    transform: scale(1.02);
+                }
+
+                .clickable-item .hover-text {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    color: white;
+                    padding: 4px;
+                    font-size: 0.6rem;
+                    text-align: center;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+
+                .clickable-item:hover .hover-text {
+                    opacity: 1;
+                }
+
+                .activity-content {
+                    font-size: 0.75rem;
+                }
+
+                .activity-meta {
+                    font-size: 0.6rem;
+                }
+
+                .detail-title {
+                    font-size: 0.75rem;
+                }
+
+                .detail-text {
+                    font-size: 0.75rem;
+                }
+
+                .detail-meta {
+                    font-size: 0.6rem;
                 }
             `;
                 
@@ -141,20 +147,6 @@ const ActivityFeed = {
         }
     },
 
-    toggleGroup(groupId) {
-        const details = document.getElementById(`group_${groupId}`);
-        const icon = details.previousElementSibling.querySelector('.expand-icon');
-        
-        const isHidden = details.style.display === 'none';
-        details.style.display = isHidden ? 'block' : 'none';
-        icon.classList.toggle('fa-chevron-up', isHidden);
-        icon.classList.toggle('fa-chevron-down', !isHidden);
-    },
-
-    hideEmailUsername(username) {
-        return username.includes('@') ? username.split('@')[0] : username;
-    },
-
     async renderActivities(activities, currentUser) {
         const activitiesContainer = document.getElementById('activities-content');
         const interactionsContainer = document.getElementById('interactions-content');
@@ -162,7 +154,7 @@ const ActivityFeed = {
         if (!activitiesContainer || !interactionsContainer) return;
     
         if (!activities?.length) {
-            const emptyState = `<div class="activity-item" style="text-align: center;">
+            const emptyState = `<div class="activity-item" style="text-align: center; font-size: 0.75rem;">
                 <i class="fa-solid fa-inbox"></i><div>No activities yet</div>
             </div>`;
             activitiesContainer.innerHTML = emptyState;
@@ -170,57 +162,63 @@ const ActivityFeed = {
             return;
         }
     
-        const createSummaryHTML = (group) => {
+        const createSummaryHTML = (group, isInteraction = false) => {
             const icon = group.type === 'segment' ? 'fa-route' : 
                         group.type === 'photo' ? 'fa-camera' : 'fa-comment';
             
             const displayUsername = this.hideEmailUsername(group.username);
+            const groupId = isInteraction ? `interaction_${group.auth0Id}_${group.type}` : `activity_${group.auth0Id}_${group.type}`;
     
             return `
                 <div class="activity-group">
-                    <div class="activity-summary" onclick="ActivityFeed.toggleGroup('${group.auth0Id}_${group.type}')">
+                    <div class="activity-summary" onclick="ActivityFeed.toggleGroup('${groupId}')">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
-                            <div class="activity-content">
+                            <div class="activity-content" style="font-size: 0.75rem;">
                                 <span class="username" data-auth0id="${group.auth0Id}">${displayUsername}</span>
                                 added ${group.count} ${group.type}${group.count > 1 ? 's' : ''}
-                                <div class="activity-meta">${this.formatTimeAgo(group.createdAt)}</div>
+                                <div class="activity-meta" style="font-size: 0.6rem;">${this.formatTimeAgo(group.createdAt)}</div>
                             </div>
                             <i class="fa-solid fa-chevron-down expand-icon"></i>
                         </div>
                     </div>
-                    <div id="group_${group.auth0Id}_${group.type}" class="activity-details" style="display: none;">
+                    <div id="${groupId}" class="activity-details" style="display: none;">
                         ${group.items.map(item => this.formatDetailedActivity(item)).join('')}
                     </div>
                 </div>`;
         };
     
+        // Clear existing content
+        activitiesContainer.innerHTML = '';
+        interactionsContainer.innerHTML = '';
+    
+        // Render all activities
         activities.forEach(group => {
             const activityItem = document.createElement('div');
-            activityItem.innerHTML = createSummaryHTML(group);
+            activityItem.innerHTML = createSummaryHTML(group, false);
             activitiesContainer.appendChild(activityItem);
+        });
     
-            // Check for interactions - either the user's own segments or segments they've commented on
-            const hasInteraction = group.items.some(item => {
-                if (item.type === 'segment') {
-                    // Include if user created the segment or commented on it
-                    return item.metadata?.segmentCreatorId === currentUser?.sub;
-                } else if (item.type === 'comment') {
-                    // Include if the comment is on a segment the user created or if they've commented on this segment before
-                    return item.metadata?.segmentCreatorId === currentUser?.sub ||
-                           item.metadata?.previousCommenters?.includes(currentUser?.sub);
-                }
-                return false;
-            });
+        // Filter for interactions (only comments on user's segments or segments they've commented on)
+        const interactionGroups = activities.filter(group => {
+            if (group.type !== 'comment') return false;
+            
+            return group.items.some(item => 
+                // Comments on segments the user created
+                item.metadata?.segmentCreatorId === currentUser?.sub ||
+                // Comments on segments where the user also commented
+                item.metadata?.previousCommenters?.includes(currentUser?.sub)
+            );
+        });
     
-            if (hasInteraction) {
-                const interactionItem = activityItem.cloneNode(true);
-                interactionItem.classList.add('interaction-item');
-                interactionsContainer.appendChild(interactionItem);
-            }
+        // Render interactions
+        interactionGroups.forEach(group => {
+            const interactionItem = document.createElement('div');
+            interactionItem.innerHTML = createSummaryHTML(group, true);
+            interactionContainer.appendChild(interactionItem);
         });
     },
-
+    
     formatDetailedActivity(item) {
         const timeAgo = this.formatTimeAgo(item.createdAt);
         
@@ -228,32 +226,40 @@ const ActivityFeed = {
             case 'photo':
                 return `
                     <div class="detail-item">
-                        <img src="${item.metadata.photoUrl}" 
-                             alt="Activity photo" 
-                             class="detail-image"
-                             onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'photo')"
-                             style="width: 100px; height: 100px; object-fit: cover; cursor: pointer;">
-                        <div class="detail-meta">${timeAgo}</div>
+                        <div class="clickable-item" 
+                             onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'photo')">
+                            <img src="${item.metadata.photoUrl}" 
+                                 alt="Activity photo" 
+                                 class="detail-image"
+                                 style="width: 100px; height: 100px; object-fit: cover;">
+                            <div class="hover-text">Click to view on map</div>
+                        </div>
+                        <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
                     </div>`;
             case 'segment':
                 return `
-                    <div class="detail-item" 
-                         onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'segment')"
-                         style="cursor: pointer;">
-                        <div class="detail-title">${item.metadata.title || 'Unnamed segment'}</div>
-                        <div class="detail-meta">${timeAgo}</div>
+                    <div class="detail-item">
+                        <div class="clickable-item"
+                             onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'segment')">
+                            <div class="detail-title" style="font-size: 0.75rem;">
+                                ${item.metadata.title || 'Unnamed segment'}
+                                <i class="fa-solid fa-location-arrow" style="margin-left: 4px; font-size: 0.6rem;"></i>
+                            </div>
+                            <div class="hover-text">Click to view on map</div>
+                        </div>
+                        <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
                     </div>`;
             case 'comment':
                 return `
                     <div class="detail-item">
-                        <div class="detail-text">${item.metadata.commentText}</div>
-                        <div class="detail-meta">${timeAgo}</div>
+                        <div class="detail-text" style="font-size: 0.75rem;">${item.metadata.commentText}</div>
+                        <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
                     </div>`;
             default:
                 return '';
         }
     },
-
+    
     zoomToLocation(lng, lat, type) {
         if (lng && lat && window.map) {
             window.map.flyTo({
@@ -261,7 +267,7 @@ const ActivityFeed = {
                 zoom: type === 'photo' ? 18 : 15,
                 duration: 1500
             });
-
+    
             // Close the activity feed after zooming
             const activitySection = document.getElementById('activitySection');
             if (activitySection && activitySection.classList.contains('show')) {
@@ -269,7 +275,7 @@ const ActivityFeed = {
             }
         }
     },
-
+    
     formatTimeAgo(date) {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         
