@@ -54,6 +54,7 @@ window.layers.updateSurfaceData = async function() {
     const zoomLevel = map.getZoom();
     console.log(`Current zoom level: ${zoomLevel}`);
 
+    // Early return if zoom is too low
     if (zoomLevel < 13) {
         if (map.getSource('road-surfaces')) {
             console.log('Zoom level too low, clearing surface data');
@@ -80,12 +81,16 @@ window.layers.updateSurfaceData = async function() {
         bounds.getNorth()
     ].join(',');
 
-    console.log(`Fetching roads for bbox: ${bbox}`);
+    console.log(`Fetching roads for bbox: ${bbox} at zoom level: ${zoomLevel}`);
     console.time('surfaceDataFetch');
 
     try {
-        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        // Add zoom parameter to API call
+        const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
         
         const data = await response.json();
         console.timeEnd('surfaceDataFetch');
