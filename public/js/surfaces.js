@@ -17,22 +17,7 @@ window.layers.initSurfaceLayers = function() {
                 features: []
             }
         });
-
-        map.addLayer({
-            'id': 'road-surfaces-bg',
-            'type': 'line',
-            'source': 'road-surfaces',
-            'layout': {
-                'visibility': 'none',
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#000',
-                'line-width': 5
-            }
-        });
-
+        
         map.addLayer({
             'id': 'road-surfaces-layer',
             'type': 'line',
@@ -43,19 +28,16 @@ window.layers.initSurfaceLayers = function() {
                 'line-cap': 'round'
             },
             'paint': {
-                'line-color': [
-                    'match',
-                    ['get', 'surface'],
-                    'unpaved', '#8B4513',
-                    'gravel', '#CD853F',
-                    'dirt', '#8B4513',
-                    'sand', '#F4A460',
-                    'grass', '#228B22',
-                    '#A0522D'
-                ],
+                'line-color': '#F5DEB3', // Transparent beige color
                 'line-width': 3,
-                'line-opacity': 0.6  // Added transparency
-            }
+                'line-opacity': 0.5  // Adjust opacity as needed
+            },
+            'filter': [
+                'in',
+                ['get', 'surface'],
+                'gravel', 'dirt', 'unpaved', 'sand', 'ground', 
+                'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
+            ]
         });
     }
 };
