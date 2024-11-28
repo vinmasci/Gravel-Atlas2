@@ -29,10 +29,10 @@ module.exports = async (req, res) => {
                   }
               }
           },
-          // Only fetch unpaved roads
-          'properties.surface': {
-              $in: ['unpaved', 'gravel', 'dirt', 'sand', 'grass']
-          }
+          $or: [
+              { 'properties.surface': { $in: ['unpaved', 'gravel', 'dirt', 'sand', 'grass', 'ground', 'earth', 'fine_gravel', 'compacted'] }},
+              { 'properties.tracktype': { $exists: true }}
+          ]
       };
 
         const roads = await client.db('gravelatlas')
