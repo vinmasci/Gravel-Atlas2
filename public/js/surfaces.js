@@ -65,6 +65,17 @@ window.layers.initSurfaceLayers = function() {
 window.layers.updateSurfaceData = async function() {
     if (!window.layerVisibility.surfaces) return;
     
+    // Only load data at zoom level 13 or higher
+    if (map.getZoom() < 13) {
+        if (map.getSource('road-surfaces')) {
+            map.getSource('road-surfaces').setData({
+                type: 'FeatureCollection',
+                features: []
+            });
+        }
+        return;
+    }
+    
     const bounds = map.getBounds();
     const bbox = [
         bounds.getWest(),
