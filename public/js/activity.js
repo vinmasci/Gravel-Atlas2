@@ -3,7 +3,16 @@ const ActivityFeed = {
     isLoading: false,
     hasMore: true,
     initialized: false,
-
+    toggleGroup(groupId) {
+        const details = document.getElementById(`group_${groupId}`);
+        const icon = details.previousElementSibling.querySelector('.expand-icon');
+        
+        const isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        icon.classList.toggle('fa-chevron-up', isHidden);
+        icon.classList.toggle('fa-chevron-down', !isHidden);
+    },
+    
     async init() {
         if (this.initialized) return;
     
@@ -283,82 +292,51 @@ const ActivityFeed = {
     async renderActivities(activities) {
         const activitiesContainer = document.getElementById('activities-content');
         const interactionsContainer = document.getElementById('interactions-content');
-
+    
         if (!activitiesContainer || !interactionsContainer) return;
-
+    
         if (!activities?.length) {
-            const emptyState = `
-                <div class="activity-item" style="text-align: center; color: rgba(255,255,255,0.6);">
-                    <i class="fa-solid fa-inbox" style="font-size: 16px; margin-bottom: 6px;"></i>
-                    <div style="font-size: 0.75rem;">No activities yet</div>
-                    <div style="font-size: 0.7rem; margin-top: 4px;">
-                        Activities will appear here when you add segments, photos, or comments
-                    </div>
-                </div>
-            `;
+            const emptyState = `<div class="activity-item" style="text-align: center;">
+                <i class="fa-solid fa-inbox"></i><div>No activities yet</div>
+            </div>`;
             activitiesContainer.innerHTML = emptyState;
             interactionsContainer.innerHTML = emptyState;
             return;
         }
-
-        activities.forEach(async group => {
-            const auth0 = await window.auth0;
-            const currentUser = await auth0.getUser();
-            
-            const icon = group.type === 'segment' ? 'fa-route' :
-                        group.type === 'photo' ? 'fa-camera' :
-                        group.type === 'comment' ? 'fa-comment' : 'fa-circle';
-
-            const getItemText = () => {
-                switch (group.type) {
-                    case 'photo':
-                        return `added ${group.count} photo${group.count > 1 ? 's' : ''}`;
-                    case 'segment':
-                        return `added ${group.count} segment${group.count > 1 ? 's' : ''}`;
-                    case 'comment':
-                        return `commented ${group.count} time${group.count > 1 ? 's' : ''}`;
-                    default:
-                        return `added ${group.count} item${group.count > 1 ? 's' : ''}`;
-                }
-            };
-
-            const baseHtml = `
+    
+        const createSummaryHTML = (group, currentUser) => {
+            const icon = group.type === 'segment' ? 'fa-route' : 
+                        group.type === 'photo' ? 'fa-camera' : 'fa-comment';
+    
+            return `
                 <div class="activity-group">
                     <div class="activity-summary" onclick="ActivityFeed.toggleGroup('${group.auth0Id}_${group.type}')">
-                        <div style="display: flex; align-items: start; gap: 8px;">
-                            <div style="padding-top: 2px;">
-                                <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
-                            </div>
-                            <div style="flex-grow: 1;">
-                                <div>
-                                    <span class="username" data-auth0id="${group.auth0Id}">${group.username}</span> 
-                                    ${getItemText()}
-                                </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
+                            <div class="activity-content">
+                                <span class="username" data-auth0id="${group.auth0Id}">${group.username}</span>
+                                added ${group.count} ${group.type}${group.count > 1 ? 's' : ''}
                                 <div class="activity-meta">${this.formatTimeAgo(group.createdAt)}</div>
                             </div>
-                            <div class="expand-icon">
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
+                            <i class="fa-solid fa-chevron-down expand-icon"></i>
                         </div>
                     </div>
                     <div id="group_${group.auth0Id}_${group.type}" class="activity-details" style="display: none;">
                         ${group.items.map(item => this.formatDetailedActivity(item)).join('')}
                     </div>
-                </div>
-            `;
-
+                </div>`;
+        };
+    
+        activities.forEach(group => {
             const activityItem = document.createElement('div');
             activityItem.className = 'activity-item';
-            activityItem.innerHTML = baseHtml;
-            this.addLocationHandling(activityItem, group);
+            activityItem.innerHTML = createSummaryHTML(group, currentUser);
             activitiesContainer.appendChild(activityItem);
-
-            const hasInteraction = group.items.some(item => 
+    
+            if (group.items.some(item => 
                 item.metadata?.segmentCreatorId === currentUser?.sub ||
                 item.metadata?.previousCommenters?.includes(currentUser?.sub)
-            );
-
-            if (hasInteraction && group.auth0Id !== currentUser?.sub) {
+            )) {
                 const interactionItem = activityItem.cloneNode(true);
                 interactionItem.classList.add('interaction-item');
                 interactionsContainer.appendChild(interactionItem);
