@@ -62,18 +62,29 @@ window.layers.initSurfaceLayers = function() {
 
 window.layers.updateSurfaceData = async function() {
     if (!window.layerVisibility.surfaces) return;
-    
-    // Only load data at zoom level 13 or higher
-    if (map.getZoom() < 13) {
+
+    const surfaceToggle = document.querySelector('.surface-toggle');
+    const zoomLevel = map.getZoom();
+    console.log(`Current zoom level: ${zoomLevel}`);
+
+    if (zoomLevel < 13) {
         if (map.getSource('road-surfaces')) {
+            console.log('Zoom level too low, clearing surface data');
             map.getSource('road-surfaces').setData({
                 type: 'FeatureCollection',
                 features: []
             });
         }
+        if (surfaceToggle) {
+            surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Zoom in to see roads';
+        }
         return;
     }
-    
+
+    if (surfaceToggle) {
+        surfaceToggle.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading roads...';
+    }
+
     const bounds = map.getBounds();
     const bbox = [
         bounds.getWest(),
@@ -81,17 +92,33 @@ window.layers.updateSurfaceData = async function() {
         bounds.getEast(),
         bounds.getNorth()
     ].join(',');
-    
+
+    console.log(`Fetching roads for bbox: ${bbox}`);
+    console.time('surfaceDataFetch');
+
     try {
         const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
         
+        const data = await response.json();
+        console.timeEnd('surfaceDataFetch');
+        console.log(`Loaded ${data.features.length} roads`);
+
         if (map.getSource('road-surfaces')) {
             map.getSource('road-surfaces').setData(data);
         }
+
+        if (surfaceToggle) {
+            surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
+        }
     } catch (error) {
         console.error('Error updating surface data:', error);
+        if (surfaceToggle) {
+            surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading roads';
+            setTimeout(() => {
+                surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
+            }, 3000);
+        }
     }
 };
 

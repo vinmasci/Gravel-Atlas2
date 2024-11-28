@@ -2,8 +2,14 @@ const { MongoClient } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
+    const startTime = Date.now();
     const { bbox } = req.query;
     
+    console.log('Road surfaces API called:', {
+        timestamp: new Date().toISOString(),
+        bbox
+    });
+
     if (!bbox) {
         return res.status(400).json({ error: 'Bounding box required' });
     }
@@ -12,10 +18,10 @@ module.exports = async (req, res) => {
     let client;
     
     try {
+        console.log('Connecting to MongoDB...');
         client = new MongoClient(uri);
         await client.connect();
         
-        // Modified query to filter for unpaved roads while keeping the spatial query
         const query = {
             geometry: {
                 $geoIntersects: {
@@ -31,32 +37,30 @@ module.exports = async (req, res) => {
                     }
                 }
             },
-            $or: [
-                { 'properties.surface': 'unpaved' },
-                { 'properties.surface': 'gravel' },
-                { 'properties.surface': 'dirt' },
-                { 'properties.surface': 'sand' },
-                { 'properties.surface': 'grass' },
-                { 'properties.surface': 'ground' },
-                { 'properties.tracktype': { $in: ['grade1', 'grade2', 'grade3', 'grade4', 'grade5'] } }
-            ]
+            'properties.highway': { 
+                $nin: ['motorway', 'motorway_link', 'trunk', 'trunk_link']
+            }
         };
 
-        // Add logging to debug the query
-        console.log('Executing query:', JSON.stringify(query));
+        console.log('Executing query:', JSON.stringify(query, null, 2));
         
+        console.time('queryExecution');
         const roads = await client.db('gravelatlas')
             .collection('road_surfaces')
             .find(query)
-            .limit(1000) // Keep the limit to maintain performance
+            .limit(1000)
             .toArray();
+        console.timeEnd('queryExecution');
 
-        // Log the number of roads found
-        console.log(`Found ${roads.length} roads in bbox: ${bbox}`);
-        
-        // Log unique surface types found
-        const surfaceTypes = [...new Set(roads.map(r => r.properties?.surface))];
-        console.log('Surface types found:', surfaceTypes);
+        const uniqueHighwayTypes = [...new Set(roads.map(r => r.properties?.highway))];
+        const uniqueSurfaceTypes = [...new Set(roads.map(r => r.properties?.surface))];
+
+        console.log('Query results:', {
+            roadsFound: roads.length,
+            highwayTypes: uniqueHighwayTypes,
+            surfaceTypes: uniqueSurfaceTypes,
+            executionTime: `${Date.now() - startTime}ms`
+        });
 
         const geojson = {
             type: 'FeatureCollection',
@@ -64,10 +68,9 @@ module.exports = async (req, res) => {
                 type: 'Feature',
                 geometry: road.geometry,
                 properties: {
-                    surface: road.properties?.surface || 'unknown',
                     highway: road.properties?.highway,
                     name: road.properties?.name,
-                    tracktype: road.properties?.tracktype
+                    surface: road.properties?.surface || 'unknown'
                 }
             }))
         };
@@ -75,14 +78,17 @@ module.exports = async (req, res) => {
         return res.json(geojson);
         
     } catch (error) {
-        console.error('Error in API:', error);
-        console.error('Error details:', {
-            message: error.message,
+        console.error('Error in road surfaces API:', {
+            error: error.message,
             stack: error.stack,
-            bbox: bbox
+            bbox,
+            timestamp: new Date().toISOString()
         });
         return res.status(500).json({ error: error.message });
     } finally {
-        if (client) await client.close();
+        if (client) {
+            console.log('Closing MongoDB connection');
+            await client.close();
+        }
     }
 };
