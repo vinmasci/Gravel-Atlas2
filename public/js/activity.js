@@ -215,7 +215,7 @@ const ActivityFeed = {
         interactionGroups.forEach(group => {
             const interactionItem = document.createElement('div');
             interactionItem.innerHTML = createSummaryHTML(group, true);
-            interactionContainer.appendChild(interactionItem);
+            interactionsContainer.appendChild(interactionItem);
         });
     },
     
