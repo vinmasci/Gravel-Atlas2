@@ -204,7 +204,6 @@ function waitForAuth0() {
             layerVisibility.surfaces = !layerVisibility.surfaces;
             const visibility = layerVisibility.surfaces ? 'visible' : 'none';
             
-            map.setLayoutProperty('road-surfaces-bg', 'visibility', visibility);
             map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
             
             if (layerVisibility.surfaces) {
