@@ -2,13 +2,7 @@
 if (!window.layerVisibility) {
     window.layerVisibility = {};
 }
-window.layerVisibility.surfaces = false;
-
-if (!window.layers) {
-    window.layers = {};
-}
-
-window.layers.initSurfaceLayers = function() {
+wiwindow.layers.initSurfaceLayers = function() {
     if (!map.getSource('road-surfaces')) {
         map.addSource('road-surfaces', {
             type: 'geojson',
@@ -17,7 +11,8 @@ window.layers.initSurfaceLayers = function() {
                 features: []
             }
         });
-        
+
+        // Main layer displaying unpaved roads
         map.addLayer({
             'id': 'road-surfaces-layer',
             'type': 'line',
@@ -30,13 +25,17 @@ window.layers.initSurfaceLayers = function() {
             'paint': {
                 'line-color': '#F5DEB3', // Transparent beige color
                 'line-width': 3,
-                'line-opacity': 0.5  // Adjust opacity as needed
+                'line-opacity': 0.5  // Adjust opacity as desired
             },
             'filter': [
-                'in',
+                'match',
                 ['get', 'surface'],
-                'gravel', 'dirt', 'unpaved', 'sand', 'ground', 
-                'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
+                [
+                    'gravel', 'dirt', 'unpaved', 'sand', 'ground', 
+                    'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
+                ],
+                true,
+                false
             ]
         });
     }
