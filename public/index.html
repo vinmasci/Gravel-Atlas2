@@ -2157,16 +2157,25 @@
 /* ============================
    SECTION: Surface Toggle
    ============================ */
-
-.surface-toggle {
+   .surface-toggle {
     padding: 5px 10px;
     background: #fff;
     border: none;
     cursor: pointer;
+    position: absolute;
+    top: 120px;  /* Adjust based on your layout */
+    right: 10px;
+    z-index: 1;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 .surface-toggle.active {
     background: #ddd;
+}
+
+.surface-toggle:hover {
+    background: #f0f0f0;
 }
     </style>
     
@@ -2331,6 +2340,9 @@
 <!-- Map container should be empty -->
 <div id="map"></div>
 <div id="street-view-panorama"></div>
+<button id="surfaceToggle" class="surface-toggle"></button>
+    <i class="fa-solid fa-road"></i> Surface Types
+</button>
 
 <div class="map-layer-options">
     <select id="tileLayerSelect" class="form-control">
@@ -2617,6 +2629,8 @@
 <script src="/js/activity.js"></script>
 <!-- User Management -->
 <script src="/js/user.js"></script>
+<!-- Surfaces -->
+<script src="/js/surfaces.js"></script>
   <!-- Core Application -->
 <script src="/js/core.js"></script>
 <!-- Utility Modules -->
