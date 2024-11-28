@@ -176,18 +176,15 @@ const ActivityFeed = {
             return;
         }
     
-        const createSummaryHTML = (group, isInteraction = false) => {
+        const createSummaryHTML = (group) => {
             const icon = group.type === 'segment' ? 'fa-route' : 
                         group.type === 'photo' ? 'fa-camera' : 'fa-comment';
             
             const displayUsername = this.hideEmailUsername(group.username);
-            const groupId = isInteraction ? 
-                `interaction_${group.auth0Id}_${group.type}` : 
-                `activity_${group.auth0Id}_${group.type}`;
     
             return `
                 <div class="activity-group">
-                    <div class="activity-summary" onclick="ActivityFeed.toggleGroup('${groupId}')">
+                    <div class="activity-summary" onclick="ActivityFeed.toggleGroup('${group.auth0Id}_${group.type}')">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid ${icon}" style="color: #FF652F;"></i>
                             <div class="activity-content" style="font-size: 0.75rem;">
@@ -198,83 +195,78 @@ const ActivityFeed = {
                             <i class="fa-solid fa-chevron-down expand-icon"></i>
                         </div>
                     </div>
-                    <div id="${groupId}" class="activity-details" style="display: none;">
+                    <div id="group_${group.auth0Id}_${group.type}" class="activity-details" style="display: none;">
                         ${group.items.map(item => this.formatDetailedActivity(item)).join('')}
                     </div>
                 </div>`;
         };
     
-        // Clear existing content
+        // Clear containers
         activitiesContainer.innerHTML = '';
         interactionsContainer.innerHTML = '';
-    
+
         // Render all activities
         activities.forEach(group => {
             const activityItem = document.createElement('div');
-            activityItem.innerHTML = createSummaryHTML(group, false);
+            activityItem.innerHTML = createSummaryHTML(group);
             activitiesContainer.appendChild(activityItem);
-        });
-    
-        // Filter for interactions (only comments on user's segments or segments they've commented on)
-        const interactionGroups = activities.filter(group => {
-            if (group.type !== 'comment') return false;
-            
-            return group.items.some(item => 
-                // Comments on segments the user created
-                item.metadata?.segmentCreatorId === currentUser?.sub ||
-                // Comments on segments where the user also commented
-                item.metadata?.previousCommenters?.includes(currentUser?.sub)
-            );
-        });
-    
-        // Render interactions
-        interactionGroups.forEach(group => {
-            const interactionItem = document.createElement('div');
-            interactionItem.innerHTML = createSummaryHTML(group, true);
-            interactionsContainer.appendChild(interactionItem);
+
+            // Handle interactions - only show comments on user's segments or segments they've commented on
+            if (group.type === 'comment') {
+                const hasInteraction = group.items.some(item => 
+                    item.metadata?.segmentCreatorId === currentUser?.sub ||
+                    item.metadata?.previousCommenters?.includes(currentUser?.sub)
+                );
+
+                if (hasInteraction) {
+                    const interactionItem = activityItem.cloneNode(true);
+                    interactionItem.classList.add('interaction-item');
+                    interactionsContainer.appendChild(interactionItem);
+                }
+            }
         });
     },
 
     formatDetailedActivity(item) {
-    const timeAgo = this.formatTimeAgo(item.createdAt);
-    
-    switch (item.type) {
-        case 'photo':
-            return `
-                <div class="detail-item">
-                    <div class="clickable-item" 
-                         onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'photo')">
-                        <img src="${item.metadata.photoUrl}" 
-                             alt="Activity photo" 
-                             class="detail-image"
-                             style="width: 100px; height: 100px; object-fit: cover;">
-                        <div class="hover-text">Click to view on map</div>
-                    </div>
-                    <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
-                </div>`;
-        case 'segment':
-            return `
-                <div class="detail-item">
-                    <div class="clickable-item"
-                         onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'segment')">
-                        <div class="detail-title" style="font-size: 0.75rem;">
-                            ${item.metadata.title || 'Unnamed segment'}
-                            <i class="fa-solid fa-location-arrow" style="margin-left: 4px; font-size: 0.6rem;"></i>
+        const timeAgo = this.formatTimeAgo(item.createdAt);
+        
+        switch (item.type) {
+            case 'photo':
+                return `
+                    <div class="detail-item">
+                        <div class="clickable-item" 
+                             onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'photo')">
+                            <img src="${item.metadata.photoUrl}" 
+                                 alt="Activity photo" 
+                                 class="detail-image"
+                                 style="width: 100px; height: 100px; object-fit: cover;">
+                            <div class="hover-text">Click to view on map</div>
                         </div>
-                        <div class="hover-text">Click to view on map</div>
-                    </div>
-                    <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
-                </div>`;
-        case 'comment':
-            return `
-                <div class="detail-item">
-                    <div class="detail-text" style="font-size: 0.75rem;">${item.metadata.commentText}</div>
-                    <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
-                </div>`;
-        default:
-            return '';
-    }
-},
+                        <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
+                    </div>`;
+            case 'segment':
+                return `
+                    <div class="detail-item">
+                        <div class="clickable-item"
+                             onclick="ActivityFeed.zoomToLocation(${item.metadata.location?.coordinates?.[0]}, ${item.metadata.location?.coordinates?.[1]}, 'segment')">
+                            <div class="detail-title" style="font-size: 0.75rem;">
+                                ${item.metadata.title || 'Unnamed segment'}
+                                <i class="fa-solid fa-location-arrow" style="margin-left: 4px; font-size: 0.6rem;"></i>
+                            </div>
+                            <div class="hover-text">Click to view on map</div>
+                        </div>
+                        <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
+                    </div>`;
+            case 'comment':
+                return `
+                    <div class="detail-item">
+                        <div class="detail-text" style="font-size: 0.75rem;">${item.metadata.commentText}</div>
+                        <div class="detail-meta" style="font-size: 0.6rem;">${timeAgo}</div>
+                    </div>`;
+            default:
+                return '';
+        }
+    },
 
     zoomToLocation(lng, lat, type) {
         if (lng && lat && window.map) {
