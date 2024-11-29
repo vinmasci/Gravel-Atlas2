@@ -5,7 +5,7 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
-    MIN_ZOOM: 11,
+    MIN_ZOOM:11,
     LOW_DETAIL: 13,
     MID_DETAIL: 14,
     HIGH_DETAIL: 15
