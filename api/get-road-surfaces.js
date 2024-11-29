@@ -2,7 +2,7 @@ const { MongoClient } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 
 // Cache and threshold configurations
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
@@ -44,7 +44,6 @@ module.exports = async (req, res) => {
     const startTime = Date.now();
     console.log('📥 Request received:', {
         query: req.query,
-        headers: req.headers,
         timestamp: new Date().toISOString()
     });
 
@@ -114,66 +113,78 @@ module.exports = async (req, res) => {
             await client.connect();
             console.log('✅ Connected to MongoDB');
 
+            // Build base geographic query
             const baseQuery = {
-              geometry: {
-                  $geoIntersects: {
-                      $geometry: {
-                          type: 'Polygon',
-                          coordinates: [[
-                              [west, south],
-                              [east, south],
-                              [east, north],
-                              [west, north],
-                              [west, south]
-                          ]]
-                      }
-                  }
-              },
-              'properties.surface': { $in: UNPAVED_SURFACES }
-          };
+                geometry: {
+                    $geoIntersects: {
+                        $geometry: {
+                            type: 'Polygon',
+                            coordinates: [[
+                                [west, south],
+                                [east, south],
+                                [east, north],
+                                [west, north],
+                                [west, south]
+                            ]]
+                        }
+                    }
+                }
+            };
 
-            let query = baseQuery;
-            let limit;
+            // Test geographic query first
+            console.log('🔍 Testing geographic query...');
+            const geoResults = await client.db('gravelatlas')
+                .collection('road_surfaces')
+                .find(baseQuery)
+                .limit(5)
+                .toArray();
 
-// Adjust query and limit based on zoom level
-if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
-  query['properties.highway'] = { $nin: ROAD_TYPES.excluded };
-  limit = 2000;
-} else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
-  query['properties.highway'] = { 
-      $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
-      $nin: ROAD_TYPES.excluded 
-  };
-  limit = 1500;
-} else {
-  query['properties.highway'] = { 
-      $in: ROAD_TYPES.major,
-      $nin: ROAD_TYPES.excluded 
-  };
-  limit = 1000;
-}
+            console.log('📍 Roads in bounding box:', {
+                count: geoResults.length,
+                sample: geoResults.slice(0, 1).map(r => ({
+                    surface: r.properties?.surface,
+                    highway: r.properties?.highway,
+                    coordinates: r.geometry?.coordinates?.slice(0, 1)
+                }))
+            });
 
-console.log('🔍 Final query:', {
-  zoomLevel,
-  limit,
-  query: JSON.stringify(query, null, 2)
-});
+            // Build full query
+            let query = {
+                ...baseQuery,
+                'properties.surface': { $in: UNPAVED_SURFACES }
+            };
 
-const roads = await client.db('gravelatlas')
-  .collection('road_surfaces')
-  .find(query)
-  .limit(limit)
-  .toArray();
-            console.timeEnd('mongoQuery');
-
-            console.log(`✅ Found ${roads.length} roads`);
-
-            if (roads.length > 0) {
-                console.log('📊 Sample road data:', {
-                    first: roads[0],
-                    last: roads[roads.length - 1]
-                });
+            // Add highway conditions based on zoom level
+            if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
+                query['properties.highway'] = { $nin: ROAD_TYPES.excluded };
+                limit = 2000;
+            } else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
+                query['properties.highway'] = { 
+                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
+                    $nin: ROAD_TYPES.excluded 
+                };
+                limit = 1500;
+            } else {
+                query['properties.highway'] = { 
+                    $in: ROAD_TYPES.major,
+                    $nin: ROAD_TYPES.excluded 
+                };
+                limit = 1000;
             }
+
+            console.log('📊 Final query:', JSON.stringify(query, null, 2));
+
+            const roads = await client.db('gravelatlas')
+                .collection('road_surfaces')
+                .find(query)
+                .limit(limit)
+                .toArray();
+
+            console.log('✅ Query results:', {
+                totalRoads: roads.length,
+                surfaces: roads.map(r => r.properties?.surface).slice(0, 5),
+                highways: roads.map(r => r.properties?.highway).slice(0, 5)
+            });
 
             const geojson = {
                 type: 'FeatureCollection',
@@ -183,17 +194,6 @@ const roads = await client.db('gravelatlas')
                             console.warn('⚠️ Invalid road geometry:', road);
                             return null;
                         }
-
-                        // Log coordinate structure for debugging
-                        console.log('🔍 Coordinate structure for road:', {
-                            id: road._id,
-                            coordType: typeof road.geometry.coordinates,
-                            isArray: Array.isArray(road.geometry.coordinates),
-                            depth: Array.isArray(road.geometry.coordinates) ? 
-                                  road.geometry.coordinates.reduce((depth, arr) => 
-                                      Array.isArray(arr) ? depth + 1 : depth, 1) : 0,
-                            sampleCoord: road.geometry.coordinates[0]
-                        });
 
                         return {
                             type: 'Feature',
@@ -210,15 +210,6 @@ const roads = await client.db('gravelatlas')
                     }
                 }).filter(Boolean)
             };
-
-            console.log('📊 GeoJSON stats:', {
-                totalFeatures: geojson.features.length,
-                sampleFeature: geojson.features[0] ? {
-                    properties: geojson.features[0].properties,
-                    geometryType: geojson.features[0].geometry.type,
-                    coordinatesLength: geojson.features[0].geometry.coordinates.length
-                } : null
-            });
 
             // Cache the result
             cache.set(cacheKey, {
