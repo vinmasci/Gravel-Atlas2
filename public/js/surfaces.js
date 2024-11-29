@@ -44,6 +44,9 @@ window.layers.initSurfaceLayers = function() {
                 false
             ]
         });
+
+                // Add moveend event listener for updating data
+                map.on('moveend', window.layers.updateSurfaceData);
     }
 };
 
