@@ -148,7 +148,7 @@ window.layers.updateSurfaceData = async function() {
             });
         }
         if (surfaceToggle) {
-            surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Zoom in to see roads';
+            surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
         }
         return;
     }
@@ -166,7 +166,7 @@ window.layers.updateSurfaceData = async function() {
     if (surfaceToggle) {
         console.log('🔄 Setting loading state on button');
         surfaceToggle.classList.add('loading');
-        surfaceToggle.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading roads...';
+        surfaceToggle.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading gravel...';
     }
 
     // Calculate expanded bbox for buffered loading
@@ -235,7 +235,7 @@ window.layers.updateSurfaceData = async function() {
         if (surfaceToggle) {
             console.log('✅ Update complete, resetting button state');
             surfaceToggle.classList.remove('loading');
-            surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
+            surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Gravel loading';
         }
     } catch (error) {
         console.error('❌ Error updating surface data:', {
@@ -244,9 +244,9 @@ window.layers.updateSurfaceData = async function() {
         });
         if (surfaceToggle) {
             surfaceToggle.classList.remove('loading');
-            surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading roads';
+            surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading gravel';
             setTimeout(() => {
-                surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
+                surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel';
             }, 3000);
         }
     }
@@ -292,21 +292,21 @@ window.layers.toggleSurfaceLayer = async function() {
             if (zoomLevel < 11) {
                 if (surfaceControl) {
                     surfaceControl.classList.add('active');
-                    surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Zoom in to see surfaces';
+                    surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
                 }
             } else {
                 console.log('🔄 Updating surface data');
                 await window.layers.updateSurfaceData();
                 if (surfaceControl) {
                     surfaceControl.classList.add('active');
-                    surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surfaces On';
+                    surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i>  Surfaces On';
                 }
             }
         } else {
             console.log('🔄 Layer hidden');
             if (surfaceControl) {
                 surfaceControl.classList.remove('active');
-                surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surfaces Off';
+                surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i>  Surfaces Off';
             }
         }
 
@@ -322,7 +322,7 @@ window.layers.toggleSurfaceLayer = async function() {
         if (surfaceControl) {
             surfaceControl.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error';
             setTimeout(() => {
-                surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
+                surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i>  Gravel';
             }, 3000);
         }
     } finally {

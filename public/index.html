@@ -2187,44 +2187,55 @@
     cursor: not-allowed;
 }
 
-/* ============================
-   SECTION: Surface Toggle
-   ============================ */
-   .surface-toggle {
-    padding: 8px 12px;
-    background: #fff;
-    border: 1px solid #ccc;
-    cursor: pointer;
+ /* ============================
+ SECTION: Surface Toggle
+ ============================ */
+.surface-toggle {
     position: absolute;
     top: 120px;
     right: 10px;
-    z-index: 1;
+    z-index: 1000;
+    background-color: #343a40;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    height: 38px;
+    min-width: 140px;
+    transition: all 0.2s ease;
+}
+
+.surface-toggle:hover {
+    background-color: #444;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* When the layer is active */
 .surface-toggle.active {
-    background: #007bff;
-    color: white;
-    border-color: #0056b3;
+    background-color: #444;
+    color: #fff;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.surface-toggle.active:hover {
+    background-color: #4a4a4a;
 }
 
 /* When loading */
 .surface-toggle.loading {
-    background: #f8f9fa;
-    pointer-events: none; /* Prevent clicking while loading */
+    background-color: #383838;
+    pointer-events: none;
     opacity: 0.8;
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Hover state */
-.surface-toggle:hover {
-    background: #f0f0f0;
-}
-
-.surface-toggle.active:hover {
-    background: #0056b3;
+/* Icon styling */
+.surface-toggle i {
+    margin-right: 8px;
 }
     </style>
     
@@ -2404,7 +2415,7 @@
 
 <!-- Add this where you want the toggle button to appear -->
 <button class="surface-toggle">
-    <i class="fa-solid fa-road"></i> Surface Types
+    <i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer
 </button>
 
 <!-- Elevation Preview -->
