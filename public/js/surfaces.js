@@ -121,15 +121,18 @@ window.layers.updateSurfaceData = async function() {
         }
     }
 };
+
 window.layers.toggleSurfaceLayer = async function() {
+    console.log('toggleSurfaceLayer called, current visibility:', window.layerVisibility.surfaces);
     try {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
+        console.log('Setting visibility to:', visibility);
         map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
-        // Removed 'road-surfaces-bg' layer since it doesn't exist
 
         if (window.layerVisibility.surfaces) {
+            console.log('Calling updateSurfaceData');
             await window.layers.updateSurfaceData();
             const surfaceControl = document.querySelector('.surface-toggle');
             if (surfaceControl) surfaceControl.classList.add('active');
