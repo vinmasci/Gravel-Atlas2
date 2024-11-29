@@ -8,7 +8,7 @@ if (!window.layers) {
     window.layers = {};
 }
 
-// Update cache configuration
+// Cache configuration
 const SURFACE_CACHE = {
     data: new Map(),
     viewState: {
@@ -61,6 +61,26 @@ function isWithinCachedArea(bounds) {
            bounds.getNorth() <= north;
 }
 
+function formatAccess(access) {
+    switch(access?.toLowerCase()) {
+        case 'private':
+            return 'Private - No Public Access';
+        case 'permissive':
+            return 'Access with Permission';
+        case 'restricted':
+            return 'Restricted Access';
+        case 'customers':
+            return 'Customers Only';
+        case 'destination':
+            return 'Local Access Only';
+        case 'yes':
+        case 'public':
+            return 'Public Access';
+        default:
+            return access ? `Access: ${access}` : null;
+    }
+}
+
 window.layers.initSurfaceLayers = function() {
     console.log('🚀 Initializing surface layers...');
     
@@ -73,10 +93,10 @@ window.layers.initSurfaceLayers = function() {
                     type: 'FeatureCollection',
                     features: []
                 },
-                tolerance: 8,     // Increased from 5 for better performance
-                maxzoom: 15,      // Keep maximum zoom level
-                buffer: 512,      // Add buffer for smoother loading
-                lineMetrics: true // Enable line metrics for better rendering
+                tolerance: 8,
+                maxzoom: 15,
+                buffer: 512,
+                lineMetrics: true
             });
             console.log('✅ Successfully added source');
 
@@ -95,16 +115,73 @@ window.layers.initSurfaceLayers = function() {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        9, 3,     // Thinner at far zoom
-                        11, 4,  // Medium at mid zoom
-                        13, 5,    // Thicker at closer zoom
-                        15, 6     // Thickest at closest zoom
+                        8, 1.5,
+                        10, 2,
+                        12, 2.5,
+                        14, 3
                     ],
                     'line-opacity': 0.7
                 }
             });
 
             console.log('✅ Successfully added layer');
+
+            // Create popup
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                maxWidth: '300px',
+                className: 'gravel-popup'
+            });
+
+            // Add hover interaction
+            map.on('mousemove', 'road-surfaces-layer', (e) => {
+                if (e.features.length > 0) {
+                    map.getCanvas().style.cursor = 'pointer';
+                    
+                    const feature = e.features[0];
+                    const props = feature.properties;
+                    
+                    let html = '<div class="gravel-popup-content">';
+                    
+                    // Road name or type
+                    if (props.name) {
+                        html += `<h4>${props.name}</h4>`;
+                    } else {
+                        html += `<h4>${props.highway.replace(/_/g, ' ').toUpperCase()}</h4>`;
+                    }
+                    
+                    // Surface type
+                    if (props.surface) {
+                        html += `<p><strong>Surface:</strong> ${props.surface.replace(/_/g, ' ')}</p>`;
+                    }
+
+                    // Track type
+                    if (props.tracktype) {
+                        html += `<p><strong>Track Grade:</strong> ${props.tracktype.toUpperCase()}</p>`;
+                    }
+
+                    // Access information
+                    if (props.access) {
+                        const accessStatus = formatAccess(props.access);
+                        html += `<p class="access-info ${props.access.toLowerCase()}">
+                            <strong>Access:</strong> ${accessStatus}
+                        </p>`;
+                    }
+
+                    html += '</div>';
+
+                    popup.setLngLat(e.lngLat)
+                        .setHTML(html)
+                        .addTo(map);
+                }
+            });
+
+            // Remove popup on mouseleave
+            map.on('mouseleave', 'road-surfaces-layer', () => {
+                map.getCanvas().style.cursor = '';
+                popup.remove();
+            });
 
             // Add debounced moveend event listener
             const debouncedUpdate = debounce(() => {
@@ -139,7 +216,7 @@ window.layers.updateSurfaceData = async function() {
     console.log('📏 Current zoom level:', zoomLevel);
 
     // Early return if zoom is too low
-    if (zoomLevel < 9) {  // Changed from 11 to 9
+    if (zoomLevel < 8) {
         console.log('🔍 Zoom level too low, clearing data');
         if (map.getSource('road-surfaces')) {
             map.getSource('road-surfaces').setData({
@@ -235,7 +312,7 @@ window.layers.updateSurfaceData = async function() {
         if (surfaceToggle) {
             console.log('✅ Update complete, resetting button state');
             surfaceToggle.classList.remove('loading');
-            surfaceToggle.innerHTML = '<i class="fa-solid fa-road"></i> Gravel loading';
+            surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
         }
     } catch (error) {
         console.error('❌ Error updating surface data:', {
@@ -246,7 +323,7 @@ window.layers.updateSurfaceData = async function() {
             surfaceToggle.classList.remove('loading');
             surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading gravel';
             setTimeout(() => {
-                surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel';
+                surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
             }, 3000);
         }
     }
@@ -289,7 +366,7 @@ window.layers.toggleSurfaceLayer = async function() {
             console.log('🔄 Layer visible, checking zoom level');
             const zoomLevel = Math.floor(map.getZoom());
             
-            if (zoomLevel < 11) {
+            if (zoomLevel < 8) {
                 if (surfaceControl) {
                     surfaceControl.classList.add('active');
                     surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
@@ -299,14 +376,14 @@ window.layers.toggleSurfaceLayer = async function() {
                 await window.layers.updateSurfaceData();
                 if (surfaceControl) {
                     surfaceControl.classList.add('active');
-                    surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i>  Surfaces On';
+                    surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel On';
                 }
             }
         } else {
             console.log('🔄 Layer hidden');
             if (surfaceControl) {
                 surfaceControl.classList.remove('active');
-                surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i>  Surfaces Off';
+                surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Off';
             }
         }
 
@@ -322,7 +399,7 @@ window.layers.toggleSurfaceLayer = async function() {
         if (surfaceControl) {
             surfaceControl.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error';
             setTimeout(() => {
-                surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i>  Gravel';
+                surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
             }, 3000);
         }
     } finally {

@@ -6,8 +6,8 @@ const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
     MIN_ZOOM: 8,      // Reduced from 11 to show roads earlier
-    LOW_DETAIL: 14,   // Adjusted thresholds for earlier detail
-    MID_DETAIL: 14,
+    LOW_DETAIL: 10,   // Adjusted thresholds for earlier detail
+    MID_DETAIL: 12,
     HIGH_DETAIL: 14
 };
 
@@ -45,6 +45,12 @@ const UNPAVED_SURFACES = [
     'laterite', 'caliche', 'coral', 'shell_grit', 'tundra',
     'chalk', 'limestone', 'shale', 'crusher_run', 'decomposed_granite'
 ];
+
+function extractFromOtherTags(otherTags, key) {
+    if (!otherTags) return null;
+    const match = otherTags.match(new RegExp(`"${key}"=>"([^"]+)"`));
+    return match ? match[1] : null;
+}
 
 function isValidCoordinate(coord) {
     return !isNaN(coord) && isFinite(coord);
@@ -98,9 +104,8 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Dynamic area calculation based on zoom level
         const area = Math.abs((east - west) * (north - south));
-        const MAX_AREA = Math.pow(2, 14 - zoomLevel) * 0.1; // Adjusted for earlier visibility
+        const MAX_AREA = Math.pow(2, 14 - zoomLevel) * 0.1;
         if (area > MAX_AREA) {
             return res.json({
                 type: 'FeatureCollection',
@@ -114,7 +119,6 @@ module.exports = async (req, res) => {
             client = new MongoClient(uri);
             await client.connect();
 
-            // Basic spatial query
             const spatialQuery = {
                 'geometry.type': 'LineString',
                 'geometry.coordinates': {
@@ -127,24 +131,6 @@ module.exports = async (req, res) => {
                 }
             };
 
-            // Test basic spatial query first
-            console.log('🔍 Testing spatial query:', JSON.stringify(spatialQuery, null, 2));
-            const testResults = await client.db('gravelatlas')
-                .collection('road_surfaces')
-                .find(spatialQuery)
-                .limit(5)
-                .toArray();
-
-            console.log('📍 Initial spatial query results:', {
-                count: testResults.length,
-                sample: testResults.slice(0, 1).map(r => ({
-                    name: r.properties?.name,
-                    surface: r.properties?.surface,
-                    highway: r.properties?.highway
-                }))
-            });
-
-            // Build complete query
             let query = {
                 ...spatialQuery,
                 'type': 'Feature',
@@ -155,7 +141,6 @@ module.exports = async (req, res) => {
                 }
             };
 
-            // Increased limits for better coverage
             let limit;
             if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
                 limit = 8000;
@@ -183,19 +168,24 @@ module.exports = async (req, res) => {
 
             const geojson = {
                 type: 'FeatureCollection',
-                features: roads.map(road => ({
-                    type: 'Feature',
-                    geometry: road.geometry,
-                    properties: {
-                        name: road.properties?.name || null,
-                        highway: road.properties?.highway || null,
-                        surface: road.properties?.surface || null
-                    }
-                }))
-            };
+                features: roads.map(road => {
+                    // Extract relevant properties including those in other_tags
+                    const tracktype = extractFromOtherTags(road.properties?.other_tags, 'tracktype');
+                    const access = extractFromOtherTags(road.properties?.other_tags, 'access');
 
-            const processTime = Date.now() - startTime;
-            console.log(`⌛ Request processed in ${processTime}ms`);
+                    return {
+                        type: 'Feature',
+                        geometry: road.geometry,
+                        properties: {
+                            name: road.properties?.name || null,
+                            highway: road.properties?.highway || null,
+                            surface: road.properties?.surface || null,
+                            tracktype: tracktype,
+                            access: access
+                        }
+                    };
+                })
+            };
 
             return res.json(geojson);
 
