@@ -5,26 +5,38 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
-    MIN_ZOOM: 9,      // Reduced from 11 to show roads earlier
-    LOW_DETAIL: 11,   // Adjusted zoom thresholds
-    MID_DETAIL: 13,
-    HIGH_DETAIL: 15
+    MIN_ZOOM: 8,      // Reduced from 11 to show roads earlier
+    LOW_DETAIL: 10,   // Adjusted thresholds for earlier detail
+    MID_DETAIL: 12,
+    HIGH_DETAIL: 14
 };
 
 const ROAD_TYPES = {
-    major: [
-        'track', 'bridleway', 'path', 'cycleway',
-        'trail', 'footway', 'pedestrian', 'track_grade1',
-        'track_grade2', 'track_grade3', 'track_grade4', 'track_grade5'
-    ],
-    minor: [
+    // All road types that could be unpaved
+    all: [
+        // Tracks and trails
+        'track', 'track_grade1', 'track_grade2', 'track_grade3', 'track_grade4', 'track_grade5',
+        'trail', 'path', 'bridleway', 'cycleway',
+        
+        // All road hierarchies
+        'primary', 'primary_link',
+        'secondary', 'secondary_link',
+        'tertiary', 'tertiary_link',
         'residential', 'unclassified', 'service', 'living_street',
-        'road', 'tertiary', 'tertiary_link'
+        
+        // Off-road and special purpose
+        'road', 'access', 'byway', 'footway', 'pedestrian',
+        'farm', 'forest', 'driveway', 'private', 'dirt_road',
+        'fire_road', 'agricultural', 'alley', 'backcountry'
     ],
-    excluded: ['motorway', 'motorway_link', 'trunk', 'trunk_link']
+    
+    // Only exclude motorways and trunks
+    excluded: [
+        'motorway', 'motorway_link',
+        'trunk', 'trunk_link'
+    ]
 };
 
-// Updated with full surface types list
 const UNPAVED_SURFACES = [
     'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
     'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
@@ -88,7 +100,7 @@ module.exports = async (req, res) => {
 
         // Dynamic area calculation based on zoom level
         const area = Math.abs((east - west) * (north - south));
-        const MAX_AREA = Math.pow(2, 15 - zoomLevel) * 0.1;
+        const MAX_AREA = Math.pow(2, 14 - zoomLevel) * 0.1; // Adjusted for earlier visibility
         if (area > MAX_AREA) {
             return res.json({
                 type: 'FeatureCollection',
@@ -136,33 +148,23 @@ module.exports = async (req, res) => {
             let query = {
                 ...spatialQuery,
                 'type': 'Feature',
-                'properties.surface': { $in: UNPAVED_SURFACES }
+                'properties.surface': { $in: UNPAVED_SURFACES },
+                'properties.highway': { 
+                    $in: ROAD_TYPES.all,
+                    $nin: ROAD_TYPES.excluded 
+                }
             };
 
-            // Adjusted limits based on zoom level
+            // Increased limits for better coverage
             let limit;
             if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
-                query['properties.highway'] = { 
-                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor]
-                };
-                limit = 6000;
+                limit = 8000;
             } else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
-                query['properties.highway'] = { 
-                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
-                    $nin: ROAD_TYPES.excluded 
-                };
-                limit = 4000;
+                limit = 6000;
             } else if (zoomLevel >= ZOOM_THRESHOLDS.LOW_DETAIL) {
-                query['properties.highway'] = { 
-                    $in: ROAD_TYPES.major,
-                    $nin: ROAD_TYPES.excluded 
-                };
-                limit = 3000;
+                limit = 4000;
             } else {
-                query['properties.highway'] = { 
-                    $in: ROAD_TYPES.major
-                };
-                limit = 2000;
+                limit = 3000;
             }
 
             console.log('📊 Final query:', JSON.stringify(query, null, 2));
@@ -191,6 +193,9 @@ module.exports = async (req, res) => {
                     }
                 }))
             };
+
+            const processTime = Date.now() - startTime;
+            console.log(`⌛ Request processed in ${processTime}ms`);
 
             return res.json(geojson);
 
