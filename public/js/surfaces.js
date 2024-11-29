@@ -81,6 +81,14 @@ function formatAccess(access) {
     }
 }
 
+// Function to format highway type (add this with your other helper functions)
+function formatHighway(highway) {
+    return highway
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
 window.layers.initSurfaceLayers = function() {
     console.log('🚀 Initializing surface layers...');
     
@@ -151,6 +159,11 @@ window.layers.initSurfaceLayers = function() {
                         html += `<h4>${props.highway.replace(/_/g, ' ').toUpperCase()}</h4>`;
                     }
                     
+                    // Highway type
+                    if (props.highway) {
+                    html += `<p><strong>Type:</strong> ${formatHighway(props.highway)}</p>`;
+        }
+
                     // Surface type
                     if (props.surface) {
                         html += `<p><strong>Surface:</strong> ${props.surface.replace(/_/g, ' ')}</p>`;
