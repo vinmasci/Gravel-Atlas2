@@ -8,6 +8,59 @@ if (!window.layers) {
     window.layers = {};
 }
 
+// Cache configuration
+const SURFACE_CACHE = {
+    data: new Map(),
+    viewState: {
+        bbox: null,
+        zoom: null
+    },
+    bufferMultiplier: 1.5,  // Load area 50% larger than viewport
+    maxAge: 5 * 60 * 1000   // Cache for 5 minutes
+};
+
+// Debounce helper function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Calculate expanded bbox with buffer
+function calculateExpandedBbox(bounds) {
+    const center = [
+        (bounds.getEast() + bounds.getWest()) / 2,
+        (bounds.getNorth() + bounds.getSouth()) / 2
+    ];
+    
+    const width = Math.abs(bounds.getEast() - bounds.getWest()) * SURFACE_CACHE.bufferMultiplier;
+    const height = Math.abs(bounds.getNorth() - bounds.getSouth()) * SURFACE_CACHE.bufferMultiplier;
+    
+    return [
+        center[0] - width / 2,   // west
+        center[1] - height / 2,  // south
+        center[0] + width / 2,   // east
+        center[1] + height / 2   // north
+    ];
+}
+
+// Check if current view is within cached area
+function isWithinCachedArea(bounds) {
+    if (!SURFACE_CACHE.viewState.bbox) return false;
+    
+    const [west, south, east, north] = SURFACE_CACHE.viewState.bbox;
+    return bounds.getWest() >= west &&
+           bounds.getSouth() >= south &&
+           bounds.getEast() <= east &&
+           bounds.getNorth() <= north;
+}
+
 window.layers.initSurfaceLayers = function() {
     console.log('🚀 Initializing surface layers...');
     
@@ -19,7 +72,9 @@ window.layers.initSurfaceLayers = function() {
                 data: {
                     type: 'FeatureCollection',
                     features: []
-                }
+                },
+                tolerance: 5,  // Simplify geometries for better performance
+                maxzoom: 15    // Maximum zoom level for simplification
             });
             console.log('✅ Successfully added source');
 
@@ -34,17 +89,27 @@ window.layers.initSurfaceLayers = function() {
                 },
                 'paint': {
                     'line-color': '#C2B280',  // Sand
-                    'line-width': 3,
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        11, 1.5,  // Thinner at low zoom
+                        15, 3     // Thicker at high zoom
+                    ],
                     'line-opacity': 0.7
                 }
             });
 
             console.log('✅ Successfully added layer');
 
-            // Add moveend event listener
+            // Add debounced moveend event listener
+            const debouncedUpdate = debounce(() => {
+                window.layers.updateSurfaceData();
+            }, 300);
+
             map.on('moveend', () => {
                 console.log('🗺️ Map moveend event triggered');
-                window.layers.updateSurfaceData();
+                debouncedUpdate();
             });
             console.log('✅ Added moveend event listener');
         } catch (error) {
@@ -84,24 +149,30 @@ window.layers.updateSurfaceData = async function() {
         return;
     }
 
+    const bounds = map.getBounds();
+
+    // Check if we're within cached area and cache isn't expired
+    if (isWithinCachedArea(bounds) && 
+        SURFACE_CACHE.viewState.zoom === zoomLevel &&
+        Date.now() - SURFACE_CACHE.viewState.timestamp < SURFACE_CACHE.maxAge) {
+        console.log('📦 Using cached view data');
+        return;
+    }
+
     if (surfaceToggle) {
         console.log('🔄 Setting loading state on button');
         surfaceToggle.classList.add('loading');
         surfaceToggle.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading roads...';
     }
 
-    const bounds = map.getBounds();
-    const bbox = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth()
-    ].join(',');
+    // Calculate expanded bbox for buffered loading
+    const expandedBbox = calculateExpandedBbox(bounds);
+    const bboxString = expandedBbox.join(',');
 
-    console.log('📍 Calculated bbox:', bbox);
+    console.log('📍 Calculated expanded bbox:', bboxString);
 
     const params = new URLSearchParams({
-        bbox: bbox,
+        bbox: bboxString,
         zoom: zoomLevel.toString()
     });
 
@@ -138,6 +209,13 @@ window.layers.updateSurfaceData = async function() {
             console.error('❌ Invalid GeoJSON structure:', data);
             throw new Error('Invalid GeoJSON response');
         }
+
+        // Update cache
+        SURFACE_CACHE.viewState = {
+            bbox: expandedBbox,
+            zoom: zoomLevel,
+            timestamp: Date.now()
+        };
 
         if (map.getSource('road-surfaces')) {
             console.log('🔄 Updating map source with new data');
@@ -178,7 +256,6 @@ window.layers.toggleSurfaceLayer = async function() {
         isActive: surfaceControl?.classList.contains('active'),
         isLoading: surfaceControl?.classList.contains('loading'),
         visibility: window.layerVisibility.surfaces,
-        // Only check layer visibility if the source exists
         mapLayerVisibility: map.getSource('road-surfaces') ? 
             map.getLayoutProperty('road-surfaces-layer', 'visibility') : 
             'not initialized'

@@ -2,41 +2,52 @@ require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 
+// Define relevant unpaved surfaces
+const UNPAVED_SURFACES = new Set([
+    'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
+    'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
+    'sand', 'clay', 'mud', 'grass', 'woodchips',
+    'fine_gravel', 'crushed_limestone', 'compacted',
+    'laterite', 'caliche', 'coral', 'shell_grit', 'tundra',
+    'chalk', 'limestone', 'shale', 'crusher_run', 'decomposed_granite'
+]);
+
 async function extractSurface() {
-    const client = new MongoClient(uri, { useUnifiedTopology: true });
+    const client = new MongoClient(uri);
     try {
         await client.connect();
         console.log('Connected to MongoDB');
         
         const collection = client.db('gravelatlas').collection('road_surfaces');
         
-        // Find all documents with other_tags that contain surface info
         const cursor = collection.find({
             'properties.other_tags': { $regex: /"surface"=>/ }
         });
 
         let processedCount = 0;
         let updatedCount = 0;
+        let unpavedCount = 0;
 
         while (await cursor.hasNext()) {
             const doc = await cursor.next();
             processedCount++;
 
             if (processedCount % 1000 === 0) {
-                console.log(`Processed ${processedCount} documents, Updated ${updatedCount}`);
+                console.log(`Processed ${processedCount} documents, Found ${unpavedCount} unpaved surfaces`);
             }
 
             const otherTags = doc.properties.other_tags;
             if (otherTags) {
                 const surface = extractSurfaceFromOtherTags(otherTags);
-                if (surface) {
+                if (surface && UNPAVED_SURFACES.has(surface.toLowerCase())) {
                     await collection.updateOne(
                         { _id: doc._id },
                         { $set: { 'properties.surface': surface } }
                     );
                     updatedCount++;
+                    unpavedCount++;
                     if (updatedCount % 100 === 0) {
-                        console.log(`Updated document with surface: ${surface} (${updatedCount} total updates)`);
+                        console.log(`Updated document with unpaved surface: ${surface} (${unpavedCount} unpaved surfaces found)`);
                     }
                 }
             }
@@ -46,6 +57,7 @@ async function extractSurface() {
 Surface extraction completed:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Total documents processed: ${processedCount}
+Unpaved surfaces found: ${unpavedCount}
 Total documents updated: ${updatedCount}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
