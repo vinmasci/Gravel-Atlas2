@@ -115,55 +115,55 @@ module.exports = async (req, res) => {
             console.log('✅ Connected to MongoDB');
 
             const baseQuery = {
-                geometry: {
-                    $geoIntersects: {
-                        $geometry: {
-                            type: 'Polygon',
-                            coordinates: [[
-                                [west, south],
-                                [east, south],
-                                [east, north],
-                                [west, north],
-                                [west, south]
-                            ]]
-                        }
-                    }
-                },
-                'properties.surface': { $in: UNPAVED_SURFACES }
-            };
+              geometry: {
+                  $geoIntersects: {
+                      $geometry: {
+                          type: 'Polygon',
+                          coordinates: [[
+                              [west, south],
+                              [east, south],
+                              [east, north],
+                              [west, north],
+                              [west, south]
+                          ]]
+                      }
+                  }
+              },
+              'properties.surface': { $in: UNPAVED_SURFACES }
+          };
 
             let query = baseQuery;
             let limit;
 
-            if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
-                query.properties.highway = { $nin: ROAD_TYPES.excluded };
-                limit = 2000;
-            } else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
-                query.properties.highway = { 
-                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
-                    $nin: ROAD_TYPES.excluded 
-                };
-                limit = 1500;
-            } else {
-                query.properties.highway = { 
-                    $in: ROAD_TYPES.major,
-                    $nin: ROAD_TYPES.excluded 
-                };
-                limit = 1000;
-            }
+// Adjust query and limit based on zoom level
+if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
+  query['properties.highway'] = { $nin: ROAD_TYPES.excluded };
+  limit = 2000;
+} else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
+  query['properties.highway'] = { 
+      $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
+      $nin: ROAD_TYPES.excluded 
+  };
+  limit = 1500;
+} else {
+  query['properties.highway'] = { 
+      $in: ROAD_TYPES.major,
+      $nin: ROAD_TYPES.excluded 
+  };
+  limit = 1000;
+}
 
-            console.log('🔍 Executing query:', {
-                zoomLevel,
-                limit,
-                query: JSON.stringify(query, null, 2)
-            });
+console.log('🔍 Final query:', {
+  zoomLevel,
+  limit,
+  query: JSON.stringify(query, null, 2)
+});
 
-            console.time('mongoQuery');
-            const roads = await client.db('gravelatlas')
-                .collection('road_surfaces')
-                .find(query)
-                .limit(limit)
-                .toArray();
+const roads = await client.db('gravelatlas')
+  .collection('road_surfaces')
+  .find(query)
+  .limit(limit)
+  .toArray();
             console.timeEnd('mongoQuery');
 
             console.log(`✅ Found ${roads.length} roads`);
