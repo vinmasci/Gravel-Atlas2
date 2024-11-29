@@ -38,6 +38,7 @@ window.layers.initSurfaceLayers = function() {
                     'line-opacity': 0.8
                 }
             });
+
             console.log('✅ Successfully added layer');
 
             // Add moveend event listener
@@ -69,7 +70,7 @@ window.layers.updateSurfaceData = async function() {
     console.log('📏 Current zoom level:', zoomLevel);
 
     // Early return if zoom is too low
-    if (zoomLevel < 11) {
+    if (zoomLevel < 15) {
         console.log('🔍 Zoom level too low, clearing data');
         if (map.getSource('road-surfaces')) {
             map.getSource('road-surfaces').setData({
