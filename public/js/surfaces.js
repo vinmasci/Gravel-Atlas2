@@ -95,10 +95,10 @@ window.layers.initSurfaceLayers = function() {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        9, 1,     // Thinner at far zoom
-                        11, 1.5,  // Medium at mid zoom
-                        13, 2,    // Thicker at closer zoom
-                        15, 3     // Thickest at closest zoom
+                        9, 3,     // Thinner at far zoom
+                        11, 4,  // Medium at mid zoom
+                        13, 5,    // Thicker at closer zoom
+                        15, 6     // Thickest at closest zoom
                     ],
                     'line-opacity': 0.7
                 }
