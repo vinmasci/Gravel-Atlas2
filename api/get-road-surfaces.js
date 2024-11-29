@@ -5,22 +5,33 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
-    MIN_ZOOM:11,
-    LOW_DETAIL: 13,
-    MID_DETAIL: 14,
+    MIN_ZOOM: 9,      // Reduced from 11 to show roads earlier
+    LOW_DETAIL: 11,   // Adjusted zoom thresholds
+    MID_DETAIL: 13,
     HIGH_DETAIL: 15
 };
 
 const ROAD_TYPES = {
-    major: ['track', 'bridleway', 'path', 'cycleway'],
-    minor: ['residential', 'unclassified', 'service'],
+    major: [
+        'track', 'bridleway', 'path', 'cycleway',
+        'trail', 'footway', 'pedestrian', 'track_grade1',
+        'track_grade2', 'track_grade3', 'track_grade4', 'track_grade5'
+    ],
+    minor: [
+        'residential', 'unclassified', 'service', 'living_street',
+        'road', 'tertiary', 'tertiary_link'
+    ],
     excluded: ['motorway', 'motorway_link', 'trunk', 'trunk_link']
 };
 
-// Updated to match your database surface types
+// Updated with full surface types list
 const UNPAVED_SURFACES = [
-    'unpaved', 'gravel', 'dirt', 'sand', 'ground',
-    'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
+    'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
+    'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
+    'sand', 'clay', 'mud', 'grass', 'woodchips',
+    'fine_gravel', 'crushed_limestone', 'compacted',
+    'laterite', 'caliche', 'coral', 'shell_grit', 'tundra',
+    'chalk', 'limestone', 'shale', 'crusher_run', 'decomposed_granite'
 ];
 
 function isValidCoordinate(coord) {
@@ -75,8 +86,9 @@ module.exports = async (req, res) => {
             });
         }
 
+        // Dynamic area calculation based on zoom level
         const area = Math.abs((east - west) * (north - south));
-        const MAX_AREA = 0.1;
+        const MAX_AREA = Math.pow(2, 15 - zoomLevel) * 0.1;
         if (area > MAX_AREA) {
             return res.json({
                 type: 'FeatureCollection',
@@ -90,7 +102,7 @@ module.exports = async (req, res) => {
             client = new MongoClient(uri);
             await client.connect();
 
-            // Basic spatial query to match your data structure
+            // Basic spatial query
             const spatialQuery = {
                 'geometry.type': 'LineString',
                 'geometry.coordinates': {
@@ -127,22 +139,30 @@ module.exports = async (req, res) => {
                 'properties.surface': { $in: UNPAVED_SURFACES }
             };
 
-            let limit = 2000;
+            // Adjusted limits based on zoom level
+            let limit;
             if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
                 query['properties.highway'] = { 
                     $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor]
                 };
+                limit = 6000;
             } else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
+                query['properties.highway'] = { 
+                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
+                    $nin: ROAD_TYPES.excluded 
+                };
+                limit = 4000;
+            } else if (zoomLevel >= ZOOM_THRESHOLDS.LOW_DETAIL) {
                 query['properties.highway'] = { 
                     $in: ROAD_TYPES.major,
                     $nin: ROAD_TYPES.excluded 
                 };
-                limit = 1500;
+                limit = 3000;
             } else {
                 query['properties.highway'] = { 
                     $in: ROAD_TYPES.major
                 };
-                limit = 1000;
+                limit = 2000;
             }
 
             console.log('📊 Final query:', JSON.stringify(query, null, 2));

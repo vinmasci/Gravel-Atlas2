@@ -8,15 +8,15 @@ if (!window.layers) {
     window.layers = {};
 }
 
-// Cache configuration
+// Update cache configuration
 const SURFACE_CACHE = {
     data: new Map(),
     viewState: {
         bbox: null,
         zoom: null
     },
-    bufferMultiplier: 1.5,  // Load area 50% larger than viewport
-    maxAge: 5 * 60 * 1000   // Cache for 5 minutes
+    bufferMultiplier: 2.0,  // Increased from 1.5 to load larger area
+    maxAge: 10 * 60 * 1000  // Increased to 10 minutes
 };
 
 // Debounce helper function
@@ -73,8 +73,10 @@ window.layers.initSurfaceLayers = function() {
                     type: 'FeatureCollection',
                     features: []
                 },
-                tolerance: 5,  // Simplify geometries for better performance
-                maxzoom: 15    // Maximum zoom level for simplification
+                tolerance: 8,     // Increased from 5 for better performance
+                maxzoom: 15,      // Keep maximum zoom level
+                buffer: 512,      // Add buffer for smoother loading
+                lineMetrics: true // Enable line metrics for better rendering
             });
             console.log('✅ Successfully added source');
 
@@ -88,13 +90,15 @@ window.layers.initSurfaceLayers = function() {
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': '#C2B280',  // Sand
+                    'line-color': '#C2B280',
                     'line-width': [
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        11, 1.5,  // Thinner at low zoom
-                        15, 3     // Thicker at high zoom
+                        9, 1,     // Thinner at far zoom
+                        11, 1.5,  // Medium at mid zoom
+                        13, 2,    // Thicker at closer zoom
+                        15, 3     // Thickest at closest zoom
                     ],
                     'line-opacity': 0.7
                 }
@@ -135,7 +139,7 @@ window.layers.updateSurfaceData = async function() {
     console.log('📏 Current zoom level:', zoomLevel);
 
     // Early return if zoom is too low
-    if (zoomLevel < 11) {
+    if (zoomLevel < 9) {  // Changed from 11 to 9
         console.log('🔍 Zoom level too low, clearing data');
         if (map.getSource('road-surfaces')) {
             map.getSource('road-surfaces').setData({
