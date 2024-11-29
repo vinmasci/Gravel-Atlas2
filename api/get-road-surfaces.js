@@ -1,7 +1,6 @@
 const { MongoClient } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 
-// Cache and threshold configurations
 const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map();
 
@@ -13,13 +12,14 @@ const ZOOM_THRESHOLDS = {
 };
 
 const ROAD_TYPES = {
-    major: ['secondary', 'tertiary'],
-    minor: ['residential', 'unclassified', 'track', 'service'],
+    major: ['track', 'bridleway', 'path', 'cycleway'],
+    minor: ['residential', 'unclassified', 'service'],
     excluded: ['motorway', 'motorway_link', 'trunk', 'trunk_link']
 };
 
+// Updated to match your database surface types
 const UNPAVED_SURFACES = [
-    'gravel', 'dirt', 'unpaved', 'sand', 'ground',
+    'unpaved', 'gravel', 'dirt', 'sand', 'ground',
     'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
 ];
 
@@ -50,8 +50,6 @@ module.exports = async (req, res) => {
     const { bbox, zoom } = req.query;
 
     try {
-        // Input validation
-        console.log('🔍 Checking required parameters:', { bbox, zoom });
         if (!bbox || !zoom) {
             console.log('❌ Missing required parameters');
             return res.status(400).json({ 
@@ -60,10 +58,8 @@ module.exports = async (req, res) => {
             });
         }
 
-        console.log('🔄 Processing bbox string:', bbox);
         const coordinates = bbox.split(',').map(Number);
         if (coordinates.length !== 4) {
-            console.error('❌ Invalid bbox format:', coordinates);
             throw new Error('Invalid bounding box format');
         }
 
@@ -71,14 +67,7 @@ module.exports = async (req, res) => {
         validateBbox(west, south, east, north);
 
         const zoomLevel = parseInt(zoom);
-        console.log('🔍 Parsed zoom level:', zoomLevel);
-        
-        if (isNaN(zoomLevel)) {
-            throw new Error('Invalid zoom level');
-        }
-
-        if (zoomLevel < ZOOM_THRESHOLDS.MIN_ZOOM) {
-            console.log(`ℹ️ Zoom level ${zoomLevel} too low, minimum is ${ZOOM_THRESHOLDS.MIN_ZOOM}`);
+        if (isNaN(zoomLevel) || zoomLevel < ZOOM_THRESHOLDS.MIN_ZOOM) {
             return res.json({ 
                 type: 'FeatureCollection', 
                 features: [],
@@ -88,10 +77,7 @@ module.exports = async (req, res) => {
 
         const area = Math.abs((east - west) * (north - south));
         const MAX_AREA = 0.1;
-        console.log('📊 Area calculation:', { area, maxArea: MAX_AREA });
-
         if (area > MAX_AREA) {
-            console.log('⚠️ Area too large:', area);
             return res.json({
                 type: 'FeatureCollection',
                 features: [],
@@ -99,75 +85,62 @@ module.exports = async (req, res) => {
             });
         }
 
-        const cacheKey = `${bbox}-${zoom}`;
-        const cachedResult = cache.get(cacheKey);
-        if (cachedResult && (Date.now() - cachedResult.timestamp < CACHE_DURATION)) {
-            console.log('📦 Serving from cache');
-            return res.json(cachedResult.data);
-        }
-
         let client;
         try {
-            console.log('🔄 Connecting to MongoDB...');
             client = new MongoClient(uri);
             await client.connect();
-            console.log('✅ Connected to MongoDB');
 
-            // Build base geographic query
-            const baseQuery = {
-                geometry: {
-                    $geoIntersects: {
-                        $geometry: {
-                            type: 'Polygon',
-                            coordinates: [[
-                                [west, south],
-                                [east, south],
-                                [east, north],
-                                [west, north],
-                                [west, south]
-                            ]]
-                        }
+            // Basic spatial query to match your data structure
+            const spatialQuery = {
+                'geometry.type': 'LineString',
+                'geometry.coordinates': {
+                    $geoWithin: {
+                        $box: [
+                            [west, south],
+                            [east, north]
+                        ]
                     }
                 }
             };
 
-            // Test geographic query first
-            console.log('🔍 Testing geographic query...');
-            const geoResults = await client.db('gravelatlas')
+            // Test basic spatial query first
+            console.log('🔍 Testing spatial query:', JSON.stringify(spatialQuery, null, 2));
+            const testResults = await client.db('gravelatlas')
                 .collection('road_surfaces')
-                .find(baseQuery)
+                .find(spatialQuery)
                 .limit(5)
                 .toArray();
 
-            console.log('📍 Roads in bounding box:', {
-                count: geoResults.length,
-                sample: geoResults.slice(0, 1).map(r => ({
+            console.log('📍 Initial spatial query results:', {
+                count: testResults.length,
+                sample: testResults.slice(0, 1).map(r => ({
+                    name: r.properties?.name,
                     surface: r.properties?.surface,
-                    highway: r.properties?.highway,
-                    coordinates: r.geometry?.coordinates?.slice(0, 1)
+                    highway: r.properties?.highway
                 }))
             });
 
-            // Build full query
+            // Build complete query
             let query = {
-                ...baseQuery,
+                ...spatialQuery,
+                'type': 'Feature',
                 'properties.surface': { $in: UNPAVED_SURFACES }
             };
 
-            // Add highway conditions based on zoom level
+            let limit = 2000;
             if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
-                query['properties.highway'] = { $nin: ROAD_TYPES.excluded };
-                limit = 2000;
+                query['properties.highway'] = { 
+                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor]
+                };
             } else if (zoomLevel >= ZOOM_THRESHOLDS.MID_DETAIL) {
                 query['properties.highway'] = { 
-                    $in: [...ROAD_TYPES.major, ...ROAD_TYPES.minor],
+                    $in: ROAD_TYPES.major,
                     $nin: ROAD_TYPES.excluded 
                 };
                 limit = 1500;
             } else {
                 query['properties.highway'] = { 
-                    $in: ROAD_TYPES.major,
-                    $nin: ROAD_TYPES.excluded 
+                    $in: ROAD_TYPES.major
                 };
                 limit = 1000;
             }
@@ -180,65 +153,35 @@ module.exports = async (req, res) => {
                 .limit(limit)
                 .toArray();
 
-            console.log('✅ Query results:', {
-                totalRoads: roads.length,
-                surfaces: roads.map(r => r.properties?.surface).slice(0, 5),
-                highways: roads.map(r => r.properties?.highway).slice(0, 5)
+            console.log('✅ Found roads:', {
+                total: roads.length,
+                surfaces: [...new Set(roads.map(r => r.properties?.surface))],
+                highways: [...new Set(roads.map(r => r.properties?.highway))]
             });
 
             const geojson = {
                 type: 'FeatureCollection',
-                features: roads.map(road => {
-                    try {
-                        if (!road.geometry?.coordinates?.length) {
-                            console.warn('⚠️ Invalid road geometry:', road);
-                            return null;
-                        }
-
-                        return {
-                            type: 'Feature',
-                            geometry: road.geometry,
-                            properties: {
-                                highway: road.properties?.highway || null,
-                                name: road.properties?.name || null,
-                                surface: road.properties?.surface || 'unknown'
-                            }
-                        };
-                    } catch (e) {
-                        console.warn('❌ Error processing road:', e);
-                        return null;
+                features: roads.map(road => ({
+                    type: 'Feature',
+                    geometry: road.geometry,
+                    properties: {
+                        name: road.properties?.name || null,
+                        highway: road.properties?.highway || null,
+                        surface: road.properties?.surface || null
                     }
-                }).filter(Boolean)
+                }))
             };
-
-            // Cache the result
-            cache.set(cacheKey, {
-                timestamp: Date.now(),
-                data: geojson
-            });
-
-            const executionTime = Date.now() - startTime;
-            console.log('✅ Response stats:', {
-                featureCount: geojson.features.length,
-                executionTime: `${executionTime}ms`
-            });
 
             return res.json(geojson);
 
         } finally {
             if (client) {
                 await client.close();
-                console.log('👋 MongoDB connection closed');
             }
         }
 
     } catch (error) {
-        console.error('❌ Error in road surfaces API:', {
-            error: error.message,
-            stack: error.stack,
-            query: { bbox, zoom }
-        });
-        
+        console.error('❌ Error:', error);
         return res.status(400).json({ 
             error: error.message,
             message: 'Failed to fetch road surfaces'
