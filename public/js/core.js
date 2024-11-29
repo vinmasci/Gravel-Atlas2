@@ -224,6 +224,13 @@ function waitForAuth0() {
             const response = await fetch(`/api/get-road-surfaces?bbox=${bbox}`);
             const data = await response.json();
             if (map.getSource('road-surfaces')) {
+                console.log('🔄 Updating map source with data:', {
+                    featureCount: data.features.length,
+                    sampleFeature: data.features[0],
+                    sourceExists: !!map.getSource('road-surfaces'),
+                    layerExists: !!map.getLayer('road-surfaces-layer'),
+                    visibility: map.getLayoutProperty('road-surfaces-layer', 'visibility')
+                });
                 map.getSource('road-surfaces').setData(data);
             }
         } catch (error) {

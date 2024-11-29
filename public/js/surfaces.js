@@ -23,7 +23,6 @@ window.layers.initSurfaceLayers = function() {
             });
             console.log('✅ Successfully added source');
 
-            // Main layer displaying unpaved roads
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
@@ -34,20 +33,10 @@ window.layers.initSurfaceLayers = function() {
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': '#F5DEB3',
-                    'line-width': 3,
-                    'line-opacity': 0.5
-                },
-                'filter': [
-                    'match',
-                    ['get', 'surface'],
-                    [
-                        'gravel', 'dirt', 'unpaved', 'sand', 'ground', 
-                        'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
-                    ],
-                    true,
-                    false
-                ]
+                    'line-color': '#FF8C00',  // Darker orange color
+                    'line-width': 4,
+                    'line-opacity': 0.8
+                }
             });
             console.log('✅ Successfully added layer');
 
