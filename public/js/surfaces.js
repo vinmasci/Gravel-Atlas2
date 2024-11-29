@@ -188,14 +188,23 @@ window.layers.toggleSurfaceLayer = async function() {
         isActive: surfaceControl?.classList.contains('active'),
         isLoading: surfaceControl?.classList.contains('loading'),
         visibility: window.layerVisibility.surfaces,
-        mapLayerVisibility: map.getLayoutProperty('road-surfaces-layer', 'visibility')
+        // Only check layer visibility if the source exists
+        mapLayerVisibility: map.getSource('road-surfaces') ? 
+            map.getLayoutProperty('road-surfaces-layer', 'visibility') : 
+            'not initialized'
     });
 
     try {
-        // Ensure surface layers are initialized
+        // Ensure surface layers are initialized first
         if (!map.getSource('road-surfaces')) {
             console.log('📍 Initializing surface layers for first use');
             window.layers.initSurfaceLayers();
+        }
+
+        // Update button state before any operations
+        if (surfaceControl) {
+            surfaceControl.classList.add('loading');
+            surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
         }
 
         // Toggle state
@@ -206,15 +215,21 @@ window.layers.toggleSurfaceLayer = async function() {
         map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
 
         if (window.layerVisibility.surfaces) {
-            console.log('🔄 Layer visible, updating surface data');
-            if (surfaceControl) {
-                surfaceControl.classList.add('loading');
-                surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-            }
-            await window.layers.updateSurfaceData();
-            if (surfaceControl) {
-                surfaceControl.classList.add('active');
-                surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surfaces On';
+            console.log('🔄 Layer visible, checking zoom level');
+            const zoomLevel = Math.floor(map.getZoom());
+            
+            if (zoomLevel < 11) {
+                if (surfaceControl) {
+                    surfaceControl.classList.add('active');
+                    surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Zoom in to see surfaces';
+                }
+            } else {
+                console.log('🔄 Updating surface data');
+                await window.layers.updateSurfaceData();
+                if (surfaceControl) {
+                    surfaceControl.classList.add('active');
+                    surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surfaces On';
+                }
             }
         } else {
             console.log('🔄 Layer hidden');
@@ -238,6 +253,11 @@ window.layers.toggleSurfaceLayer = async function() {
             setTimeout(() => {
                 surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
             }, 3000);
+        }
+    } finally {
+        // Remove loading state
+        if (surfaceControl) {
+            surfaceControl.classList.remove('loading');
         }
     }
 };
