@@ -129,25 +129,52 @@ window.layers.updateSurfaceData = async function() {
 };
 
 window.layers.toggleSurfaceLayer = async function() {
-    console.log('toggleSurfaceLayer called, current visibility:', window.layerVisibility.surfaces);
+    const surfaceControl = document.querySelector('.surface-toggle');
+    
+    console.log('Toggle clicked - Current state:', {
+        isActive: surfaceControl?.classList.contains('active'),
+        isLoading: surfaceControl?.classList.contains('loading'),
+        visibility: window.layerVisibility.surfaces
+    });
+
     try {
+        // Add loading state
+        if (surfaceControl) {
+            surfaceControl.classList.add('loading');
+            surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        }
+
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        console.log('Setting visibility to:', visibility);
         map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
 
         if (window.layerVisibility.surfaces) {
-            console.log('Calling updateSurfaceData');
             await window.layers.updateSurfaceData();
-            const surfaceControl = document.querySelector('.surface-toggle');
-            if (surfaceControl) surfaceControl.classList.add('active');
+            if (surfaceControl) {
+                surfaceControl.classList.add('active');
+                surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surfaces On';
+            }
         } else {
-            const surfaceControl = document.querySelector('.surface-toggle');
-            if (surfaceControl) surfaceControl.classList.remove('active');
+            if (surfaceControl) {
+                surfaceControl.classList.remove('active');
+                surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surfaces Off';
+            }
         }
+
     } catch (error) {
         console.error('Error toggling surface layer:', error);
+        if (surfaceControl) {
+            surfaceControl.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error';
+            setTimeout(() => {
+                surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
+            }, 3000);
+        }
+    } finally {
+        // Remove loading state
+        if (surfaceControl) {
+            surfaceControl.classList.remove('loading');
+        }
     }
 };
 

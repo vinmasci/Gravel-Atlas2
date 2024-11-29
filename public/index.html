@@ -2191,24 +2191,40 @@
    SECTION: Surface Toggle
    ============================ */
    .surface-toggle {
-    padding: 5px 10px;
+    padding: 8px 12px;
     background: #fff;
-    border: none;
+    border: 1px solid #ccc;
     cursor: pointer;
     position: absolute;
-    top: 120px;  /* Adjust based on your layout */
+    top: 120px;
     right: 10px;
     z-index: 1;
     border-radius: 4px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
 }
 
+/* When the layer is active */
 .surface-toggle.active {
-    background: #ddd;
+    background: #007bff;
+    color: white;
+    border-color: #0056b3;
 }
 
+/* When loading */
+.surface-toggle.loading {
+    background: #f8f9fa;
+    pointer-events: none; /* Prevent clicking while loading */
+    opacity: 0.8;
+}
+
+/* Hover state */
 .surface-toggle:hover {
     background: #f0f0f0;
+}
+
+.surface-toggle.active:hover {
+    background: #0056b3;
 }
     </style>
     
