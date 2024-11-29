@@ -51,7 +51,7 @@ window.layers.updateSurfaceData = async function() {
     if (!window.layerVisibility.surfaces) return;
 
     const surfaceToggle = document.querySelector('.surface-toggle');
-    const zoomLevel = Math.floor(map.getZoom()); // Round down to ensure integer
+    const zoomLevel = Math.floor(map.getZoom());
     console.log(`Current zoom level: ${zoomLevel}`);
 
     // Early return if zoom is too low
@@ -81,26 +81,29 @@ window.layers.updateSurfaceData = async function() {
         bounds.getNorth()
     ].join(',');
 
-    // Construct URL with both parameters explicitly
-    const url = `/api/get-road-surfaces?bbox=${encodeURIComponent(bbox)}&zoom=${encodeURIComponent(zoomLevel)}`;
+    // Try without encoding the parameters
+    const url = `/api/get-road-surfaces?bbox=${bbox}&zoom=${zoomLevel}`;
     console.log('Making request to:', url);
 
     try {
         const response = await fetch(url);
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server response:', {
-                status: response.status,
-                text: errorText
-            });
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Log the full response for debugging
+        console.log('Response status:', response.status);
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+
+        // Try to parse the response as JSON
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse response as JSON:', e);
+            throw new Error('Invalid response format');
         }
-        
-        const data = await response.json();
-        console.log('Received data:', data);
 
         if (!data.type || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+            console.error('Invalid GeoJSON structure:', data);
             throw new Error('Invalid GeoJSON response');
         }
 
