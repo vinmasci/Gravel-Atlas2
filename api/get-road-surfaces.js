@@ -6,8 +6,8 @@ const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
     MIN_ZOOM: 8,      // Reduced from 11 to show roads earlier
-    LOW_DETAIL: 10,   // Adjusted thresholds for earlier detail
-    MID_DETAIL: 12,
+    LOW_DETAIL: 14,   // Adjusted thresholds for earlier detail
+    MID_DETAIL: 14,
     HIGH_DETAIL: 14
 };
 
