@@ -200,24 +200,14 @@ function waitForAuth0() {
             if (!map.loaded()) {
                 await new Promise(resolve => map.on('load', resolve));
             }
- 
-            layerVisibility.surfaces = !layerVisibility.surfaces;
-            const visibility = layerVisibility.surfaces ? 'visible' : 'none';
-            
-            map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
-            
-            if (layerVisibility.surfaces) {
-                await layers.updateSurfaceData();
-                const surfaceControl = document.querySelector('.surface-toggle');
-                if (surfaceControl) surfaceControl.classList.add('active');
-            } else {
-                const surfaceControl = document.querySelector('.surface-toggle');
-                if (surfaceControl) surfaceControl.classList.remove('active');
-            }
+            // Use the surfaces.js toggle function
+            await window.layers.toggleSurfaceLayer();
         } catch (error) {
-            console.error('Error toggling surface layer:', error);
+            console.error('Error in core toggleSurfaceLayer:', error);
         }
     },
+
+
  
     updateSurfaceData: async () => {
         if (!layerVisibility.surfaces) return;
@@ -303,7 +293,14 @@ function waitForAuth0() {
             }
         });
         console.log('Map loaded successfully');
- 
+        const surfaceToggleBtn = document.querySelector('.surface-toggle');
+        if (surfaceToggleBtn) {
+            surfaceToggleBtn.addEventListener('click', async () => {
+                console.log('🔘 Surface toggle button clicked');
+                await window.layers.toggleSurfaceLayer();
+            });
+        }
+        
         await new Promise(resolve => {
             const checkMapFunctions = () => {
                 const requiredFunctions = [
@@ -326,6 +323,7 @@ function waitForAuth0() {
             };
             checkMapFunctions();
         });
+
  
         await new Promise(resolve => {
             try {

@@ -184,25 +184,21 @@ window.layers.toggleSurfaceLayer = async function() {
     const surfaceControl = document.querySelector('.surface-toggle');
     
     console.log('🔄 Toggle surface layer called');
-    console.log('Current state:', {
+    console.log('Before toggle - Current state:', {
         isActive: surfaceControl?.classList.contains('active'),
         isLoading: surfaceControl?.classList.contains('loading'),
-        visibility: window.layerVisibility.surfaces
+        visibility: window.layerVisibility.surfaces,
+        mapLayerVisibility: map.getLayoutProperty('road-surfaces-layer', 'visibility')
     });
 
     try {
+        // Ensure surface layers are initialized
         if (!map.getSource('road-surfaces')) {
             console.log('📍 Initializing surface layers for first use');
             window.layers.initSurfaceLayers();
         }
 
-        // Add loading state
-        if (surfaceControl) {
-            console.log('🔄 Setting loading state');
-            surfaceControl.classList.add('loading');
-            surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-        }
-
+        // Toggle state
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
@@ -211,6 +207,10 @@ window.layers.toggleSurfaceLayer = async function() {
 
         if (window.layerVisibility.surfaces) {
             console.log('🔄 Layer visible, updating surface data');
+            if (surfaceControl) {
+                surfaceControl.classList.add('loading');
+                surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+            }
             await window.layers.updateSurfaceData();
             if (surfaceControl) {
                 surfaceControl.classList.add('active');
@@ -224,22 +224,20 @@ window.layers.toggleSurfaceLayer = async function() {
             }
         }
 
-    } catch (error) {
-        console.error('❌ Error in toggleSurfaceLayer:', {
-            error: error.message,
-            stack: error.stack
+        console.log('After toggle - Current state:', {
+            isActive: surfaceControl?.classList.contains('active'),
+            isLoading: surfaceControl?.classList.contains('loading'),
+            visibility: window.layerVisibility.surfaces,
+            mapLayerVisibility: map.getLayoutProperty('road-surfaces-layer', 'visibility')
         });
+
+    } catch (error) {
+        console.error('❌ Error in toggleSurfaceLayer:', error);
         if (surfaceControl) {
             surfaceControl.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error';
             setTimeout(() => {
                 surfaceControl.innerHTML = '<i class="fa-solid fa-road"></i> Surface Types';
             }, 3000);
-        }
-    } finally {
-        // Remove loading state
-        if (surfaceControl) {
-            console.log('✅ Removing loading state');
-            surfaceControl.classList.remove('loading');
         }
     }
 };
