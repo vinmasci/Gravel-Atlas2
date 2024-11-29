@@ -33,9 +33,9 @@ window.layers.initSurfaceLayers = function() {
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': '#f8c291',  // Sand
+                    'line-color': 'C2B280',  // Sand
                     'line-width': 3,
-                    'line-opacity': 0.4
+                    'line-opacity': 0.6
                 }
             });
 
