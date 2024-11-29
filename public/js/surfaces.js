@@ -1,4 +1,4 @@
-// Initialize surface layer visibility
+// Initialize surface layer visibility1
 if (!window.layerVisibility) {
     window.layerVisibility = {};
 }
@@ -111,7 +111,11 @@ window.layers.initSurfaceLayers = function() {
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
-                'source': 'road-surfaces',
+                'source': {
+                    'type': 'vector',
+                    'url': 'mapbox://vinmasci.avs4rx36'  // Your tileset ID here
+                },
+                'source-layer': 'road_surfaces',  // This should match the layer name we used in tippecanoe
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',

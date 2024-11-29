@@ -5,3 +5,6 @@ node_modules/
 .env
 .DS_Store
 roads.geojson
+tiles.mbtiles
+export-tiles.js
+generate-tiles.js
