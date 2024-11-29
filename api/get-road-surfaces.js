@@ -6,10 +6,10 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
-    MIN_ZOOM: 11,        // Don't show anything below this zoom
-    LOW_DETAIL: 13,      // Show only major roads
-    MID_DETAIL: 14,      // Show more road types
-    HIGH_DETAIL: 15      // Show all roads
+    MIN_ZOOM: 11,
+    LOW_DETAIL: 13,
+    MID_DETAIL: 14,
+    HIGH_DETAIL: 15
 };
 
 const ROAD_TYPES = {
@@ -23,13 +23,13 @@ const UNPAVED_SURFACES = [
     'grass', 'fine_gravel', 'compacted', 'clay', 'earth'
 ];
 
-// Validate coordinates
 function isValidCoordinate(coord) {
     return !isNaN(coord) && isFinite(coord);
 }
 
-// Validate bounding box
 function validateBbox(west, south, east, north) {
+    console.log('🔍 Validating bbox coordinates:', { west, south, east, north });
+    
     if (!isValidCoordinate(west) || !isValidCoordinate(south) || 
         !isValidCoordinate(east) || !isValidCoordinate(north)) {
         throw new Error('Invalid coordinates in bounding box');
@@ -41,26 +41,30 @@ function validateBbox(west, south, east, north) {
 }
 
 module.exports = async (req, res) => {
-    console.log('Request received:', {
+    const startTime = Date.now();
+    console.log('📥 Request received:', {
         query: req.query,
+        headers: req.headers,
         timestamp: new Date().toISOString()
     });
 
-    const startTime = Date.now();
     const { bbox, zoom } = req.query;
 
     try {
         // Input validation
+        console.log('🔍 Checking required parameters:', { bbox, zoom });
         if (!bbox || !zoom) {
-            console.log('Missing required parameters');
+            console.log('❌ Missing required parameters');
             return res.status(400).json({ 
                 error: 'Bounding box and zoom level required',
                 requiredZoom: ZOOM_THRESHOLDS.MIN_ZOOM
             });
         }
 
+        console.log('🔄 Processing bbox string:', bbox);
         const coordinates = bbox.split(',').map(Number);
         if (coordinates.length !== 4) {
+            console.error('❌ Invalid bbox format:', coordinates);
             throw new Error('Invalid bounding box format');
         }
 
@@ -68,13 +72,14 @@ module.exports = async (req, res) => {
         validateBbox(west, south, east, north);
 
         const zoomLevel = parseInt(zoom);
+        console.log('🔍 Parsed zoom level:', zoomLevel);
+        
         if (isNaN(zoomLevel)) {
             throw new Error('Invalid zoom level');
         }
 
-        // Early return for low zoom levels
         if (zoomLevel < ZOOM_THRESHOLDS.MIN_ZOOM) {
-            console.log(`Zoom level ${zoomLevel} too low, minimum is ${ZOOM_THRESHOLDS.MIN_ZOOM}`);
+            console.log(`ℹ️ Zoom level ${zoomLevel} too low, minimum is ${ZOOM_THRESHOLDS.MIN_ZOOM}`);
             return res.json({ 
                 type: 'FeatureCollection', 
                 features: [],
@@ -82,14 +87,12 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Calculate bounding box area
         const area = Math.abs((east - west) * (north - south));
         const MAX_AREA = 0.1;
-
-        console.log('Area calculation:', { area, maxArea: MAX_AREA });
+        console.log('📊 Area calculation:', { area, maxArea: MAX_AREA });
 
         if (area > MAX_AREA) {
-            console.log('Area too large:', area);
+            console.log('⚠️ Area too large:', area);
             return res.json({
                 type: 'FeatureCollection',
                 features: [],
@@ -97,21 +100,20 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Cache check
         const cacheKey = `${bbox}-${zoom}`;
         const cachedResult = cache.get(cacheKey);
         if (cachedResult && (Date.now() - cachedResult.timestamp < CACHE_DURATION)) {
-            console.log('Serving from cache');
+            console.log('📦 Serving from cache');
             return res.json(cachedResult.data);
         }
 
         let client;
         try {
+            console.log('🔄 Connecting to MongoDB...');
             client = new MongoClient(uri);
             await client.connect();
-            console.log('Connected to MongoDB');
+            console.log('✅ Connected to MongoDB');
 
-            // Build query based on zoom level
             const baseQuery = {
                 geometry: {
                     $geoIntersects: {
@@ -133,7 +135,6 @@ module.exports = async (req, res) => {
             let query = baseQuery;
             let limit;
 
-            // Adjust query and limit based on zoom level
             if (zoomLevel >= ZOOM_THRESHOLDS.HIGH_DETAIL) {
                 query.properties.highway = { $nin: ROAD_TYPES.excluded };
                 limit = 2000;
@@ -151,30 +152,48 @@ module.exports = async (req, res) => {
                 limit = 1000;
             }
 
-            console.log('Executing query:', {
+            console.log('🔍 Executing query:', {
                 zoomLevel,
                 limit,
                 query: JSON.stringify(query, null, 2)
             });
 
-            console.time('queryExecution');
+            console.time('mongoQuery');
             const roads = await client.db('gravelatlas')
                 .collection('road_surfaces')
                 .find(query)
                 .limit(limit)
                 .toArray();
-            console.timeEnd('queryExecution');
+            console.timeEnd('mongoQuery');
 
-            console.log(`Found ${roads.length} roads`);
+            console.log(`✅ Found ${roads.length} roads`);
+
+            if (roads.length > 0) {
+                console.log('📊 Sample road data:', {
+                    first: roads[0],
+                    last: roads[roads.length - 1]
+                });
+            }
 
             const geojson = {
                 type: 'FeatureCollection',
                 features: roads.map(road => {
                     try {
                         if (!road.geometry?.coordinates?.length) {
-                            console.warn('Invalid road geometry:', road);
+                            console.warn('⚠️ Invalid road geometry:', road);
                             return null;
                         }
+
+                        // Log coordinate structure for debugging
+                        console.log('🔍 Coordinate structure for road:', {
+                            id: road._id,
+                            coordType: typeof road.geometry.coordinates,
+                            isArray: Array.isArray(road.geometry.coordinates),
+                            depth: Array.isArray(road.geometry.coordinates) ? 
+                                  road.geometry.coordinates.reduce((depth, arr) => 
+                                      Array.isArray(arr) ? depth + 1 : depth, 1) : 0,
+                            sampleCoord: road.geometry.coordinates[0]
+                        });
 
                         return {
                             type: 'Feature',
@@ -186,11 +205,20 @@ module.exports = async (req, res) => {
                             }
                         };
                     } catch (e) {
-                        console.warn('Error processing road:', e);
+                        console.warn('❌ Error processing road:', e);
                         return null;
                     }
                 }).filter(Boolean)
             };
+
+            console.log('📊 GeoJSON stats:', {
+                totalFeatures: geojson.features.length,
+                sampleFeature: geojson.features[0] ? {
+                    properties: geojson.features[0].properties,
+                    geometryType: geojson.features[0].geometry.type,
+                    coordinatesLength: geojson.features[0].geometry.coordinates.length
+                } : null
+            });
 
             // Cache the result
             cache.set(cacheKey, {
@@ -198,9 +226,10 @@ module.exports = async (req, res) => {
                 data: geojson
             });
 
-            console.log('Response stats:', {
+            const executionTime = Date.now() - startTime;
+            console.log('✅ Response stats:', {
                 featureCount: geojson.features.length,
-                executionTime: `${Date.now() - startTime}ms`
+                executionTime: `${executionTime}ms`
             });
 
             return res.json(geojson);
@@ -208,12 +237,12 @@ module.exports = async (req, res) => {
         } finally {
             if (client) {
                 await client.close();
-                console.log('MongoDB connection closed');
+                console.log('👋 MongoDB connection closed');
             }
         }
 
     } catch (error) {
-        console.error('Error in road surfaces API:', {
+        console.error('❌ Error in road surfaces API:', {
             error: error.message,
             stack: error.stack,
             query: { bbox, zoom }
