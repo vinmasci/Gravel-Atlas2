@@ -153,18 +153,27 @@ function getColorForGravelCondition(condition) {
 }
 
 function showGravelRatingModal(feature) {
+    // Extract OSM ID with fallback and validation
+    const osmId = feature.properties.osm_id || feature.properties.id;
+    const roadName = feature.properties.name || 'Unnamed Road';
+    
     console.log('🔧 Creating modal for feature:', {
-        feature: {
-            type: feature.type,
-            properties: feature.properties,
-            geometry: feature.geometry ? {
-                type: feature.geometry.type,
-                coordinates: feature.geometry.coordinates
-            } : null
-        }
+        osmId,
+        name: roadName,
+        properties: feature.properties,
+        geometry: feature.geometry ? {
+            type: feature.geometry.type,
+            coordinates: feature.geometry.coordinates
+        } : null
     });
 
-    // Create backdrop with specific class
+    // Validate OSM ID
+    if (!osmId) {
+        console.error('❌ Cannot create modal: Missing OSM ID');
+        return;
+    }
+
+    // [NO CHANGES NEEDED] Create backdrop
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
     backdrop.style.cssText = `
@@ -177,14 +186,14 @@ function showGravelRatingModal(feature) {
         z-index: 99999;
     `;
 
+    // Create modal with validated OSM ID
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
     modal.className = 'gravel-edit-modal';
-    // Store the road ID
-    const roadId = feature.properties.osm_id;
-    modal.setAttribute('data-road-id', roadId);
-    console.log('🔧 Setting modal road ID:', roadId);
+    modal.setAttribute('data-road-id', osmId);
+    console.log('🔧 Setting modal road ID:', osmId);
 
+    // [NO CHANGES NEEDED] Modal styles remain the same
     modal.style.cssText = `
         position: fixed !important;
         top: 50% !important;
@@ -201,9 +210,10 @@ function showGravelRatingModal(feature) {
         overflow-y: auto !important;
     `;
     
+    // Update modal HTML to use validated roadName
     modal.innerHTML = `
         <div style="margin-bottom: 16px;">
-            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${feature.properties.name || 'Unnamed Road'}</h3>
+            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
             <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
         </div>
         <div style="margin-bottom: 16px;">
@@ -229,12 +239,12 @@ function showGravelRatingModal(feature) {
         </div>
     `;
 
+    // [NO CHANGES NEEDED] Add to DOM
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-
     console.log('🔧 Modal created and added to DOM');
 
-    // Add color preview update on select change
+    // [NO CHANGES NEEDED] Color preview handler
     const select = document.getElementById('gravel-condition');
     const colorPreview = document.getElementById('color-preview');
     select.addEventListener('change', (e) => {
@@ -242,25 +252,36 @@ function showGravelRatingModal(feature) {
         colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
     });
 
+    // [NO CHANGES NEEDED] Cancel handler
     document.getElementById('cancel-rating').onclick = () => {
         console.log('❌ Cancel rating clicked');
         backdrop.remove();
         modal.remove();
     };
 
+    // Updated save handler with additional validation
     document.getElementById('save-rating').onclick = async () => {
         console.log('💾 Save rating clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
         
-        // Get the road ID from the modal
-        const roadId = modal.getAttribute('data-road-id');
+        // Get and validate the OSM ID
+        const finalOsmId = modal.getAttribute('data-road-id');
+        if (!finalOsmId) {
+            console.error('❌ Cannot save: Missing OSM ID');
+            saveButton.style.backgroundColor = '#dc3545';
+            saveButton.textContent = 'Error: Missing Road ID';
+            return;
+        }
+
         console.log('💾 Preparing to save with data:', {
-            roadId,
+            osmId: finalOsmId,
             gravelCondition,
             notes
         });
+
+        // Rest of the save handler remains the same...
 
         try {
             const userProfile = localStorage.getItem('userProfile');
@@ -365,36 +386,51 @@ window.layers.initSurfaceLayers = function() {
     if (!map.getSource('road-surfaces')) {
         console.log('📍 Creating new road-surfaces source and layer');
         try {
-            console.log('🗺️ Adding source');
-            map.addSource('road-surfaces', {
-                type: 'geojson',
-                data: {
-                    type: 'FeatureCollection',
-                    features: []
-                },
-                tolerance: 8,
-                maxzoom: 15,
-                buffer: 512,
-                lineMetrics: true
-            });
-            console.log('✅ Successfully added source');
+            // IMPORTANT: Remove this section since we're using vector tiles
+            // console.log('🗺️ Adding source');
+            // map.addSource('road-surfaces', {
+            //     type: 'geojson',
+            //     data: {
+            //         type: 'FeatureCollection',
+            //         features: []
+            //     },
+            //     tolerance: 8,
+            //     maxzoom: 15,
+            //     buffer: 512,
+            //     lineMetrics: true
+            // });
 
-            console.log('🗺️ Adding layer');
+            console.log('🗺️ Adding vector tile layer');
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': {
                     'type': 'vector',
-                    'url': 'mapbox://vinmasci.5nvlqfla'  // Your tileset ID here
+                    'url': 'mapbox://vinmasci.5nvlqfla'
                 },
-                'source-layer': 'road_surfaces',  // This should match the layer name we used in tippecanoe
+                'source-layer': 'road_surfaces',
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': '#C2B280',
+                    'line-color': [
+                        'case',
+                        ['has', 'gravel_condition'], [
+                            'match',
+                            ['get', 'gravel_condition'],
+                            '0', '#2ecc71',
+                            '1', '#a7eb34',
+                            '2', '#f1c40f',
+                            '3', '#e67e22',
+                            '4', '#e74c3c',
+                            '5', '#c0392b',
+                            '6', '#8e44ad',
+                            '#C2B280'
+                        ],
+                        '#C2B280'  // Default color
+                    ],
                     'line-width': [
                         'interpolate',
                         ['linear'],
@@ -410,8 +446,7 @@ window.layers.initSurfaceLayers = function() {
 
             console.log('✅ Layer added successfully');
 
-            // Create popup
-            console.log('🔧 Creating popup instance');
+            // [NO CHANGES NEEDED] Popup creation
             const popup = new mapboxgl.Popup({
                 closeButton: false,
                 closeOnClick: false,
@@ -419,108 +454,112 @@ window.layers.initSurfaceLayers = function() {
                 className: 'gravel-popup'
             });
 
-            // Add hover interaction
-            console.log('🖱️ Setting up hover interactions');
+            // Updated hover interaction with better property handling
             map.on('mousemove', 'road-surfaces-layer', (e) => {
                 if (e.features.length > 0) {
-                    console.log('🖱️ Hover detected on feature:', {
-                        featureCount: e.features.length,
-                        lngLat: e.lngLat
-                    });
-                    
-                    map.getCanvas().style.cursor = 'pointer';
                     const feature = e.features[0];
                     const props = feature.properties;
                     
-                    console.log('🔍 Hover feature properties:', props);
+                    console.log('🖱️ Hover feature:', {
+                        properties: props,
+                        osmId: props.osm_id || props.id
+                    });
+                    
+                    map.getCanvas().style.cursor = 'pointer';
                     
                     let html = '<div class="gravel-popup-content">';
                     
-                    // Road name or type
+                    // Road name or type with better fallback
                     if (props.name) {
                         html += `<h4>${props.name}</h4>`;
                     } else {
-                        html += `<h4>${props.highway.replace(/_/g, ' ').toUpperCase()}</h4>`;
+                        html += `<h4>${(props.highway || 'Unknown Road Type').replace(/_/g, ' ').toUpperCase()}</h4>`;
                     }
                     
-                    // Highway type
+                    // Highway type with validation
                     if (props.highway) {
                         html += `<p><strong>Type:</strong> ${formatHighway(props.highway)}</p>`;
                     }
 
-                    // Surface type
+                    // Surface type with validation
                     if (props.surface) {
                         html += `<p><strong>Surface:</strong> ${props.surface.replace(/_/g, ' ')}</p>`;
                     }
 
-                    // Track type
+                    // Track type with validation
                     if (props.tracktype) {
                         html += `<p><strong>Track Grade:</strong> ${props.tracktype.toUpperCase()}</p>`;
                     }
 
-                    // Access information
+                    // Access information with validation
                     if (props.access) {
                         const accessStatus = formatAccess(props.access);
-                        html += `<p class="access-info ${props.access.toLowerCase()}">
-                            <strong>Access:</strong> ${accessStatus}
-                        </p>`;
+                        if (accessStatus) {
+                            html += `<p class="access-info ${props.access.toLowerCase()}">
+                                <strong>Access:</strong> ${accessStatus}
+                            </p>`;
+                        }
                     }
 
                     html += '</div>';
 
-                    console.log('🎨 Setting popup content and position');
                     popup.setLngLat(e.lngLat)
                         .setHTML(html)
                         .addTo(map);
                 }
             });
 
-            // Remove popup on mouseleave
+            // [NO CHANGES NEEDED] Remove popup on mouseleave
             map.on('mouseleave', 'road-surfaces-layer', () => {
-                console.log('🖱️ Mouse left road-surfaces-layer');
                 map.getCanvas().style.cursor = '';
                 popup.remove();
             });
 
-            // Click handler
-            console.log('🖱️ Setting up click handler');
+            // Updated click handler with better feature validation
             map.on('click', 'road-surfaces-layer', async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
+                    const props = feature.properties;
+                    const osmId = props.osm_id || props.id;
+
                     console.log('🖱️ Road clicked:', {
-                        full: feature,
-                        properties: feature.properties,
-                        type: feature.type,
+                        osmId,
+                        properties: props,
                         geometry: feature.geometry,
-                        osm_id: feature.properties.osm_id // Explicitly log OSM ID
+                        coordinates: feature.geometry.coordinates
                     });
+
+                    if (!osmId) {
+                        console.error('❌ No OSM ID found for clicked feature');
+                        return;
+                    }
             
-                    console.log('🔐 Checking authentication');
                     const auth0 = await window.waitForAuth0();
                     const isAuthenticated = await auth0.isAuthenticated();
-                    console.log('🔐 Authentication status:', isAuthenticated);
                     
                     if (!isAuthenticated) {
                         console.log('🔐 User not authenticated, returning');
                         return;
                     }
             
-                    console.log('🔧 Opening modal for road:', feature.properties.osm_id);
-                    showGravelRatingModal(feature);
+                    // Pass normalized feature to modal
+                    showGravelRatingModal({
+                        type: 'Feature',
+                        properties: {
+                            ...props,
+                            osm_id: osmId
+                        },
+                        geometry: feature.geometry
+                    });
                 }
             });
 
-            // Add debounced moveend event listener
-            console.log('🗺️ Setting up moveend handler');
+            // [NO CHANGES NEEDED] Event listener setup
             const debouncedUpdate = debounce(() => {
-                console.log('🗺️ Debounced update triggered');
                 window.layers.updateSurfaceData();
             }, 300);
 
-            map.on('moveend', () => {
-                console.log('🗺️ Map moveend event triggered');
-                debouncedUpdate();
-            });
+            map.on('moveend', debouncedUpdate);
             
         } catch (error) {
             console.error('❌ Error in initSurfaceLayers:', {
