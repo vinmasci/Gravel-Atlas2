@@ -260,80 +260,114 @@ function showGravelRatingModal(feature) {
     };
 
     // Updated save handler with additional validation
-document.getElementById('save-rating').onclick = async () => {
-    console.log('💾 Save rating clicked');
-    const gravelCondition = document.getElementById('gravel-condition').value;
-    const notes = document.getElementById('surface-notes').value;
-    const saveButton = document.getElementById('save-rating');
-    
-    // Get and validate the OSM ID
-    const finalOsmId = modal.getAttribute('data-road-id');
-    if (!finalOsmId) {
-        console.error('❌ Cannot save: Missing OSM ID');
-        saveButton.style.backgroundColor = '#dc3545';
-        saveButton.textContent = 'Error: Missing Road ID';
-        return;
-    }
-
-    console.log('💾 Preparing to save with data:', {
-        osmId: finalOsmId,
-        gravelCondition,
-        notes
-    });
-
-    try {
-        const userProfile = localStorage.getItem('userProfile');
-        if (!userProfile) {
-            console.log('⚠️ No user profile found');
+    document.getElementById('save-rating').onclick = async () => {
+        console.log('💾 Save rating clicked');
+        const gravelCondition = document.getElementById('gravel-condition').value;
+        const notes = document.getElementById('surface-notes').value;
+        const saveButton = document.getElementById('save-rating');
+        
+        // Get and validate the OSM ID
+        const finalOsmId = modal.getAttribute('data-road-id');
+        if (!finalOsmId) {
+            console.error('❌ Cannot save: Missing OSM ID');
             saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Please Log In';
+            saveButton.textContent = 'Error: Missing Road ID';
+            return;
+        }
+
+        console.log('💾 Preparing to save with data:', {
+            osmId: finalOsmId,
+            gravelCondition,
+            notes
+        });
+
+        // Rest of the save handler remains the same...
+
+        try {
+            const userProfile = localStorage.getItem('userProfile');
+            if (!userProfile) {
+                console.log('⚠️ No user profile found');
+                saveButton.style.backgroundColor = '#dc3545';
+                saveButton.textContent = 'Please Log In';
+                setTimeout(() => {
+                    saveButton.style.backgroundColor = '#007bff';
+                    saveButton.textContent = 'Save';
+                }, 2000);
+                return;
+            }
+
+            const profile = JSON.parse(userProfile);
+            console.log('👤 User profile loaded:', {
+                auth0Id: profile.auth0Id
+            });
+
+            console.log('🌐 Sending update request');
+            const response = await fetch('/api/update-road-surface', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    osm_id: roadId,
+                    gravel_condition: gravelCondition,
+                    notes: notes,
+                    user_id: profile.auth0Id
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log('❌ Error response:', errorText);
+                throw new Error('Failed to update');
+            }
+
+            console.log('✅ Update successful');
+
+            // Success - update color and close
+            if (map.getLayer('road-surfaces-layer')) {
+                console.log('🎨 Updating road color on map');
+                map.setPaintProperty('road-surfaces-layer', 'line-color', [
+                    'case',
+                    ['==', ['get', 'osm_id'], roadId], getColorForGravelCondition(gravelCondition),
+                    ['has', 'gravel_condition'], ['match',
+                        ['get', 'gravel_condition'],
+                        '0', '#2ecc71',
+                        '1', '#a7eb34',
+                        '2', '#f1c40f',
+                        '3', '#e67e22',
+                        '4', '#e74c3c',
+                        '5', '#c0392b',
+                        '6', '#8e44ad',
+                        '#C2B280'
+                    ],
+                    '#C2B280'
+                ]);
+            }
+
+            saveButton.style.backgroundColor = '#28a745';
+            saveButton.textContent = 'Saved!';
+            
+            console.log('🔄 Updating surface data');
+            await window.layers.updateSurfaceData();
+
+            setTimeout(() => {
+                console.log('🔧 Removing modal');
+                const backdrop = document.getElementById('gravel-rating-backdrop');
+                const modal = document.getElementById('gravel-rating-modal');
+                if (backdrop) backdrop.remove();
+                if (modal) modal.remove();
+            }, 1000);
+
+        } catch (error) {
+            console.error('❌ Error saving rating:', error);
+            saveButton.style.backgroundColor = '#dc3545';
+            saveButton.textContent = 'Error!';
             setTimeout(() => {
                 saveButton.style.backgroundColor = '#007bff';
                 saveButton.textContent = 'Save';
             }, 2000);
-            return;
         }
-
-        const profile = JSON.parse(userProfile);
-        console.log('👤 User profile loaded:', {
-            auth0Id: profile.auth0Id
-        });
-
-        console.log('🌐 Sending update request');
-        const response = await fetch('/api/update-road-surface', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                osm_id: finalOsmId, // <-- Use finalOsmId here
-                gravel_condition: gravelCondition,
-                notes: notes,
-                user_id: profile.auth0Id
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.log('❌ Error response:', errorText);
-            throw new Error('Failed to update');
-        }
-
-        console.log('✅ Update successful');
-
-        // Rest of your code...
-
-    } catch (error) {
-        console.error('❌ Error saving rating:', error);
-        saveButton.style.backgroundColor = '#dc3545';
-        saveButton.textContent = 'Error!';
-        setTimeout(() => {
-            saveButton.style.backgroundColor = '#007bff';
-            saveButton.textContent = 'Save';
-        }, 2000);
-    }
-};
-
+    };
 }
 
 function formatHighway(highway) {
