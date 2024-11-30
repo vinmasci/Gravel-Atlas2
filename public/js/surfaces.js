@@ -178,27 +178,18 @@ window.layers.initSurfaceLayers = function() {
     if (!map.getSource('road-surfaces')) {
         console.log('📍 Creating new road-surfaces source and layer');
         try {
+            // Add only one source - the vector source
             map.addSource('road-surfaces', {
-                type: 'geojson',
-                data: {
-                    type: 'FeatureCollection',
-                    features: []
-                },
-                tolerance: 8,
-                maxzoom: 15,
-                buffer: 512,
-                lineMetrics: true
+                'type': 'vector',
+                'url': 'mapbox://vinmasci.5nvlqfla'
             });
             console.log('✅ Successfully added source');
 
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
-                'source': {
-                    'type': 'vector',
-                    'url': 'mapbox://vinmasci.5nvlqfla'  // Your tileset ID here
-                },
-                'source-layer': 'road_surfaces',  // This should match the layer name we used in tippecanoe
+                'source': 'road-surfaces',  // Reference the source by name
+                'source-layer': 'road_surfaces',
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',
@@ -218,6 +209,7 @@ window.layers.initSurfaceLayers = function() {
                     'line-opacity': 0.7
                 }
             });
+
 
             console.log('✅ Successfully added layer');
 
