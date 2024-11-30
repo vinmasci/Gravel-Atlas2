@@ -28,7 +28,6 @@ const ROAD_TYPES = {
         'farm', 'forest', 'driveway', 'private', 'dirt_road',
         'fire_road', 'agricultural', 'alley', 'backcountry'
     ],
-    
     excluded: [
         'motorway', 'motorway_link',
         'trunk', 'trunk_link'
@@ -152,6 +151,7 @@ module.exports = async (req, res) => {
 
             console.log('📊 Final query:', JSON.stringify(query, null, 2));
 
+            // Get roads from main collection
             const roads = await client.db('gravelatlas')
                 .collection('road_surfaces')
                 .find(query)
@@ -164,8 +164,8 @@ module.exports = async (req, res) => {
                 highways: [...new Set(roads.map(r => r.properties?.highway))]
             });
 
-            // First create the base GeoJSON
-            const geojson = {
+            // Create base GeoJSON
+            let geojson = {
                 type: 'FeatureCollection',
                 features: roads.map(road => {
                     const tracktype = extractFromOtherTags(road.properties?.other_tags, 'tracktype');
@@ -186,7 +186,7 @@ module.exports = async (req, res) => {
                 })
             };
 
-            // Get modifications for these roads
+            // Get user modifications
             const modifications = await client
                 .db('gravelatlas')
                 .collection('road_modifications')
@@ -197,12 +197,12 @@ module.exports = async (req, res) => {
                 })
                 .toArray();
 
-            // Create a lookup of modifications
+            // Create lookup map for modifications
             const modificationLookup = new Map(
                 modifications.map(m => [m.osm_id, m])
             );
 
-            // Merge modifications with the road data
+            // Merge modifications with base road data
             geojson.features = geojson.features.map(feature => {
                 const modification = modificationLookup.get(feature.properties.osm_id);
                 
@@ -214,7 +214,14 @@ module.exports = async (req, res) => {
                             gravel_condition: modification.gravel_condition,
                             surface_quality: modification.surface_quality,
                             notes: modification.notes,
-                            last_updated: modification.last_updated
+                            last_updated: modification.last_updated,
+                            modified_by: modification.modified_by,
+                            // Include OSM compatibility tags
+                            osm_compatible_tags: {
+                                surface: modification.osm_tags?.surface,
+                                smoothness: modification.osm_tags?.smoothness,
+                                tracktype: modification.osm_tags?.tracktype
+                            }
                         }
                     };
                 }
