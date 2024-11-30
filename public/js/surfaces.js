@@ -186,12 +186,15 @@ function showGravelRatingModal(feature) {
         console.log('📍 Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
-
+        const saveButton = document.getElementById('save-rating');
+    
         try {
-            // Get the auth token
-            const auth0 = await window.auth0;
+            // Get the auth token using the correct method
+            const auth0 = await window.waitForAuth0();
             const token = await auth0.getTokenSilently();
-
+            
+            console.log('📍 Auth token obtained, sending request...');
+    
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -204,9 +207,13 @@ function showGravelRatingModal(feature) {
                     notes
                 })
             });
-
-            if (!response.ok) throw new Error('Failed to update');
-
+    
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Server response:', errorData);
+                throw new Error(errorData.message || 'Failed to update');
+            }
+    
             // Update the road color immediately
             if (map.getLayer('road-surfaces-layer')) {
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
@@ -226,15 +233,24 @@ function showGravelRatingModal(feature) {
                     '#C2B280'
                 ]);
             }
-
+    
+            // Show success state
+            saveButton.style.backgroundColor = '#28a745';
+            saveButton.textContent = 'Saved!';
+    
             // Refresh the map display
-            window.layers.updateSurfaceData();
-            backdrop.remove();
-            modal.remove();
-            
+            await window.layers.updateSurfaceData();
+    
+            // Close modal after short delay
+            setTimeout(() => {
+                const backdrop = document.getElementById('gravel-rating-backdrop');
+                const modal = document.getElementById('gravel-rating-modal');
+                if (backdrop) backdrop.remove();
+                if (modal) modal.remove();
+            }, 1000);
+    
         } catch (error) {
             console.error('❌ Error saving rating:', error);
-            const saveButton = document.getElementById('save-rating');
             saveButton.style.backgroundColor = '#dc3545';
             saveButton.textContent = 'Error!';
             setTimeout(() => {
