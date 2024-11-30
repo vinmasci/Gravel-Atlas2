@@ -425,22 +425,22 @@ window.layers.initSurfaceLayers = function() {
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': [
-                        'case',
-                        ['has', 'gravel_condition'],
-                        ['match',
-                            ['get', 'gravel_condition'],
-                            '0', '#2ecc71',
-                            '1', '#a7eb34',
-                            '2', '#f1c40f',
-                            '3', '#e67e22',
-                            '4', '#e74c3c',
-                            '5', '#c0392b',
-                            '6', '#8e44ad',
-                            '#C2B280'
-                        ],
-                        '#C2B280'
-                    ],
+'line-color': [
+    'case',
+    ['has', 'gravel_condition'],
+    ['match',
+        ['toString', ['get', 'gravel_condition']], // Convert to string before matching
+        '0', '#01bf11',
+        '1', interpolateColor('#01bf11', '#ffa801'),
+        '2', '#ffa801',
+        '3', interpolateColor('#ffa801', '#c0392b'),
+        '4', '#c0392b',
+        '5', interpolateColor('#c0392b', '#751203'),
+        '6', '#751203',
+        '#C2B280'
+    ],
+    '#C2B280'
+],
                     'line-width': [
                         'interpolate',
                         ['linear'],
