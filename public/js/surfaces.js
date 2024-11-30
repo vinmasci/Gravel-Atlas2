@@ -156,7 +156,24 @@ function interpolateColor(color1, color2) {
 function getColorForGravelCondition(condition) {
     console.log('🎨 Getting color for condition:', condition);
     const parsedCondition = parseInt(condition);
-    return GRAVEL_COLORS[parsedCondition] || '#C2B280';
+    const color = (() => {
+        switch(parsedCondition) {
+            case 0: return '#01bf11'; // Green
+            case 1: return '#a7eb34'; // Green-Yellow
+            case 2: return '#ffa801'; // Yellow
+            case 3: return '#e67e22'; // Yellow-Red
+            case 4: return '#c0392b'; // Red
+            case 5: return '#c0392b'; // Red-Maroon
+            case 6: return '#751203'; // Dark red
+            default: return '#C2B280'; // Default gravel color
+        }
+    })();
+    console.log('🎨 Selected color:', color);
+    return color;
+}
+
+function getConditionIcon(condition) {
+    return `<i class="fa-solid fa-circle-${condition}" style="color: ${getColorForGravelCondition(condition)}; font-size: 1.2em;"></i>`;
 }
 
 // Helper function to format username
@@ -424,38 +441,38 @@ map.addLayer({
         'line-join': 'round',
         'line-cap': 'round'
     },
-    'paint': {
-        'line-color': [
-            'case',
-            ['has', 'gravel_condition'],
-            ['match',
-                ['toString', ['get', 'gravel_condition']],
-                '0', GRAVEL_COLORS['0'],
-                '1', GRAVEL_COLORS['1'],
-                '2', GRAVEL_COLORS['2'],
-                '3', GRAVEL_COLORS['3'],
-                '4', GRAVEL_COLORS['4'],
-                '5', GRAVEL_COLORS['5'],
-                '6', GRAVEL_COLORS['6'],
-                '#C2B280'
-            ],
+'paint': {
+    'line-color': [
+        'case',
+        ['has', 'gravel_condition'],
+        ['match',
+            ['get', 'gravel_condition'],
+            '0', '#01bf11',
+            '1', '#a7eb34',
+            '2', '#ffa801',
+            '3', '#e67e22',
+            '4', '#c0392b',
+            '5', '#c0392b',
+            '6', '#751203',
             '#C2B280'
         ],
-        'line-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            8, 2,
-            10, 3,
-            12, 4,
-            14, 5
-        ],
-        'line-opacity': [
-            'case',
-            ['has', 'gravel_condition'], 0.9,
-            0.7
-        ]
-    }
+        '#C2B280'
+    ],
+    'line-width': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        8, 2,
+        10, 3,
+        12, 4,
+        14, 5
+    ],
+    'line-opacity': [
+        'case',
+        ['has', 'gravel_condition'], 0.9,
+        0.7
+    ]
+}
 });
 
             // Click handler for the GeoJSON layer
