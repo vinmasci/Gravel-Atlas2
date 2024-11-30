@@ -170,7 +170,6 @@ function getColorForGravelCondition(condition) {
     })();
     console.log('🎨 Selected color:', color);
     return color;
-}color;
 }
 
 // Helper function to format username
