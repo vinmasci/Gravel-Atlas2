@@ -152,8 +152,17 @@ function getColorForGravelCondition(condition) {
     return color;
 }
 
+// Helper function to format username
+function formatUserName(profile) {
+    if (profile.bio_name) return profile.bio_name;
+    if (profile.name && profile.name !== profile.email) return profile.name;
+    // If only email is available, trim the domain
+    return profile.email.split('@')[0];
+}
+
+// Updated icon function to use solid style
 function getConditionIcon(condition) {
-    return `<i class="fa-duotone fa-thin fa-circle-${condition}" style="--fa-secondary-color: ${getColorForGravelCondition(condition)}; --fa-secondary-opacity: 1; font-size: 1.2em;"></i>`;
+    return `<i class="fa-solid fa-circle-${condition}" style="color: ${getColorForGravelCondition(condition)}; font-size: 1.2em;"></i>`;
 }
 
 function showGravelRatingModal(feature) {
@@ -212,59 +221,59 @@ function showGravelRatingModal(feature) {
         `<span style="cursor: pointer; margin: 0 4px;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
     ).join('');
 
-    modal.innerHTML = `
-        <div style="margin-bottom: 16px;">
-            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
-            <div style="font-size: 14px;">
-                <b>Current Details:</b>
-                <div style="margin-top: 8px; font-size: 13px;">
-                    <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
-                    <div>${currentConditionHtml}</div>
-                </div>
+// Updated modal HTML
+modal.innerHTML = `
+    <div style="margin-bottom: 16px;">
+        <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
+        <div style="font-size: 14px;">
+            <b>Current Details:</b>
+            <div style="margin-top: 8px; font-size: 13px;">
+                <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
+                <div><b>Current Condition:</b> ${getConditionIcon(feature.properties.gravel_condition || 0)}</div>
             </div>
         </div>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-        <div style="margin-bottom: 8px;">
-            <b style="font-size: 14px;">Rate gravel conditions for this road</b>
+    </div>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+    <div style="margin-bottom: 8px;">
+        <b style="font-size: 14px;">Rate gravel conditions for this road</b>
+    </div>
+    <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Selection Condition:</b></label>
+        <div style="display: flex; justify-content: center; margin-bottom: 8px; gap: 12px;">
+            ${Array.from({ length: 7 }, (_, i) => 
+                `<span style="cursor: pointer;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
+            ).join('')}
         </div>
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Selection Condition:</b></label>
-            <div style="display: flex; justify-content: center; margin-bottom: 8px;">
-                ${iconButtons}
+        <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="0">0 - Smooth, any bike</option>
+            <option value="1">1 - Well maintained</option>
+            <option value="2">2 - Occasional rough</option>
+            <option value="3">3 - Frequent loose</option>
+            <option value="4">4 - Very rough</option>
+            <option value="5">5 - Technical MTB</option>
+            <option value="6">6 - Extreme MTB</option>
+        </select>
+        <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
+    </div>
+    <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+        <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;"></textarea>
+    </div>
+    ${feature.properties.votes ? `
+    <div style="margin-bottom: 16px; font-size: 13px;">
+        <b>Previous Votes:</b>
+        ${feature.properties.votes.map(vote => `
+            <div style="margin: 4px 0; padding: 4px; background: #f8f9fa; border-radius: 4px;">
+                ${formatUserName({ name: vote.userName, email: vote.userName })} voted ${getConditionIcon(vote.condition)}
             </div>
-            <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="0">0 - Smooth, any bike</option>
-                <option value="1">1 - Well maintained</option>
-                <option value="2">2 - Occasional rough</option>
-                <option value="3">3 - Frequent loose</option>
-                <option value="4">4 - Very rough</option>
-                <option value="5">5 - Technical MTB</option>
-                <option value="6">6 - Extreme MTB</option>
-            </select>
-            <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
-        </div>
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
-            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
-        </div>
-        ${votes.length > 0 ? `
-        <div style="margin-bottom: 16px; font-size: 13px;">
-            <b>Previous Votes:</b>
-            <div style="max-height: 100px; overflow-y: auto;">
-                ${votes.map(vote => `
-                    <div style="margin: 4px 0;">
-                        ${vote.userName}: ${getConditionIcon(vote.condition)}
-                        <span style="color: #666; font-size: 11px;">${new Date(vote.timestamp).toLocaleDateString()}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-        ` : ''}
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-            <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
-            <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
-        </div>
-    `;
+        `).join('')}
+    </div>
+    ` : ''}
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+        <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
+    </div>
+`;
 
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
@@ -306,7 +315,7 @@ function showGravelRatingModal(feature) {
             gravel_condition: parseInt(gravelCondition),
             notes: notes,
             user_id: userProfile.auth0Id,
-            userName: userProfile.name || userProfile.email
+            userName: formatUserName(userProfile)
         };
     
         console.log('💾 Preparing to save vote:', voteData);

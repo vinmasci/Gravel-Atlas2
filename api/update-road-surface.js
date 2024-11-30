@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
     const { osm_id, gravel_condition, notes, user_id, userName } = req.body;
 
     // Validate required fields
-    if (!osm_id || gravel_condition === undefined || !user_id) {
+    if (!osm_id || !gravel_condition || !user_id) {
         console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id });
         return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
         client = new MongoClient(uri);
         await client.connect();
 
-        // First, get current document to check for existing votes
+        // First, get the current document to check for existing votes
         const currentDoc = await client
             .db('gravelatlas')
             .collection('road_modifications')
@@ -43,10 +43,6 @@ module.exports = async (req, res) => {
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
 
-        // Create vote record for notes
-        const voteNote = `${userName || 'Anonymous'} voted ${gravel_condition}`;
-        const updatedNotes = notes ? `${notes}\n${voteNote}` : voteNote;
-
         console.log('📍 API: Updating road modification');
         const modification = await client
             .db('gravelatlas')
@@ -56,7 +52,7 @@ module.exports = async (req, res) => {
                 {
                     $set: {
                         gravel_condition: averageCondition,
-                        notes: updatedNotes,
+                        notes,
                         modified_by: user_id,
                         last_updated: new Date(),
                         votes: votes,
@@ -79,6 +75,7 @@ module.exports = async (req, res) => {
             averageCondition,
             totalVotes: votes.length
         });
+
     } catch (error) {
         console.error('📍 API Error:', error);
         res.status(500).json({ error: 'Failed to update road surface', details: error.message });
