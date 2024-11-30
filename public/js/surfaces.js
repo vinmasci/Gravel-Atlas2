@@ -276,14 +276,15 @@ modal.innerHTML = `
         <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
     </div>
     <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-    <div style="margin-bottom: 16px; font-size: 13px; color: #666;">
-        ${feature.properties.votes ? 
-            feature.properties.votes.map(vote => 
-                `${vote.userName.split('@')[0]} voted ${getConditionIcon(vote.condition)}`
-            ).join('<br>')
-            : 'No votes yet'
-        }
-    </div>
+<div style="margin-bottom: 16px; font-size: 13px; color: #666;">
+    ${feature.properties.votes ? 
+        feature.properties.votes.map(vote => {
+            const condition = typeof vote.condition === 'object' ? vote.condition.$numberInt : vote.condition;
+            return `${vote.userName} voted ${getConditionIcon(condition)}`;
+        }).join('<br>')
+        : 'No votes yet'
+    }
+</div>
     <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
         <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
