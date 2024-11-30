@@ -103,9 +103,11 @@ function getColorForGravelCondition(condition) {
 }
 
 function showGravelRatingModal(feature) {
-    console.log('📍 showGravelRatingModal called with feature:', feature);
+    console.log('📍 Modal opened for road:', {
+        name: feature.properties.name,
+        osm_id: feature.properties.osm_id
+    });
 
-    // Create backdrop with specific class
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
     backdrop.style.cssText = `
@@ -121,8 +123,8 @@ function showGravelRatingModal(feature) {
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
     modal.className = 'gravel-edit-modal';
-    // Store the feature data as a data attribute
-    modal.setAttribute('data-feature', JSON.stringify(feature));
+    // Store the osm_id directly as a data attribute
+    modal.setAttribute('data-osmid', feature.properties.osm_id);
 
     modal.style.cssText = `
         position: fixed !important;
@@ -144,6 +146,7 @@ function showGravelRatingModal(feature) {
         <div style="margin-bottom: 16px;">
             <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${feature.properties.name || 'Unnamed Road'}</h3>
             <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
+            <small style="color: #999;">ID: ${feature.properties.osm_id}</small>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Gravel Condition (0-6)</label>
@@ -156,7 +159,6 @@ function showGravelRatingModal(feature) {
                 <option value="5">5 - Technical MTB</option>
                 <option value="6">6 - Extreme MTB</option>
             </select>
-            <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
@@ -171,35 +173,19 @@ function showGravelRatingModal(feature) {
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
 
-    // Add color preview update on select change
-    const select = document.getElementById('gravel-condition');
-    const colorPreview = document.getElementById('color-preview');
-    select.addEventListener('change', (e) => {
-        colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
-    });
-
-    document.getElementById('cancel-rating').onclick = () => {
-        console.log('📍 Cancel button clicked');
-        backdrop.remove();
-        modal.remove();
-    };
-
-    //save rating
+    // Add the save handler here
     document.getElementById('save-rating').onclick = async () => {
         console.log('📍 Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
+        const osm_id = modal.getAttribute('data-osmid');
+
+        console.log('📍 Saving rating for road:', { osm_id, gravelCondition, notes });
 
         try {
-            const modal = document.getElementById('gravel-rating-modal');
-            const featureData = JSON.parse(modal.getAttribute('data-feature'));
-            console.log('📍 Feature data:', featureData);
-
-            // Check if user is logged in by looking for profile
             const userProfile = localStorage.getItem('userProfile');
             if (!userProfile) {
-                console.log('📍 No user profile found - user needs to log in');
                 saveButton.style.backgroundColor = '#dc3545';
                 saveButton.textContent = 'Please Log In';
                 setTimeout(() => {
@@ -210,27 +196,19 @@ function showGravelRatingModal(feature) {
             }
 
             const profile = JSON.parse(userProfile);
-            console.log('📍 User profile found:', profile);
-
-            // Get auth token
-            const auth0 = await window.waitForAuth0();
-            const token = await auth0.getTokenSilently();
-
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    osm_id: featureData.properties.osm_id,
+                    osm_id: osm_id,
                     gravel_condition: gravelCondition,
                     notes: notes,
                     user_id: profile.auth0Id
                 })
             });
 
-            console.log('📍 Response status:', response.status);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.log('📍 Error response:', errorText);
