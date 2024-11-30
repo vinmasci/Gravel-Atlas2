@@ -256,13 +256,15 @@ modal.innerHTML = `
         <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
     </div>
     <div style="margin-bottom: 16px;">
-        ${feature.properties.votes ? `
-            <div style="font-size: 13px; background: #f8f9fa; padding: 8px; border-radius: 4px;">
-                ${feature.properties.votes.map(vote => 
-                    `<div style="margin: 4px 0;">${vote.userName}: ${getConditionIcon(vote.condition)}</div>`
-                ).join('')}
-            </div>
-        ` : ''}
+        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 6px;">Previous Votes</label>
+        ${feature.properties.votes ? 
+            feature.properties.votes.map(vote => 
+                `<div style="padding: 4px 8px; background: #f8f9fa; border-radius: 4px; margin-bottom: 4px;">
+                    ${vote.userName.split('@')[0]} voted ${getConditionIcon(vote.condition)}
+                </div>`
+            ).join('')
+            : '<div style="color: #666; font-style: italic;">No votes yet</div>'
+        }
     </div>
     <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
@@ -308,9 +310,9 @@ modal.innerHTML = `
         const voteData = {
             osm_id: finalOsmId,
             gravel_condition: parseInt(gravelCondition),
-            notes: notes,
+            notes: notes,  // Keep original notes
             user_id: userProfile.auth0Id,
-            userName: formatUserName(userProfile)
+            userName: userProfile.name || userProfile.email.split('@')[0] // Format username here
         };
     
         console.log('💾 Preparing to save vote:', voteData);
@@ -426,12 +428,16 @@ window.layers.initSurfaceLayers = function() {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        8, 1.5,
-                        10, 2,
-                        12, 2.5,
-                        14, 3
+                        8, 2,    // Wider at lower zoom
+                        10, 3,   // Even wider
+                        12, 4,   // Wider still
+                        14, 5    // Maximum width
                     ],
-                    'line-opacity': 0.7
+                    'line-opacity': [
+                        'case',
+                        ['has', 'gravel_condition'], 0.9,  // More opaque for rated roads
+                        0.7  // Default opacity for unrated
+                    ]
                 }
             });
 

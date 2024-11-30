@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
         client = new MongoClient(uri);
         await client.connect();
 
-        // First, get the current document to check for existing votes
+        // First, get current document to check for existing votes
         const currentDoc = await client
             .db('gravelatlas')
             .collection('road_modifications')
@@ -29,10 +29,13 @@ module.exports = async (req, res) => {
         // Remove previous vote by this user if it exists
         votes = votes.filter(vote => vote.user_id !== user_id);
         
+        // Format username to remove email domain if needed
+        const formattedUserName = userName.includes('@') ? userName.split('@')[0] : userName;
+
         // Add new vote
         const newVote = {
             user_id,
-            userName: userName || 'Anonymous',
+            userName: formattedUserName,
             condition: parseInt(gravel_condition),
             timestamp: new Date()
         };
@@ -52,7 +55,7 @@ module.exports = async (req, res) => {
                 {
                     $set: {
                         gravel_condition: averageCondition,
-                        notes,
+                        notes: notes,
                         modified_by: user_id,
                         last_updated: new Date(),
                         votes: votes,
