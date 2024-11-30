@@ -293,20 +293,24 @@ function showGravelRatingModal(feature) {
             saveButton.textContent = 'Error: Missing Road ID';
             return;
         }
-
+    
         const userProfile = JSON.parse(localStorage.getItem('userProfile'));
-        
+        if (!userProfile) {
+            console.error('❌ No user profile found');
+            return;
+        }
+    
+        // Prepare the vote data matching API expectations
         const voteData = {
-            osmId: finalOsmId,
-            condition: parseInt(gravelCondition),
+            osm_id: finalOsmId,
+            gravel_condition: parseInt(gravelCondition),
             notes: notes,
             user_id: userProfile.auth0Id,
-            userName: userProfile.name || userProfile.email,
-            timestamp: new Date().toISOString()
+            userName: userProfile.name || userProfile.email
         };
-
+    
         console.log('💾 Preparing to save vote:', voteData);
-
+    
         try {
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
@@ -315,22 +319,48 @@ function showGravelRatingModal(feature) {
                 },
                 body: JSON.stringify(voteData)
             });
-
+    
             if (!response.ok) {
                 throw new Error('Failed to save vote');
             }
-
+    
+            // Update color on map
+            if (map.getLayer('road-surfaces-layer')) {
+                map.setPaintProperty('road-surfaces-layer', 'line-color', [
+                    'case',
+                    ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
+                    ['has', 'gravel_condition'], ['match',
+                        ['get', 'gravel_condition'],
+                        '0', '#2ecc71',
+                        '1', '#a7eb34',
+                        '2', '#f1c40f',
+                        '3', '#e67e22',
+                        '4', '#e74c3c',
+                        '5', '#c0392b',
+                        '6', '#8e44ad',
+                        '#C2B280'
+                    ],
+                    '#C2B280'
+                ]);
+            }
+    
+            await window.layers.updateSurfaceData();
+    
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             setTimeout(() => {
                 backdrop.remove();
                 modal.remove();
             }, 1000);
-
+    
         } catch (error) {
             console.error('Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
             saveButton.textContent = 'Error!';
+            setTimeout(() => {
+                saveButton.style.backgroundColor = '#007bff';
+                saveButton.textContent = 'Save';
+            }, 2000);
         }
     };
 }

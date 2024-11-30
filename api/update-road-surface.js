@@ -3,10 +3,10 @@ const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
     console.log('📍 API: Received request');
-    const { osm_id, gravel_condition, notes, user_id } = req.body;
+    const { osm_id, gravel_condition, notes, user_id, userName } = req.body;
 
     // Validate required fields
-    if (!osm_id || !gravel_condition || !user_id) {
+    if (!osm_id || gravel_condition === undefined || !user_id) {
         console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id });
         return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -16,32 +16,36 @@ module.exports = async (req, res) => {
         console.log('📍 API: Connecting to MongoDB');
         client = new MongoClient(uri);
         await client.connect();
-        
-        // First, get the current document to check for existing votes
+
+        // First, get current document to check for existing votes
         const currentDoc = await client
             .db('gravelatlas')
             .collection('road_modifications')
             .findOne({ osm_id });
 
-        // Initialize or update the votes array
+        // Initialize or update votes array
         let votes = currentDoc?.votes || [];
         
         // Remove previous vote by this user if it exists
         votes = votes.filter(vote => vote.user_id !== user_id);
         
         // Add new vote
-        votes.push({
+        const newVote = {
             user_id,
+            userName: userName || 'Anonymous',
             condition: parseInt(gravel_condition),
-            notes,
-            timestamp: new Date(),
-            userName: req.body.userName || 'Anonymous'
-        });
+            timestamp: new Date()
+        };
+        votes.push(newVote);
 
         // Calculate average condition
         const averageCondition = Math.round(
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
+
+        // Create vote record for notes
+        const voteNote = `${userName || 'Anonymous'} voted ${gravel_condition}`;
+        const updatedNotes = notes ? `${notes}\n${voteNote}` : voteNote;
 
         console.log('📍 API: Updating road modification');
         const modification = await client
@@ -52,7 +56,7 @@ module.exports = async (req, res) => {
                 {
                     $set: {
                         gravel_condition: averageCondition,
-                        notes,
+                        notes: updatedNotes,
                         modified_by: user_id,
                         last_updated: new Date(),
                         votes: votes,
