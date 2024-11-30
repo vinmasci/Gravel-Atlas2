@@ -108,6 +108,7 @@ function showGravelRatingModal(feature) {
         osm_id: feature.properties.osm_id
     });
 
+    // Create backdrop with specific class
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
     backdrop.style.cssText = `
@@ -123,8 +124,9 @@ function showGravelRatingModal(feature) {
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
     modal.className = 'gravel-edit-modal';
-    // Store the osm_id directly as a data attribute
-    modal.setAttribute('data-osmid', feature.properties.osm_id);
+    // Store the road ID
+    modal.setAttribute('data-road-id', feature.properties.osm_id);
+    console.log('📍 Setting road ID:', feature.properties.osm_id);
 
     modal.style.cssText = `
         position: fixed !important;
@@ -146,7 +148,6 @@ function showGravelRatingModal(feature) {
         <div style="margin-bottom: 16px;">
             <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${feature.properties.name || 'Unnamed Road'}</h3>
             <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
-            <small style="color: #999;">ID: ${feature.properties.osm_id}</small>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Gravel Condition (0-6)</label>
@@ -159,6 +160,7 @@ function showGravelRatingModal(feature) {
                 <option value="5">5 - Technical MTB</option>
                 <option value="6">6 - Extreme MTB</option>
             </select>
+            <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
@@ -173,19 +175,33 @@ function showGravelRatingModal(feature) {
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
 
-    // Add the save handler here
+    // Add color preview update on select change
+    const select = document.getElementById('gravel-condition');
+    const colorPreview = document.getElementById('color-preview');
+    select.addEventListener('change', (e) => {
+        colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
+    });
+
+    document.getElementById('cancel-rating').onclick = () => {
+        console.log('📍 Cancel button clicked');
+        backdrop.remove();
+        modal.remove();
+    };
+
     document.getElementById('save-rating').onclick = async () => {
         console.log('📍 Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
-        const osm_id = modal.getAttribute('data-osmid');
-
-        console.log('📍 Saving rating for road:', { osm_id, gravelCondition, notes });
+        
+        // Get the road ID from the modal
+        const roadId = modal.getAttribute('data-road-id');
+        console.log('📍 Retrieved road ID for save:', roadId);
 
         try {
             const userProfile = localStorage.getItem('userProfile');
             if (!userProfile) {
+                console.log('📍 No user profile found');
                 saveButton.style.backgroundColor = '#dc3545';
                 saveButton.textContent = 'Please Log In';
                 setTimeout(() => {
@@ -196,13 +212,15 @@ function showGravelRatingModal(feature) {
             }
 
             const profile = JSON.parse(userProfile);
+            console.log('📍 Sending update request with road ID:', roadId);
+
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    osm_id: osm_id,
+                    osm_id: roadId,
                     gravel_condition: gravelCondition,
                     notes: notes,
                     user_id: profile.auth0Id
@@ -220,7 +238,7 @@ function showGravelRatingModal(feature) {
             if (map.getLayer('road-surfaces-layer')) {
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
-                    ['==', ['get', 'osm_id'], featureData.properties.osm_id], getColorForGravelCondition(gravelCondition),
+                    ['==', ['get', 'osm_id'], roadId], getColorForGravelCondition(gravelCondition),
                     ['has', 'gravel_condition'], ['match',
                         ['get', 'gravel_condition'],
                         '0', '#2ecc71',
