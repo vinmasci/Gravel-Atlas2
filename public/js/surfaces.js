@@ -90,10 +90,31 @@ function showGravelRatingModal(feature) {
         existingModal.remove();
     }
 
+    // Create semi-transparent backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'fixed inset-0 bg-black bg-opacity-50 z-40';
+    backdrop.id = 'modal-backdrop';
+
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
-    modal.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg z-50 w-96';
+    // Updated classes to ensure visibility
+    modal.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-xl z-50 w-96 border border-gray-200';
     
+    // Add inline styles to guarantee visibility
+    modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        z-index: 9999;
+        width: 24rem;
+        display: block;
+    `;
+
     modal.innerHTML = `
         <div class="mb-4">
             <h3 class="text-lg font-bold">${feature.properties.name || 'Unnamed Road'}</h3>
@@ -121,13 +142,17 @@ function showGravelRatingModal(feature) {
         </div>
     `;
 
+    // Add backdrop first
+    document.body.appendChild(backdrop);
+    // Then add modal
     document.body.appendChild(modal);
-    console.log('📍 Modal element added to document body');
+    console.log('📍 Modal and backdrop elements added to document body');
 
-    // Add event listeners
+    // Update event listeners to remove both modal and backdrop
     document.getElementById('cancel-rating').onclick = () => {
         console.log('📍 Cancel button clicked');
         modal.remove();
+        backdrop.remove();
     };
 
     document.getElementById('save-rating').onclick = async () => {
@@ -159,9 +184,9 @@ function showGravelRatingModal(feature) {
             // Refresh the map display
             window.layers.updateSurfaceData();
             modal.remove();
+            backdrop.remove();
         } catch (error) {
             console.error('❌ Error saving rating:', error);
-            // Add visual feedback for error
             const saveButton = document.getElementById('save-rating');
             saveButton.textContent = 'Error!';
             saveButton.classList.add('bg-red-500');
