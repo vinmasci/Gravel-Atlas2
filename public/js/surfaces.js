@@ -1,4 +1,4 @@
-// Initialize surface layer visibility2
+// Initialize surface layer visibility
 if (!window.layerVisibility) {
     window.layerVisibility = {};
 }
@@ -173,7 +173,7 @@ function showGravelRatingModal(feature) {
         return;
     }
 
-    // [NO CHANGES NEEDED] Create backdrop
+    // Create backdrop
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
     backdrop.style.cssText = `
@@ -193,7 +193,7 @@ function showGravelRatingModal(feature) {
     modal.setAttribute('data-road-id', osmId);
     console.log('🔧 Setting modal road ID:', osmId);
 
-    // [NO CHANGES NEEDED] Modal styles remain the same
+    // Modal styles
     modal.style.cssText = `
         position: fixed !important;
         top: 50% !important;
@@ -239,12 +239,12 @@ function showGravelRatingModal(feature) {
         </div>
     `;
 
-    // [NO CHANGES NEEDED] Add to DOM
+    // Add to DOM
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
     console.log('🔧 Modal created and added to DOM');
 
-    // [NO CHANGES NEEDED] Color preview handler
+    // Color preview handler
     const select = document.getElementById('gravel-condition');
     const colorPreview = document.getElementById('color-preview');
     select.addEventListener('change', (e) => {
@@ -252,14 +252,14 @@ function showGravelRatingModal(feature) {
         colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
     });
 
-    // [NO CHANGES NEEDED] Cancel handler
+    // Cancel handler
     document.getElementById('cancel-rating').onclick = () => {
         console.log('❌ Cancel rating clicked');
         backdrop.remove();
         modal.remove();
     };
 
-    // Updated save handler with additional validation
+    // Save handler with additional validation
     document.getElementById('save-rating').onclick = async () => {
         console.log('💾 Save rating clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
@@ -280,8 +280,6 @@ function showGravelRatingModal(feature) {
             gravelCondition,
             notes
         });
-
-        // Rest of the save handler remains the same...
 
         try {
             const userProfile = localStorage.getItem('userProfile');
@@ -308,7 +306,7 @@ function showGravelRatingModal(feature) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    osm_id: roadId,
+                    osm_id: finalOsmId,
                     gravel_condition: gravelCondition,
                     notes: notes,
                     user_id: profile.auth0Id
@@ -328,7 +326,7 @@ function showGravelRatingModal(feature) {
                 console.log('🎨 Updating road color on map');
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
-                    ['==', ['get', 'osm_id'], roadId], getColorForGravelCondition(gravelCondition),
+                    ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
                     ['has', 'gravel_condition'], ['match',
                         ['get', 'gravel_condition'],
                         '0', '#2ecc71',
