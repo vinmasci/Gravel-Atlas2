@@ -226,7 +226,6 @@ modal.innerHTML = `
     <div style="margin-bottom: 16px;">
         <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
         <div style="font-size: 14px;">
-            <b>Current Details:</b>
             <div style="margin-top: 8px; font-size: 13px;">
                 <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                 <div><b>Current Condition:</b> ${getConditionIcon(feature.properties.gravel_condition || 0)}</div>
@@ -234,11 +233,8 @@ modal.innerHTML = `
         </div>
     </div>
     <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-    <div style="margin-bottom: 8px;">
-        <b style="font-size: 14px;">Rate gravel conditions for this road</b>
-    </div>
     <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Selection Condition:</b></label>
+        <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Vote road condition:</b></label>
         <div style="display: flex; justify-content: center; margin-bottom: 8px; gap: 12px;">
             ${Array.from({ length: 7 }, (_, i) => 
                 `<span style="cursor: pointer;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
@@ -257,18 +253,17 @@ modal.innerHTML = `
     </div>
     <div style="margin-bottom: 16px;">
         <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
-        <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;"></textarea>
+        <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
     </div>
-    ${feature.properties.votes ? `
-    <div style="margin-bottom: 16px; font-size: 13px;">
-        <b>Previous Votes:</b>
-        ${feature.properties.votes.map(vote => `
-            <div style="margin: 4px 0; padding: 4px; background: #f8f9fa; border-radius: 4px;">
-                ${formatUserName({ name: vote.userName, email: vote.userName })} voted ${getConditionIcon(vote.condition)}
+    <div style="margin-bottom: 16px;">
+        ${feature.properties.votes ? `
+            <div style="font-size: 13px; background: #f8f9fa; padding: 8px; border-radius: 4px;">
+                ${feature.properties.votes.map(vote => 
+                    `<div style="margin: 4px 0;">${vote.userName}: ${getConditionIcon(vote.condition)}</div>`
+                ).join('')}
             </div>
-        `).join('')}
+        ` : ''}
     </div>
-    ` : ''}
     <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
         <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
