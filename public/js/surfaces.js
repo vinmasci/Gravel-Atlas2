@@ -84,66 +84,85 @@ function formatAccess(access) {
 function showGravelRatingModal(feature) {
     console.log('📍 showGravelRatingModal called with feature:', feature);
 
-    // Remove any existing offcanvas
-    const existingOffcanvas = document.getElementById('gravel-rating-offcanvas');
-    if (existingOffcanvas) {
-        existingOffcanvas.remove();
-    }
+    // Create backdrop with specific class
+    const backdrop = document.createElement('div');
+    backdrop.id = 'gravel-rating-backdrop';
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 99999;
+    `;
 
-    // Create offcanvas element
-    const offcanvas = document.createElement('div');
-    offcanvas.className = 'offcanvas offcanvas-end';
-    offcanvas.id = 'gravel-rating-offcanvas';
-    offcanvas.setAttribute('tabindex', '-1');
+    // Create modal with specific class to avoid conflicts
+    const modal = document.createElement('div');
+    modal.id = 'gravel-rating-modal';
+    modal.className = 'gravel-edit-modal'; // Using your existing class
+
+    // Use inline styles to guarantee visibility
+    modal.style.cssText = `
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        background-color: #fff !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        z-index: 100000 !important;
+        width: 300px !important;
+        display: block !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+    `;
     
-    offcanvas.innerHTML = `
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">${feature.properties.name || 'Unnamed Road'}</h5>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    modal.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${feature.properties.name || 'Unnamed Road'}</h3>
+            <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
         </div>
-        <div class="offcanvas-body">
-            <div class="mb-3">
-                <p class="text-muted">Rate gravel conditions for this road</p>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Gravel Condition (0-6)</label>
-                <select id="gravel-condition" class="form-select">
-                    <option value="0">0 - Smooth, any bike</option>
-                    <option value="1">1 - Well maintained</option>
-                    <option value="2">2 - Occasional rough</option>
-                    <option value="3">3 - Frequent loose</option>
-                    <option value="4">4 - Very rough</option>
-                    <option value="5">5 - Technical MTB</option>
-                    <option value="6">6 - Extreme MTB</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Notes (optional)</label>
-                <textarea id="surface-notes" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="d-grid gap-2">
-                <button id="save-rating" class="btn btn-primary">Save Rating</button>
-            </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Gravel Condition (0-6)</label>
+            <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="0">0 - Smooth, any bike</option>
+                <option value="1">1 - Well maintained</option>
+                <option value="2">2 - Occasional rough</option>
+                <option value="3">3 - Frequent loose</option>
+                <option value="4">4 - Very rough</option>
+                <option value="5">5 - Technical MTB</option>
+                <option value="6">6 - Extreme MTB</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
         </div>
     `;
 
-    document.body.appendChild(offcanvas);
-
-    // Initialize Bootstrap Offcanvas
-    const bsOffcanvas = new bootstrap.Offcanvas(offcanvas);
-    bsOffcanvas.show();
+    // Add backdrop first, then modal
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
 
     // Event Listeners
+    document.getElementById('cancel-rating').onclick = () => {
+        console.log('📍 Cancel button clicked');
+        backdrop.remove();
+        modal.remove();
+    };
+
     document.getElementById('save-rating').onclick = async () => {
         console.log('📍 Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
 
         try {
-            const saveButton = document.getElementById('save-rating');
-            saveButton.disabled = true;
-            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -158,46 +177,19 @@ function showGravelRatingModal(feature) {
 
             if (!response.ok) throw new Error('Failed to update');
 
-            // Update successful
-            saveButton.classList.remove('btn-primary');
-            saveButton.classList.add('btn-success');
-            saveButton.innerHTML = '<i class="fas fa-check"></i> Saved!';
-            
-            // Refresh the map data
             window.layers.updateSurfaceData();
-            
-            // Close the offcanvas after a short delay
-            setTimeout(() => {
-                bsOffcanvas.hide();
-                // Remove the offcanvas element after it's hidden
-                offcanvas.addEventListener('hidden.bs.offcanvas', () => {
-                    offcanvas.remove();
-                });
-            }, 1000);
-
+            backdrop.remove();
+            modal.remove();
         } catch (error) {
             console.error('❌ Error saving rating:', error);
             const saveButton = document.getElementById('save-rating');
-            saveButton.disabled = false;
-            saveButton.classList.remove('btn-primary');
-            saveButton.classList.add('btn-danger');
-            saveButton.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error - Try Again';
-            
+            saveButton.style.backgroundColor = '#dc3545';
+            saveButton.textContent = 'Error!';
             setTimeout(() => {
-                saveButton.classList.remove('btn-danger');
-                saveButton.classList.add('btn-primary');
-                saveButton.innerHTML = 'Save Rating';
+                saveButton.style.backgroundColor = '#007bff';
+                saveButton.textContent = 'Save';
             }, 2000);
         }
-    };
-
-    // Handle close button
-    offcanvas.querySelector('.btn-close').onclick = () => {
-        bsOffcanvas.hide();
-        // Remove the offcanvas element after it's hidden
-        offcanvas.addEventListener('hidden.bs.offcanvas', () => {
-            offcanvas.remove();
-        });
     };
 }
 
