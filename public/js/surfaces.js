@@ -518,38 +518,49 @@ window.layers.initSurfaceLayers = function() {
             map.on('click', 'road-surfaces-layer', async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
+                    
+                    // Log the raw feature first
+                    console.log('🔍 Raw feature:', feature);
+                    
+                    // Log the properties specifically
                     const props = feature.properties;
-                    const osmId = props.osm_id || props.id;
-            
-                    console.log('🖱️ Click detected:', {
-                        name: props.name,
-                        highway: props.highway,
-                        surface: props.surface,
-                        tracktype: props.tracktype,
-                        access: props.access,
-                        osmId: osmId,
-                        allProps: props,
-                        geometry: feature.geometry,
-                        coordinates: feature.geometry.coordinates
+                    console.log('🔍 Properties:', {
+                        raw: props,
+                        keys: Object.keys(props),
+                        values: Object.values(props)
                     });
+                    
+                    // Try different ways to access the id
+                    const possibleIds = {
+                        osmId: props.osm_id,
+                        id: props.id,
+                        featureId: feature.id,
+                        // Try accessing internal properties if they exist
+                        _id: props._id,
+                        vectorId: feature._vectorTileFeature?.properties?.osm_id
+                    };
+                    
+                    console.log('🔍 Possible IDs:', possibleIds);
             
+                    const osmId = props.osm_id || props.id || feature.id;
+            
+                    // Continue with existing code...
                     if (!osmId) {
-                        console.error('❌ No OSM ID found for clicked feature');
+                        console.log('❌ No OSM ID found. Available properties:', props);
                         return;
                     }
             
                     const auth0 = await window.waitForAuth0();
                     const isAuthenticated = await auth0.isAuthenticated();
                     if (!isAuthenticated) {
-                        console.log('🔐 User not authenticated, returning');
                         return;
                     }
             
                     showGravelRatingModal({
                         type: 'Feature',
                         properties: {
-                            ...props,           // Keep all original properties
-                            osm_id: osmId      // Ensure OSM ID is set
+                            ...props,
+                            osm_id: osmId
                         },
                         geometry: feature.geometry
                     });
