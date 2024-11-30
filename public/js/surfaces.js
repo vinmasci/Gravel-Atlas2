@@ -410,8 +410,57 @@ window.layers.initSurfaceLayers = function() {
     
     if (!map.getSource('road-surfaces')) {
         try {
-            // Add GeoJSON source for the data with OSM IDs
-            map.addSource('road-surfaces', {
+            // Add vector tile source for the base roads layer
+            map.addLayer({
+                'id': 'road-surfaces-layer',
+                'type': 'line',
+                'source': {
+                    'type': 'vector',
+                    'url': 'mapbox://vinmasci.5nvlqfla'
+                },
+                'source-layer': 'road_surfaces',
+                'layout': {
+                    'visibility': 'none',
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': [
+                        'case',
+                        ['has', 'gravel_condition'],
+                        [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
+                            '0', '#01bf11',
+                            '1', '#a7eb34',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#c0392b',
+                            '5', '#c0392b',
+                            '6', '#751203',
+                            '#C2B280'
+                        ],
+                        '#C2B280'
+                    ],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        8, 2,
+                        10, 3,
+                        12, 4,
+                        14, 5
+                    ],
+                    'line-opacity': [
+                        'case',
+                        ['has', 'gravel_condition'], 0.9,
+                        0.7
+                    ]
+                }
+            });
+
+            // Add GeoJSON source for dynamic updates
+            map.addSource('road-surfaces-updates', {
                 type: 'geojson',
                 data: {
                     type: 'FeatureCollection',
@@ -419,61 +468,41 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Add the GeoJSON layer
-// First define the interpolated colors as constants
-const GRAVEL_COLORS = {
-    '0': '#01bf11',                    // Green
-    '1': '#80b909',                    // Interpolated between green and yellow
-    '2': '#ffa801',                    // Yellow
-    '3': '#e07366',                    // Interpolated between yellow and red
-    '4': '#c0392b',                    // Red
-    '5': '#9a2817',                    // Interpolated between red and dark red
-    '6': '#751203'                     // Dark red
-};
+            map.addLayer({
+                'id': 'road-surfaces-updates-layer',
+                'type': 'line',
+                'source': 'road-surfaces-updates',
+                'layout': {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': [
+                        'match',
+                        ['to-string', ['get', 'gravel_condition']],
+                        '0', '#01bf11',
+                        '1', '#a7eb34',
+                        '2', '#ffa801',
+                        '3', '#e67e22',
+                        '4', '#c0392b',
+                        '5', '#c0392b',
+                        '6', '#751203',
+                        '#C2B280'
+                    ],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        8, 2,
+                        10, 3,
+                        12, 4,
+                        14, 5
+                    ],
+                    'line-opacity': 0.9
+                }
+            });
 
-// Then update the layer definition
-map.addLayer({
-    'id': 'road-surfaces-layer',
-    'type': 'line',
-    'source': 'road-surfaces',
-    'layout': {
-        'visibility': 'none',
-        'line-join': 'round',
-        'line-cap': 'round'
-    },
-'paint': {
-    'line-color': [
-        'case',
-        ['has', 'gravel_condition'],
-        ['match',
-            ['get', 'gravel_condition'],
-            '0', '#01bf11',
-            '1', '#a7eb34',
-            '2', '#ffa801',
-            '3', '#e67e22',
-            '4', '#c0392b',
-            '5', '#c0392b',
-            '6', '#751203',
-            '#C2B280'
-        ],
-        '#C2B280'
-    ],
-    'line-width': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        8, 2,
-        10, 3,
-        12, 4,
-        14, 5
-    ],
-    'line-opacity': [
-        'case',
-        ['has', 'gravel_condition'], 0.9,
-        0.7
-    ]
-}
-});
+            // Click handler and other event listeners...
 
             // Click handler for the GeoJSON layer
             map.on('click', 'road-surfaces-layer', async (e) => {
