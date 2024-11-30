@@ -113,7 +113,7 @@ window.layers.initSurfaceLayers = function() {
                 'type': 'line',
                 'source': {
                     'type': 'vector',
-                    'url': 'mapbox://vinmasci.avs4rx36'  // Your tileset ID here
+                    'url': 'mapbox://vinmasci.5nvlqfla'  // Your tileset ID here
                 },
                 'source-layer': 'road_surfaces',  // This should match the layer name we used in tippecanoe
                 'layout': {

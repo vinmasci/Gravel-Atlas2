@@ -8,3 +8,8 @@ roads.geojson
 tiles.mbtiles
 export-tiles.js
 generate-tiles.js
+tiles1.mbtiles
+roads-filtered.pbf
+importRoads.js
+australia-latest.osm.pbf
+analyze-road.js
