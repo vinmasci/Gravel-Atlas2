@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
         
         // Format username to remove email domain if needed
         const formattedUserName = userName.includes('@') ? userName.split('@')[0] : userName;
-
+        
         // Add new vote
         const newVote = {
             user_id,
@@ -46,6 +46,9 @@ module.exports = async (req, res) => {
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
 
+        // Convert averageCondition to string to match the working document format
+        const stringCondition = averageCondition.toString();
+
         console.log('📍 API: Updating road modification');
         const modification = await client
             .db('gravelatlas')
@@ -54,14 +57,14 @@ module.exports = async (req, res) => {
                 { osm_id },
                 {
                     $set: {
-                        gravel_condition: averageCondition,
-                        notes,
+                        gravel_condition: stringCondition, // Store as string
+                        notes: notes,
                         modified_by: user_id,
                         last_updated: new Date(),
-                        votes,
+                        votes: votes,
                         osm_tags: {
                             surface: 'gravel',
-                            tracktype: mapToOSMTrackType(averageCondition)
+                            tracktype: mapToOSMTrackType(stringCondition)
                         }
                     }
                 },
@@ -71,11 +74,16 @@ module.exports = async (req, res) => {
                 }
             );
 
-        console.log('📍 API: Update successful');
+        console.log('📍 API: Update successful', {
+            condition: stringCondition,
+            votes: votes,
+            averageCondition: averageCondition
+        });
+
         res.json({ 
             success: true, 
             modification,
-            averageCondition,
+            averageCondition: stringCondition,
             totalVotes: votes.length
         });
 
