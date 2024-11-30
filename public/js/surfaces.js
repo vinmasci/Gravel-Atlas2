@@ -396,21 +396,25 @@ window.layers.initSurfaceLayers = function() {
                 popup.remove();
             });
 
-map.on('click', 'road-surfaces-layer', async (e) => {
-    if (e.features.length > 0) {
-        const feature = e.features[0];
-        const auth0 = await window.waitForAuth0();
-        const isAuthenticated = await auth0.isAuthenticated();
-        
-        if (!isAuthenticated) {
-            // Optional: show login prompt
-            return;
-        }
-
-        // Create and show rating modal
-        showGravelRatingModal(feature);
-    }
-});
+            map.on('click', 'road-surfaces-layer', async (e) => {
+                if (e.features.length > 0) {
+                    const feature = e.features[0];
+                    console.log('📍 Clicked feature:', {
+                        full: feature,
+                        properties: feature.properties,
+                        type: feature.type,
+                        geometry: feature.geometry
+                    });
+            
+                    const auth0 = await window.waitForAuth0();
+                    const isAuthenticated = await auth0.isAuthenticated();
+                    if (!isAuthenticated) {
+                        return;
+                    }
+            
+                    showGravelRatingModal(feature);
+                }
+            });
 
             // Add debounced moveend event listener
             const debouncedUpdate = debounce(() => {
