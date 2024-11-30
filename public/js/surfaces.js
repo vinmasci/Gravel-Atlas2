@@ -203,12 +203,11 @@ function showGravelRatingModal(feature) {
             }
     
             const profile = JSON.parse(userProfile);
-            console.log('📍 User profile:', profile);
+            console.log('📍 User profile found:', profile);
     
             // Get auth token
             const auth0 = await window.waitForAuth0();
             const token = await auth0.getTokenSilently();
-            console.log('📍 Got auth token:', token ? 'Yes' : 'No');
     
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
@@ -231,7 +230,8 @@ function showGravelRatingModal(feature) {
                 throw new Error('Failed to update');
             }
     
-            // Update road color
+            // Success - update color and close
+            console.log('📍 Update successful, updating map');
             if (map.getLayer('road-surfaces-layer')) {
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
@@ -251,7 +251,6 @@ function showGravelRatingModal(feature) {
                 ]);
             }
     
-            // Success handling
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             await window.layers.updateSurfaceData();
