@@ -152,19 +152,8 @@ function getColorForGravelCondition(condition) {
     return color;
 }
 
-function getConditionIcon(condition, includeTooltip = false) {
-    const tooltips = {
-        '0': 'Smooth, any bike',
-        '1': 'Well maintained',
-        '2': 'Occasional rough',
-        '3': 'Frequent loose',
-        '4': 'Very rough',
-        '5': 'Technical MTB',
-        '6': 'Extreme MTB'
-    };
-
-    const icon = `<i class="fa-duotone fa-thin fa-circle-${condition}" style="--fa-secondary-color: ${getColorForGravelCondition(condition)}; --fa-secondary-opacity: 1;"${includeTooltip ? ` title="${tooltips[condition]}"` : ''}></i>`;
-    return icon;
+function getConditionIcon(condition) {
+    return `<i class="fa-duotone fa-thin fa-circle-${condition}" style="--fa-secondary-color: ${getColorForGravelCondition(condition)}; --fa-secondary-opacity: 1; font-size: 1.2em;"></i>`;
 }
 
 function showGravelRatingModal(feature) {
@@ -210,7 +199,7 @@ function showGravelRatingModal(feature) {
     `;
     
     const currentConditionHtml = feature.properties.gravel_condition ? 
-        `<b>Current Condition:</b> ${getConditionIcon(feature.properties.gravel_condition, true)}` : '';
+        `Current Condition: ${getConditionIcon(feature.properties.gravel_condition)}` : '';
 
     modal.innerHTML = `
         <div style="margin-bottom: 16px;">
@@ -218,24 +207,25 @@ function showGravelRatingModal(feature) {
             <div style="font-size: 14px;">
                 <b>Current Details:</b>
                 <div style="margin-top: 8px; font-size: 13px;">
-                    ${feature.properties.surface ? `<b>Surface (OSM Data):</b> ${feature.properties.surface}<br>` : ''}
-                    ${currentConditionHtml}
+                    <div>Surface (OSM Data): ${feature.properties.surface || 'Unknown'}</div>
+                    <div>${currentConditionHtml}</div>
                 </div>
             </div>
         </div>
-        <div style="margin-bottom: 16px;">
-            <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+        <div style="margin-bottom: 8px;">
+            <b style="font-size: 14px;">Rate gravel conditions for this road</b>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Select Condition</label>
             <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="0">${getConditionIcon('0', true)}</option>
-                <option value="1">${getConditionIcon('1', true)}</option>
-                <option value="2">${getConditionIcon('2', true)}</option>
-                <option value="3">${getConditionIcon('3', true)}</option>
-                <option value="4">${getConditionIcon('4', true)}</option>
-                <option value="5">${getConditionIcon('5', true)}</option>
-                <option value="6">${getConditionIcon('6', true)}</option>
+                <option value="0">${getConditionIcon('0')} Smooth, any bike</option>
+                <option value="1">${getConditionIcon('1')} Well maintained</option>
+                <option value="2">${getConditionIcon('2')} Occasional rough</option>
+                <option value="3">${getConditionIcon('3')} Frequent loose</option>
+                <option value="4">${getConditionIcon('4')} Very rough</option>
+                <option value="5">${getConditionIcon('5')} Technical MTB</option>
+                <option value="6">${getConditionIcon('6')} Extreme MTB</option>
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
