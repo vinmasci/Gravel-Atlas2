@@ -183,23 +183,39 @@ function showGravelRatingModal(feature) {
     };
 
     document.getElementById('save-rating').onclick = async () => {
-        console.log('📍 Save button clicked');
+        console.log('🔍 DEBUG: Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
     
         try {
-            // First verify authentication
+            // Authentication check
+            console.log('🔍 DEBUG: Getting Auth0 instance');
             const auth0 = await window.waitForAuth0();
+            console.log('🔍 DEBUG: Auth0 instance obtained:', !!auth0);
+    
+            console.log('🔍 DEBUG: Checking authentication status');
             const isAuthenticated = await auth0.isAuthenticated();
+            console.log('🔍 DEBUG: Is authenticated:', isAuthenticated);
             
             if (!isAuthenticated) {
+                console.log('🔍 DEBUG: User not authenticated');
                 throw new Error('Please log in to rate roads');
             }
     
-            // Get the authenticated user's token
+            // Get token
+            console.log('🔍 DEBUG: Getting token');
             const token = await auth0.getTokenSilently();
+            console.log('🔍 DEBUG: Token obtained:', token ? 'Yes (token exists)' : 'No');
     
+            // Prepare request
+            console.log('🔍 DEBUG: Preparing request data:', {
+                osm_id: feature.properties.osm_id,
+                gravel_condition: gravelCondition,
+                notes: notes
+            });
+    
+            console.log('🔍 DEBUG: Making API request');
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -213,13 +229,27 @@ function showGravelRatingModal(feature) {
                 })
             });
     
+            console.log('🔍 DEBUG: Response status:', response.status);
+            console.log('🔍 DEBUG: Response headers:', Object.fromEntries(response.headers.entries()));
+    
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Failed to update');
+                const errorText = await response.text();
+                console.log('🔍 DEBUG: Error response text:', errorText);
+                try {
+                    const errorData = JSON.parse(errorText);
+                    console.log('🔍 DEBUG: Parsed error data:', errorData);
+                    throw new Error(errorData.error || 'Failed to update');
+                } catch (e) {
+                    console.log('🔍 DEBUG: Failed to parse error response');
+                    throw new Error('Failed to update');
+                }
             }
+    
+            console.log('🔍 DEBUG: Update successful, updating map');
     
             // Update the road color immediately
             if (map.getLayer('road-surfaces-layer')) {
+                console.log('🔍 DEBUG: Updating road color');
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
                     ['==', ['get', 'osm_id'], feature.properties.osm_id], getColorForGravelCondition(gravelCondition),
@@ -239,10 +269,14 @@ function showGravelRatingModal(feature) {
             }
     
             // Show success and close
+            console.log('🔍 DEBUG: Showing success state');
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
+    
+            console.log('🔍 DEBUG: Updating surface data');
             await window.layers.updateSurfaceData();
     
+            console.log('🔍 DEBUG: Setting up modal close');
             setTimeout(() => {
                 const backdrop = document.getElementById('gravel-rating-backdrop');
                 const modal = document.getElementById('gravel-rating-modal');
@@ -252,6 +286,8 @@ function showGravelRatingModal(feature) {
     
         } catch (error) {
             console.error('❌ Error saving rating:', error);
+            console.error('❌ Error stack:', error.stack);
+            console.log('🔍 DEBUG: Setting error state on button');
             saveButton.style.backgroundColor = '#dc3545';
             saveButton.textContent = error.message === 'Please log in to rate roads' ? 'Login Required' : 'Error!';
             setTimeout(() => {
