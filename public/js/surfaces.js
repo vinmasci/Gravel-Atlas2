@@ -386,7 +386,7 @@ window.layers.initSurfaceLayers = function() {
     if (!map.getSource('road-surfaces')) {
         console.log('📍 Creating new road-surfaces source and layer');
         try {
-            // Add GeoJSON source only
+            // Add GeoJSON source first
             map.addSource('road-surfaces', {
                 type: 'geojson',
                 data: {
@@ -399,33 +399,22 @@ window.layers.initSurfaceLayers = function() {
                 lineMetrics: true
             });
 
-            // Add layer using GeoJSON source
+            // Add vector tile layer
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
-                'source': 'road-surfaces',  // Use GeoJSON source
+                'source': {
+                    'type': 'vector',
+                    'url': 'mapbox://vinmasci.5nvlqfla'
+                },
+                'source-layer': 'road_surfaces',
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': [
-                        'case',
-                        ['has', 'gravel_condition'], [
-                            'match',
-                            ['get', 'gravel_condition'],
-                            '0', '#2ecc71',
-                            '1', '#a7eb34',
-                            '2', '#f1c40f',
-                            '3', '#e67e22',
-                            '4', '#e74c3c',
-                            '5', '#c0392b',
-                            '6', '#8e44ad',
-                            '#C2B280'
-                        ],
-                        '#C2B280'
-                    ],
+                    'line-color': '#C2B280',
                     'line-width': [
                         'interpolate',
                         ['linear'],
@@ -455,7 +444,7 @@ window.layers.initSurfaceLayers = function() {
                     const feature = e.features[0];
                     const props = feature.properties;
                     
-                    console.log('🔍 Hover feature properties:', props);
+                    console.log('🔍 Hover props:', props);
                     
                     map.getCanvas().style.cursor = 'pointer';
                     let html = '<div class="gravel-popup-content">';
@@ -510,31 +499,32 @@ window.layers.initSurfaceLayers = function() {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     const props = feature.properties;
-
-                    // Log the entire feature data for debugging
-                    console.log('🔍 Clicked feature:', {
-                        osm_id: props.osm_id,
+                    
+                    console.log('🔍 Click detected:', {
+                        full: feature,
                         properties: props,
-                        geometry: feature.geometry
+                        type: feature.type,
+                        geometry: feature.geometry,
+                        osm_id: props.osm_id
                     });
-
+            
                     const auth0 = await window.waitForAuth0();
                     const isAuthenticated = await auth0.isAuthenticated();
-                    if (!isAuthenticated) {
-                        console.log('🔐 User not authenticated');
-                        return;
-                    }
-
+                    if (!isAuthenticated) return;
+            
                     showGravelRatingModal(feature);
                 }
             });
 
-            // Moveend handler for data updates
+            // Moveend handler
             const debouncedUpdate = debounce(() => {
                 window.layers.updateSurfaceData();
             }, 300);
 
-            map.on('moveend', debouncedUpdate);
+            map.on('moveend', () => {
+                console.log('🗺️ Map moveend event triggered');
+                debouncedUpdate();
+            });
             
         } catch (error) {
             console.error('❌ Error in initSurfaceLayers:', {
