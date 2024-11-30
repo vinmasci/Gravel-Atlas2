@@ -82,6 +82,8 @@ function formatAccess(access) {
 }
 
 function showGravelRatingModal(feature) {
+    console.log('📍 showGravelRatingModal called with feature:', feature);
+
     // Remove any existing modal
     const existingModal = document.getElementById('gravel-rating-modal');
     if (existingModal) {
@@ -90,12 +92,12 @@ function showGravelRatingModal(feature) {
 
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
-    modal.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg z-50';
+    modal.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg z-50 w-96';
     
     modal.innerHTML = `
         <div class="mb-4">
             <h3 class="text-lg font-bold">${feature.properties.name || 'Unnamed Road'}</h3>
-            <p class="text-sm text-gray-600">Rate gravel conditions</p>
+            <p class="text-sm text-gray-600">Rate gravel conditions for this road</p>
         </div>
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Gravel Condition (0-6)</label>
@@ -110,17 +112,7 @@ function showGravelRatingModal(feature) {
             </select>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Surface Quality</label>
-            <select id="surface-quality" class="w-full p-2 border rounded">
-                <option value="excellent">Excellent</option>
-                <option value="good">Good</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="bad">Bad</option>
-                <option value="very_bad">Very Bad</option>
-            </select>
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Notes</label>
+            <label class="block text-sm font-medium mb-1">Notes (optional)</label>
             <textarea id="surface-notes" class="w-full p-2 border rounded" rows="2"></textarea>
         </div>
         <div class="flex justify-end gap-2">
@@ -130,15 +122,26 @@ function showGravelRatingModal(feature) {
     `;
 
     document.body.appendChild(modal);
+    console.log('📍 Modal element added to document body');
 
     // Add event listeners
-    document.getElementById('cancel-rating').onclick = () => modal.remove();
+    document.getElementById('cancel-rating').onclick = () => {
+        console.log('📍 Cancel button clicked');
+        modal.remove();
+    };
+
     document.getElementById('save-rating').onclick = async () => {
+        console.log('📍 Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
-        const surfaceQuality = document.getElementById('surface-quality').value;
         const notes = document.getElementById('surface-notes').value;
 
         try {
+            console.log('📍 Sending update request with data:', {
+                osm_id: feature.properties.osm_id,
+                gravel_condition: gravelCondition,
+                notes
+            });
+
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -147,7 +150,6 @@ function showGravelRatingModal(feature) {
                 body: JSON.stringify({
                     osm_id: feature.properties.osm_id,
                     gravel_condition: gravelCondition,
-                    surface_quality: surfaceQuality,
                     notes
                 })
             });
@@ -158,8 +160,15 @@ function showGravelRatingModal(feature) {
             window.layers.updateSurfaceData();
             modal.remove();
         } catch (error) {
-            console.error('Error saving rating:', error);
-            // Optional: Show error message to user
+            console.error('❌ Error saving rating:', error);
+            // Add visual feedback for error
+            const saveButton = document.getElementById('save-rating');
+            saveButton.textContent = 'Error!';
+            saveButton.classList.add('bg-red-500');
+            setTimeout(() => {
+                saveButton.textContent = 'Save';
+                saveButton.classList.remove('bg-red-500');
+            }, 2000);
         }
     };
 }
