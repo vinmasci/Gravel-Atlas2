@@ -121,6 +121,8 @@ function showGravelRatingModal(feature) {
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
     modal.className = 'gravel-edit-modal';
+    // Store the feature data as a data attribute
+    modal.setAttribute('data-feature', JSON.stringify(feature));
 
     modal.style.cssText = `
         position: fixed !important;
@@ -188,12 +190,12 @@ function showGravelRatingModal(feature) {
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
-    
-        // Get the feature from the clicked element
-        const currentFeature = document.getElementById('gravel-rating-modal').feature;
-        console.log('📍 Current feature:', currentFeature);
-    
+
         try {
+            const modal = document.getElementById('gravel-rating-modal');
+            const featureData = JSON.parse(modal.getAttribute('data-feature'));
+            console.log('📍 Feature data:', featureData);
+
             // Check if user is logged in by looking for profile
             const userProfile = localStorage.getItem('userProfile');
             if (!userProfile) {
@@ -206,14 +208,14 @@ function showGravelRatingModal(feature) {
                 }, 2000);
                 return;
             }
-    
+
             const profile = JSON.parse(userProfile);
             console.log('📍 User profile found:', profile);
-    
+
             // Get auth token
             const auth0 = await window.waitForAuth0();
             const token = await auth0.getTokenSilently();
-    
+
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -221,26 +223,26 @@ function showGravelRatingModal(feature) {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    osm_id: currentFeature.properties.osm_id,
+                    osm_id: featureData.properties.osm_id,
                     gravel_condition: gravelCondition,
                     notes: notes,
                     user_id: profile.auth0Id
                 })
             });
-    
+
             console.log('📍 Response status:', response.status);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.log('📍 Error response:', errorText);
                 throw new Error('Failed to update');
             }
-    
+
             // Success - update color and close
             console.log('📍 Update successful, updating map');
             if (map.getLayer('road-surfaces-layer')) {
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
-                    ['==', ['get', 'osm_id'], currentFeature.properties.osm_id], getColorForGravelCondition(gravelCondition),
+                    ['==', ['get', 'osm_id'], featureData.properties.osm_id], getColorForGravelCondition(gravelCondition),
                     ['has', 'gravel_condition'], ['match',
                         ['get', 'gravel_condition'],
                         '0', '#2ecc71',
@@ -255,18 +257,18 @@ function showGravelRatingModal(feature) {
                     '#C2B280'
                 ]);
             }
-    
+
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             await window.layers.updateSurfaceData();
-    
+
             setTimeout(() => {
                 const backdrop = document.getElementById('gravel-rating-backdrop');
                 const modal = document.getElementById('gravel-rating-modal');
                 if (backdrop) backdrop.remove();
                 if (modal) modal.remove();
             }, 1000);
-    
+
         } catch (error) {
             console.error('❌ Error saving rating:', error);
             saveButton.style.backgroundColor = '#dc3545';
