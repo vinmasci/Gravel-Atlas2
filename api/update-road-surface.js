@@ -55,10 +55,10 @@ module.exports = async (req, res) => {
                 {
                     $set: {
                         gravel_condition: averageCondition,
-                        notes: notes,
+                        notes,
                         modified_by: user_id,
                         last_updated: new Date(),
-                        votes: votes,
+                        votes,
                         osm_tags: {
                             surface: 'gravel',
                             tracktype: mapToOSMTrackType(averageCondition)
