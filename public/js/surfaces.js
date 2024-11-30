@@ -84,45 +84,49 @@ function formatAccess(access) {
 function showGravelRatingModal(feature) {
     console.log('📍 showGravelRatingModal called with feature:', feature);
 
-    // Remove any existing modal
-    const existingModal = document.getElementById('gravel-rating-modal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-
-    // Create semi-transparent backdrop
+    // Create backdrop with specific class
     const backdrop = document.createElement('div');
-    backdrop.className = 'fixed inset-0 bg-black bg-opacity-50 z-40';
-    backdrop.id = 'modal-backdrop';
-
-    const modal = document.createElement('div');
-    modal.id = 'gravel-rating-modal';
-    // Updated classes to ensure visibility
-    modal.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-xl z-50 w-96 border border-gray-200';
-    
-    // Add inline styles to guarantee visibility
-    modal.style.cssText = `
+    backdrop.id = 'gravel-rating-backdrop';
+    backdrop.style.cssText = `
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        z-index: 9999;
-        width: 24rem;
-        display: block;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 99999;
     `;
 
+    // Create modal with specific class to avoid conflicts
+    const modal = document.createElement('div');
+    modal.id = 'gravel-rating-modal';
+    modal.className = 'gravel-edit-modal'; // Using your existing class
+
+    // Use inline styles to guarantee visibility
+    modal.style.cssText = `
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        background-color: #fff !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        z-index: 100000 !important;
+        width: 300px !important;
+        display: block !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+    `;
+    
     modal.innerHTML = `
-        <div class="mb-4">
-            <h3 class="text-lg font-bold">${feature.properties.name || 'Unnamed Road'}</h3>
-            <p class="text-sm text-gray-600">Rate gravel conditions for this road</p>
+        <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${feature.properties.name || 'Unnamed Road'}</h3>
+            <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
         </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Gravel Condition (0-6)</label>
-            <select id="gravel-condition" class="w-full p-2 border rounded">
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Gravel Condition (0-6)</label>
+            <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 <option value="0">0 - Smooth, any bike</option>
                 <option value="1">1 - Well maintained</option>
                 <option value="2">2 - Occasional rough</option>
@@ -132,27 +136,25 @@ function showGravelRatingModal(feature) {
                 <option value="6">6 - Extreme MTB</option>
             </select>
         </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Notes (optional)</label>
-            <textarea id="surface-notes" class="w-full p-2 border rounded" rows="2"></textarea>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;"></textarea>
         </div>
-        <div class="flex justify-end gap-2">
-            <button id="cancel-rating" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-            <button id="save-rating" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Save</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
         </div>
     `;
 
-    // Add backdrop first
+    // Add backdrop first, then modal
     document.body.appendChild(backdrop);
-    // Then add modal
     document.body.appendChild(modal);
-    console.log('📍 Modal and backdrop elements added to document body');
 
-    // Update event listeners to remove both modal and backdrop
+    // Event Listeners
     document.getElementById('cancel-rating').onclick = () => {
         console.log('📍 Cancel button clicked');
-        modal.remove();
         backdrop.remove();
+        modal.remove();
     };
 
     document.getElementById('save-rating').onclick = async () => {
@@ -161,12 +163,6 @@ function showGravelRatingModal(feature) {
         const notes = document.getElementById('surface-notes').value;
 
         try {
-            console.log('📍 Sending update request with data:', {
-                osm_id: feature.properties.osm_id,
-                gravel_condition: gravelCondition,
-                notes
-            });
-
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -181,18 +177,17 @@ function showGravelRatingModal(feature) {
 
             if (!response.ok) throw new Error('Failed to update');
 
-            // Refresh the map display
             window.layers.updateSurfaceData();
-            modal.remove();
             backdrop.remove();
+            modal.remove();
         } catch (error) {
             console.error('❌ Error saving rating:', error);
             const saveButton = document.getElementById('save-rating');
+            saveButton.style.backgroundColor = '#dc3545';
             saveButton.textContent = 'Error!';
-            saveButton.classList.add('bg-red-500');
             setTimeout(() => {
+                saveButton.style.backgroundColor = '#007bff';
                 saveButton.textContent = 'Save';
-                saveButton.classList.remove('bg-red-500');
             }, 2000);
         }
     };
