@@ -81,6 +81,27 @@ function formatAccess(access) {
     }
 }
 
+function getColorForGravelCondition(condition) {
+    switch(parseInt(condition)) {
+        case 0:
+            return '#2ecc71'; // Green
+        case 1:
+            return '#a7eb34'; // Green-Yellow
+        case 2:
+            return '#f1c40f'; // Yellow
+        case 3:
+            return '#e67e22'; // Yellow-Red
+        case 4:
+            return '#e74c3c'; // Red
+        case 5:
+            return '#c0392b'; // Red-Maroon
+        case 6:
+            return '#8e44ad'; // Maroon
+        default:
+            return '#C2B280'; // Default gravel color
+    }
+}
+
 function showGravelRatingModal(feature) {
     console.log('📍 showGravelRatingModal called with feature:', feature);
 
@@ -97,12 +118,10 @@ function showGravelRatingModal(feature) {
         z-index: 99999;
     `;
 
-    // Create modal with specific class to avoid conflicts
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
-    modal.className = 'gravel-edit-modal'; // Using your existing class
+    modal.className = 'gravel-edit-modal';
 
-    // Use inline styles to guarantee visibility
     modal.style.cssText = `
         position: fixed !important;
         top: 50% !important;
@@ -135,6 +154,7 @@ function showGravelRatingModal(feature) {
                 <option value="5">5 - Technical MTB</option>
                 <option value="6">6 - Extreme MTB</option>
             </select>
+            <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
@@ -146,11 +166,16 @@ function showGravelRatingModal(feature) {
         </div>
     `;
 
-    // Add backdrop first, then modal
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
 
-    // Event Listeners
+    // Add color preview update on select change
+    const select = document.getElementById('gravel-condition');
+    const colorPreview = document.getElementById('color-preview');
+    select.addEventListener('change', (e) => {
+        colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
+    });
+
     document.getElementById('cancel-rating').onclick = () => {
         console.log('📍 Cancel button clicked');
         backdrop.remove();
@@ -163,10 +188,15 @@ function showGravelRatingModal(feature) {
         const notes = document.getElementById('surface-notes').value;
 
         try {
+            // Get the auth token
+            const auth0 = await window.auth0;
+            const token = await auth0.getTokenSilently();
+
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     osm_id: feature.properties.osm_id,
@@ -177,9 +207,31 @@ function showGravelRatingModal(feature) {
 
             if (!response.ok) throw new Error('Failed to update');
 
+            // Update the road color immediately
+            if (map.getLayer('road-surfaces-layer')) {
+                map.setPaintProperty('road-surfaces-layer', 'line-color', [
+                    'case',
+                    ['==', ['get', 'osm_id'], feature.properties.osm_id], getColorForGravelCondition(gravelCondition),
+                    ['has', 'gravel_condition'], ['match',
+                        ['get', 'gravel_condition'],
+                        '0', '#2ecc71',
+                        '1', '#a7eb34',
+                        '2', '#f1c40f',
+                        '3', '#e67e22',
+                        '4', '#e74c3c',
+                        '5', '#c0392b',
+                        '6', '#8e44ad',
+                        '#C2B280'
+                    ],
+                    '#C2B280'
+                ]);
+            }
+
+            // Refresh the map display
             window.layers.updateSurfaceData();
             backdrop.remove();
             modal.remove();
+            
         } catch (error) {
             console.error('❌ Error saving rating:', error);
             const saveButton = document.getElementById('save-rating');
