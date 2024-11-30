@@ -502,61 +502,67 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Click handler and other event listeners...
+// Click handler for both layers
+const handleLayerClick = async (e) => {
+    if (e.features.length > 0) {
+        const feature = e.features[0];
+        console.log('🔍 Clicked feature:', feature);
+        
+        const osmId = feature.properties.osm_id;
+        if (!osmId) {
+            console.error('❌ No OSM ID found for feature:', feature);
+            return;
+        }
 
-            // Click handler for the GeoJSON layer
-            map.on('click', 'road-surfaces-layer', async (e) => {
-                if (e.features.length > 0) {
-                    const feature = e.features[0];
-                    console.log('🔍 Clicked feature:', feature);
-                    
-                    // Ensure we have the OSM ID
-                    const osmId = feature.properties.osm_id;
-                    if (!osmId) {
-                        console.error('❌ No OSM ID found for feature:', feature);
-                        return;
-                    }
+        const auth0 = await window.waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) return;
 
-                    const auth0 = await window.waitForAuth0();
-                    const isAuthenticated = await auth0.isAuthenticated();
-                    if (!isAuthenticated) return;
+        showGravelRatingModal(feature);
+    }
+};
 
-                    showGravelRatingModal(feature);
-                }
-            });
+// Add click handlers for both layers
+map.on('click', 'road-surfaces-layer', handleLayerClick);
+map.on('click', 'road-surfaces-updates-layer', handleLayerClick);
 
-            // Add hover effects and popup
-            const popup = new mapboxgl.Popup({
-                closeButton: false,
-                closeOnClick: false,
-                maxWidth: '300px',
-                className: 'gravel-popup'
-            });
+// Hover effects
+const popup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: '300px',
+    className: 'gravel-popup'
+});
 
-            map.on('mousemove', 'road-surfaces-layer', (e) => {
-                if (e.features.length > 0) {
-                    const feature = e.features[0];
-                    map.getCanvas().style.cursor = 'pointer';
-                    
-                    let html = `
-                        <div class="gravel-popup-content">
-                            <h4>${feature.properties.name || 'Unnamed Road'}</h4>
-                            <p><strong>OSM ID:</strong> ${feature.properties.osm_id}</p>
-                            ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
-                            ${feature.properties.gravel_condition ? `<p><strong>Condition:</strong> ${feature.properties.gravel_condition}/6</p>` : ''}
-                        </div>
-                    `;
+const handleHover = (e) => {
+    const feature = e.features[0];
+    map.getCanvas().style.cursor = 'pointer';
+    
+    let html = `
+        <div class="gravel-popup-content">
+            <h4>${feature.properties.name || 'Unnamed Road'}</h4>
+            ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
+            ${feature.properties.gravel_condition ? `<p><strong>Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)}</p>` : ''}
+        </div>
+    `;
 
-                    popup.setLngLat(e.lngLat)
-                        .setHTML(html)
-                        .addTo(map);
-                }
-            });
+    popup.setLngLat(e.lngLat)
+        .setHTML(html)
+        .addTo(map);
+};
 
-            map.on('mouseleave', 'road-surfaces-layer', () => {
-                map.getCanvas().style.cursor = '';
-                popup.remove();
-            });
+// Add hover handlers for both layers
+map.on('mousemove', 'road-surfaces-layer', handleHover);
+map.on('mousemove', 'road-surfaces-updates-layer', handleHover);
+
+// Mouse leave handlers for both layers
+const handleMouseLeave = () => {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+};
+
+map.on('mouseleave', 'road-surfaces-layer', handleMouseLeave);
+map.on('mouseleave', 'road-surfaces-updates-layer', handleMouseLeave);
 
         } catch (error) {
             console.error('❌ Error in initSurfaceLayers:', error);
@@ -564,6 +570,8 @@ window.layers.initSurfaceLayers = function() {
         }
     }
 };
+
+
 window.layers.updateSurfaceData = async function() {
     console.log('🔄 updateSurfaceData called');
     console.log('Current visibility state:', window.layerVisibility.surfaces);
