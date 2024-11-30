@@ -19,12 +19,23 @@ const SURFACE_CACHE = {
     maxAge: 10 * 60 * 1000  // Increased to 10 minutes
 };
 
+console.log('🔧 Initial setup complete:', {
+    layerVisibility: window.layerVisibility,
+    cacheConfig: {
+        bufferMultiplier: SURFACE_CACHE.bufferMultiplier,
+        maxAge: SURFACE_CACHE.maxAge
+    }
+});
+
 // Debounce helper function
 function debounce(func, wait) {
+    console.log('⏲️ Creating debounced function with wait:', wait);
     let timeout;
     return function executedFunction(...args) {
+        console.log('⏲️ Debounce called with args:', args);
         const later = () => {
             clearTimeout(timeout);
+            console.log('⏲️ Executing debounced function');
             func(...args);
         };
         clearTimeout(timeout);
@@ -34,6 +45,13 @@ function debounce(func, wait) {
 
 // Calculate expanded bbox with buffer
 function calculateExpandedBbox(bounds) {
+    console.log('📐 Calculating expanded bbox from bounds:', {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+    });
+
     const center = [
         (bounds.getEast() + bounds.getWest()) / 2,
         (bounds.getNorth() + bounds.getSouth()) / 2
@@ -42,27 +60,59 @@ function calculateExpandedBbox(bounds) {
     const width = Math.abs(bounds.getEast() - bounds.getWest()) * SURFACE_CACHE.bufferMultiplier;
     const height = Math.abs(bounds.getNorth() - bounds.getSouth()) * SURFACE_CACHE.bufferMultiplier;
     
-    return [
+    const expandedBbox = [
         center[0] - width / 2,   // west
         center[1] - height / 2,  // south
         center[0] + width / 2,   // east
         center[1] + height / 2   // north
     ];
+
+    console.log('📐 Expanded bbox result:', {
+        original: {
+            width: bounds.getEast() - bounds.getWest(),
+            height: bounds.getNorth() - bounds.getSouth()
+        },
+        expanded: {
+            width,
+            height,
+            bbox: expandedBbox
+        }
+    });
+
+    return expandedBbox;
 }
 
 // Check if current view is within cached area
 function isWithinCachedArea(bounds) {
-    if (!SURFACE_CACHE.viewState.bbox) return false;
+    console.log('🔍 Checking if view is within cached area:', {
+        currentBounds: {
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest()
+        },
+        cachedBbox: SURFACE_CACHE.viewState.bbox
+    });
+
+    if (!SURFACE_CACHE.viewState.bbox) {
+        console.log('🔍 No cached bbox found');
+        return false;
+    }
     
     const [west, south, east, north] = SURFACE_CACHE.viewState.bbox;
-    return bounds.getWest() >= west &&
-           bounds.getSouth() >= south &&
-           bounds.getEast() <= east &&
-           bounds.getNorth() <= north;
+    const isWithin = bounds.getWest() >= west &&
+                    bounds.getSouth() >= south &&
+                    bounds.getEast() <= east &&
+                    bounds.getNorth() <= north;
+
+    console.log('🔍 Within cached area:', isWithin);
+    return isWithin;
 }
 
 function formatAccess(access) {
-    switch(access?.toLowerCase()) {
+    console.log('🔐 Formatting access value:', access);
+    const result = access?.toLowerCase();
+    switch(result) {
         case 'private':
             return 'Private - No Public Access';
         case 'permissive':
@@ -77,35 +127,41 @@ function formatAccess(access) {
         case 'public':
             return 'Public Access';
         default:
-            return access ? `Access: ${access}` : null;
+            const formatted = access ? `Access: ${access}` : null;
+            console.log('🔐 Using default access format:', formatted);
+            return formatted;
     }
 }
 
 function getColorForGravelCondition(condition) {
-    switch(parseInt(condition)) {
-        case 0:
-            return '#2ecc71'; // Green
-        case 1:
-            return '#a7eb34'; // Green-Yellow
-        case 2:
-            return '#f1c40f'; // Yellow
-        case 3:
-            return '#e67e22'; // Yellow-Red
-        case 4:
-            return '#e74c3c'; // Red
-        case 5:
-            return '#c0392b'; // Red-Maroon
-        case 6:
-            return '#8e44ad'; // Maroon
-        default:
-            return '#C2B280'; // Default gravel color
-    }
+    console.log('🎨 Getting color for condition:', condition);
+    const parsedCondition = parseInt(condition);
+    const color = (() => {
+        switch(parsedCondition) {
+            case 0: return '#2ecc71'; // Green
+            case 1: return '#a7eb34'; // Green-Yellow
+            case 2: return '#f1c40f'; // Yellow
+            case 3: return '#e67e22'; // Yellow-Red
+            case 4: return '#e74c3c'; // Red
+            case 5: return '#c0392b'; // Red-Maroon
+            case 6: return '#8e44ad'; // Maroon
+            default: return '#C2B280'; // Default gravel color
+        }
+    })();
+    console.log('🎨 Selected color:', color);
+    return color;
 }
 
 function showGravelRatingModal(feature) {
-    console.log('📍 Modal opened for road:', {
-        name: feature.properties.name,
-        osm_id: feature.properties.osm_id
+    console.log('🔧 Creating modal for feature:', {
+        feature: {
+            type: feature.type,
+            properties: feature.properties,
+            geometry: feature.geometry ? {
+                type: feature.geometry.type,
+                coordinates: feature.geometry.coordinates
+            } : null
+        }
     });
 
     // Create backdrop with specific class
@@ -125,8 +181,9 @@ function showGravelRatingModal(feature) {
     modal.id = 'gravel-rating-modal';
     modal.className = 'gravel-edit-modal';
     // Store the road ID
-    modal.setAttribute('data-road-id', feature.properties.osm_id);
-    console.log('📍 Setting road ID:', feature.properties.osm_id);
+    const roadId = feature.properties.osm_id;
+    modal.setAttribute('data-road-id', roadId);
+    console.log('🔧 Setting modal road ID:', roadId);
 
     modal.style.cssText = `
         position: fixed !important;
@@ -175,33 +232,40 @@ function showGravelRatingModal(feature) {
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
 
+    console.log('🔧 Modal created and added to DOM');
+
     // Add color preview update on select change
     const select = document.getElementById('gravel-condition');
     const colorPreview = document.getElementById('color-preview');
     select.addEventListener('change', (e) => {
+        console.log('🎨 Condition select changed:', e.target.value);
         colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
     });
 
     document.getElementById('cancel-rating').onclick = () => {
-        console.log('📍 Cancel button clicked');
+        console.log('❌ Cancel rating clicked');
         backdrop.remove();
         modal.remove();
     };
 
     document.getElementById('save-rating').onclick = async () => {
-        console.log('📍 Save button clicked');
+        console.log('💾 Save rating clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
         
         // Get the road ID from the modal
         const roadId = modal.getAttribute('data-road-id');
-        console.log('📍 Retrieved road ID for save:', roadId);
+        console.log('💾 Preparing to save with data:', {
+            roadId,
+            gravelCondition,
+            notes
+        });
 
         try {
             const userProfile = localStorage.getItem('userProfile');
             if (!userProfile) {
-                console.log('📍 No user profile found');
+                console.log('⚠️ No user profile found');
                 saveButton.style.backgroundColor = '#dc3545';
                 saveButton.textContent = 'Please Log In';
                 setTimeout(() => {
@@ -212,8 +276,11 @@ function showGravelRatingModal(feature) {
             }
 
             const profile = JSON.parse(userProfile);
-            console.log('📍 Sending update request with road ID:', roadId);
+            console.log('👤 User profile loaded:', {
+                auth0Id: profile.auth0Id
+            });
 
+            console.log('🌐 Sending update request');
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -229,13 +296,15 @@ function showGravelRatingModal(feature) {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.log('📍 Error response:', errorText);
+                console.log('❌ Error response:', errorText);
                 throw new Error('Failed to update');
             }
 
+            console.log('✅ Update successful');
+
             // Success - update color and close
-            console.log('📍 Update successful, updating map');
             if (map.getLayer('road-surfaces-layer')) {
+                console.log('🎨 Updating road color on map');
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
                     ['==', ['get', 'osm_id'], roadId], getColorForGravelCondition(gravelCondition),
@@ -256,9 +325,12 @@ function showGravelRatingModal(feature) {
 
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
+            
+            console.log('🔄 Updating surface data');
             await window.layers.updateSurfaceData();
 
             setTimeout(() => {
+                console.log('🔧 Removing modal');
                 const backdrop = document.getElementById('gravel-rating-backdrop');
                 const modal = document.getElementById('gravel-rating-modal');
                 if (backdrop) backdrop.remove();
@@ -277,12 +349,14 @@ function showGravelRatingModal(feature) {
     };
 }
 
-// Function to format highway type (add this with your other helper functions)
 function formatHighway(highway) {
-    return highway
+    console.log('🛣️ Formatting highway:', highway);
+    const formatted = highway
         .split('_')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+    console.log('🛣️ Formatted result:', formatted);
+    return formatted;
 }
 
 window.layers.initSurfaceLayers = function() {
@@ -291,6 +365,7 @@ window.layers.initSurfaceLayers = function() {
     if (!map.getSource('road-surfaces')) {
         console.log('📍 Creating new road-surfaces source and layer');
         try {
+            console.log('🗺️ Adding source');
             map.addSource('road-surfaces', {
                 type: 'geojson',
                 data: {
@@ -304,6 +379,7 @@ window.layers.initSurfaceLayers = function() {
             });
             console.log('✅ Successfully added source');
 
+            console.log('🗺️ Adding layer');
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
@@ -332,9 +408,10 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            console.log('✅ Successfully added layer');
+            console.log('✅ Layer added successfully');
 
             // Create popup
+            console.log('🔧 Creating popup instance');
             const popup = new mapboxgl.Popup({
                 closeButton: false,
                 closeOnClick: false,
@@ -343,12 +420,19 @@ window.layers.initSurfaceLayers = function() {
             });
 
             // Add hover interaction
+            console.log('🖱️ Setting up hover interactions');
             map.on('mousemove', 'road-surfaces-layer', (e) => {
                 if (e.features.length > 0) {
-                    map.getCanvas().style.cursor = 'pointer';
+                    console.log('🖱️ Hover detected on feature:', {
+                        featureCount: e.features.length,
+                        lngLat: e.lngLat
+                    });
                     
+                    map.getCanvas().style.cursor = 'pointer';
                     const feature = e.features[0];
                     const props = feature.properties;
+                    
+                    console.log('🔍 Hover feature properties:', props);
                     
                     let html = '<div class="gravel-popup-content">';
                     
@@ -361,8 +445,8 @@ window.layers.initSurfaceLayers = function() {
                     
                     // Highway type
                     if (props.highway) {
-                    html += `<p><strong>Type:</strong> ${formatHighway(props.highway)}</p>`;
-        }
+                        html += `<p><strong>Type:</strong> ${formatHighway(props.highway)}</p>`;
+                    }
 
                     // Surface type
                     if (props.surface) {
@@ -384,6 +468,7 @@ window.layers.initSurfaceLayers = function() {
 
                     html += '</div>';
 
+                    console.log('🎨 Setting popup content and position');
                     popup.setLngLat(e.lngLat)
                         .setHTML(html)
                         .addTo(map);
@@ -392,32 +477,43 @@ window.layers.initSurfaceLayers = function() {
 
             // Remove popup on mouseleave
             map.on('mouseleave', 'road-surfaces-layer', () => {
+                console.log('🖱️ Mouse left road-surfaces-layer');
                 map.getCanvas().style.cursor = '';
                 popup.remove();
             });
 
+            // Click handler
+            console.log('🖱️ Setting up click handler');
             map.on('click', 'road-surfaces-layer', async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
-                    console.log('📍 Clicked feature:', {
+                    console.log('🖱️ Road clicked:', {
                         full: feature,
                         properties: feature.properties,
                         type: feature.type,
-                        geometry: feature.geometry
+                        geometry: feature.geometry,
+                        osm_id: feature.properties.osm_id // Explicitly log OSM ID
                     });
             
+                    console.log('🔐 Checking authentication');
                     const auth0 = await window.waitForAuth0();
                     const isAuthenticated = await auth0.isAuthenticated();
+                    console.log('🔐 Authentication status:', isAuthenticated);
+                    
                     if (!isAuthenticated) {
+                        console.log('🔐 User not authenticated, returning');
                         return;
                     }
             
+                    console.log('🔧 Opening modal for road:', feature.properties.osm_id);
                     showGravelRatingModal(feature);
                 }
             });
 
             // Add debounced moveend event listener
+            console.log('🗺️ Setting up moveend handler');
             const debouncedUpdate = debounce(() => {
+                console.log('🗺️ Debounced update triggered');
                 window.layers.updateSurfaceData();
             }, 300);
 
@@ -425,15 +521,20 @@ window.layers.initSurfaceLayers = function() {
                 console.log('🗺️ Map moveend event triggered');
                 debouncedUpdate();
             });
-            console.log('✅ Added moveend event listener');
+            
         } catch (error) {
-            console.error('❌ Error in initSurfaceLayers:', error);
+            console.error('❌ Error in initSurfaceLayers:', {
+                error: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             throw error;
         }
     } else {
         console.log('ℹ️ road-surfaces source already exists');
     }
 };
+
 
 window.layers.updateSurfaceData = async function() {
     console.log('🔄 updateSurfaceData called');
@@ -646,3 +747,5 @@ window.layers.toggleSurfaceLayer = async function() {
 // Export functions globally
 window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
 window.updateSurfaceData = window.layers.updateSurfaceData;
+
+console.log('✅ Surface layer module loaded');
