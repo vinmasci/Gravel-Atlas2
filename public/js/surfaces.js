@@ -382,37 +382,43 @@ window.layers.initSurfaceLayers = function() {
     console.log('🚀 Initializing surface layers...');
     
     if (!map.getSource('road-surfaces')) {
-        console.log('📍 Creating new road-surfaces source and layer');
         try {
-            // Add GeoJSON source first
+            // Add GeoJSON source for the data with OSM IDs
             map.addSource('road-surfaces', {
                 type: 'geojson',
                 data: {
                     type: 'FeatureCollection',
                     features: []
-                },
-                tolerance: 8,
-                maxzoom: 15,
-                buffer: 512,
-                lineMetrics: true
+                }
             });
 
-            // Add vector tile layer
+            // Add the GeoJSON layer
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
-                'source': {
-                    'type': 'vector',
-                    'url': 'mapbox://vinmasci.5nvlqfla'
-                },
-                'source-layer': 'road_surfaces',
+                'source': 'road-surfaces',
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': '#C2B280',
+                    'line-color': [
+                        'case',
+                        ['has', 'gravel_condition'],
+                        ['match',
+                            ['get', 'gravel_condition'],
+                            '0', '#2ecc71',
+                            '1', '#a7eb34',
+                            '2', '#f1c40f',
+                            '3', '#e67e22',
+                            '4', '#e74c3c',
+                            '5', '#c0392b',
+                            '6', '#8e44ad',
+                            '#C2B280'
+                        ],
+                        '#C2B280'
+                    ],
                     'line-width': [
                         'interpolate',
                         ['linear'],
@@ -426,9 +432,28 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            console.log('✅ Layer added successfully');
+            // Click handler for the GeoJSON layer
+            map.on('click', 'road-surfaces-layer', async (e) => {
+                if (e.features.length > 0) {
+                    const feature = e.features[0];
+                    console.log('🔍 Clicked feature:', feature);
+                    
+                    // Ensure we have the OSM ID
+                    const osmId = feature.properties.osm_id;
+                    if (!osmId) {
+                        console.error('❌ No OSM ID found for feature:', feature);
+                        return;
+                    }
 
-            // Create popup
+                    const auth0 = await window.waitForAuth0();
+                    const isAuthenticated = await auth0.isAuthenticated();
+                    if (!isAuthenticated) return;
+
+                    showGravelRatingModal(feature);
+                }
+            });
+
+            // Add hover effects and popup
             const popup = new mapboxgl.Popup({
                 closeButton: false,
                 closeOnClick: false,
@@ -436,49 +461,19 @@ window.layers.initSurfaceLayers = function() {
                 className: 'gravel-popup'
             });
 
-            // Hover handler
             map.on('mousemove', 'road-surfaces-layer', (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
-                    const props = feature.properties;
-                    
-                    console.log('🔍 Hover props:', props);
-                    
                     map.getCanvas().style.cursor = 'pointer';
-                    let html = '<div class="gravel-popup-content">';
                     
-                    if (props.name) {
-                        html += `<h4>${props.name}</h4>`;
-                    } else {
-                        html += `<h4>${(props.highway || 'Unknown Road Type').replace(/_/g, ' ').toUpperCase()}</h4>`;
-                    }
-                    
-                    if (props.highway) {
-                        html += `<p><strong>Type:</strong> ${formatHighway(props.highway)}</p>`;
-                    }
-
-                    if (props.surface) {
-                        html += `<p><strong>Surface:</strong> ${props.surface.replace(/_/g, ' ')}</p>`;
-                    }
-
-                    if (props.tracktype) {
-                        html += `<p><strong>Track Grade:</strong> ${props.tracktype.toUpperCase()}</p>`;
-                    }
-
-                    if (props.access) {
-                        const accessStatus = formatAccess(props.access);
-                        if (accessStatus) {
-                            html += `<p class="access-info ${props.access.toLowerCase()}">
-                                <strong>Access:</strong> ${accessStatus}
-                            </p>`;
-                        }
-                    }
-
-                    if (props.osm_id) {
-                        html += `<p><small>OSM ID: ${props.osm_id}</small></p>`;
-                    }
-
-                    html += '</div>';
+                    let html = `
+                        <div class="gravel-popup-content">
+                            <h4>${feature.properties.name || 'Unnamed Road'}</h4>
+                            <p><strong>OSM ID:</strong> ${feature.properties.osm_id}</p>
+                            ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
+                            ${feature.properties.gravel_condition ? `<p><strong>Condition:</strong> ${feature.properties.gravel_condition}/6</p>` : ''}
+                        </div>
+                    `;
 
                     popup.setLngLat(e.lngLat)
                         .setHTML(html)
@@ -486,57 +481,17 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Mouseleave handler
             map.on('mouseleave', 'road-surfaces-layer', () => {
                 map.getCanvas().style.cursor = '';
                 popup.remove();
             });
 
-            // Click handler
-            map.on('click', 'road-surfaces-layer', async (e) => {
-                if (e.features.length > 0) {
-                    const feature = e.features[0];
-                    const props = feature.properties;
-                    
-                    console.log('🔍 Click detected:', {
-                        full: feature,
-                        properties: props,
-                        type: feature.type,
-                        geometry: feature.geometry,
-                        osm_id: props.osm_id
-                    });
-            
-                    const auth0 = await window.waitForAuth0();
-                    const isAuthenticated = await auth0.isAuthenticated();
-                    if (!isAuthenticated) return;
-            
-                    showGravelRatingModal(feature);
-                }
-            });
-
-            // Moveend handler
-            const debouncedUpdate = debounce(() => {
-                window.layers.updateSurfaceData();
-            }, 300);
-
-            map.on('moveend', () => {
-                console.log('🗺️ Map moveend event triggered');
-                debouncedUpdate();
-            });
-            
         } catch (error) {
-            console.error('❌ Error in initSurfaceLayers:', {
-                error: error.message,
-                stack: error.stack,
-                name: error.name
-            });
+            console.error('❌ Error in initSurfaceLayers:', error);
             throw error;
         }
-    } else {
-        console.log('ℹ️ road-surfaces source already exists');
     }
 };
-
 window.layers.updateSurfaceData = async function() {
     console.log('🔄 updateSurfaceData called');
     console.log('Current visibility state:', window.layerVisibility.surfaces);
