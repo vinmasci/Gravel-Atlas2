@@ -5,14 +5,13 @@ const CACHE_DURATION = 5 * 60 * 1000;
 const cache = new Map();
 
 const ZOOM_THRESHOLDS = {
-    MIN_ZOOM: 8,      // Reduced from 11 to show roads earlier
-    LOW_DETAIL: 10,   // Adjusted thresholds for earlier detail
+    MIN_ZOOM: 8,      
+    LOW_DETAIL: 10,   
     MID_DETAIL: 12,
     HIGH_DETAIL: 14
 };
 
 const ROAD_TYPES = {
-    // All road types that could be unpaved
     all: [
         // Tracks and trails
         'track', 'track_grade1', 'track_grade2', 'track_grade3', 'track_grade4', 'track_grade5',
@@ -30,7 +29,6 @@ const ROAD_TYPES = {
         'fire_road', 'agricultural', 'alley', 'backcountry'
     ],
     
-    // Only exclude motorways and trunks
     excluded: [
         'motorway', 'motorway_link',
         'trunk', 'trunk_link'
@@ -166,10 +164,10 @@ module.exports = async (req, res) => {
                 highways: [...new Set(roads.map(r => r.properties?.highway))]
             });
 
+            // First create the base GeoJSON
             const geojson = {
                 type: 'FeatureCollection',
                 features: roads.map(road => {
-                    // Extract relevant properties including those in other_tags
                     const tracktype = extractFromOtherTags(road.properties?.other_tags, 'tracktype');
                     const access = extractFromOtherTags(road.properties?.other_tags, 'access');
 
@@ -177,6 +175,7 @@ module.exports = async (req, res) => {
                         type: 'Feature',
                         geometry: road.geometry,
                         properties: {
+                            osm_id: road.properties?.osm_id,
                             name: road.properties?.name || null,
                             highway: road.properties?.highway || null,
                             surface: road.properties?.surface || null,
@@ -186,6 +185,41 @@ module.exports = async (req, res) => {
                     };
                 })
             };
+
+            // Get modifications for these roads
+            const modifications = await client
+                .db('gravelatlas')
+                .collection('road_modifications')
+                .find({
+                    osm_id: { 
+                        $in: roads.map(r => r.properties?.osm_id)
+                    }
+                })
+                .toArray();
+
+            // Create a lookup of modifications
+            const modificationLookup = new Map(
+                modifications.map(m => [m.osm_id, m])
+            );
+
+            // Merge modifications with the road data
+            geojson.features = geojson.features.map(feature => {
+                const modification = modificationLookup.get(feature.properties.osm_id);
+                
+                if (modification) {
+                    return {
+                        ...feature,
+                        properties: {
+                            ...feature.properties,
+                            gravel_condition: modification.gravel_condition,
+                            surface_quality: modification.surface_quality,
+                            notes: modification.notes,
+                            last_updated: modification.last_updated
+                        }
+                    };
+                }
+                return feature;
+            });
 
             return res.json(geojson);
 

@@ -1,4 +1,4 @@
-// Initialize surface layer visibility1
+// Initialize surface layer visibility2
 if (!window.layerVisibility) {
     window.layerVisibility = {};
 }
@@ -79,6 +79,89 @@ function formatAccess(access) {
         default:
             return access ? `Access: ${access}` : null;
     }
+}
+
+function showGravelEditModal(feature) {
+    // Remove any existing modal
+    const existingModal = document.getElementById('gravel-edit-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'gravel-edit-modal';
+    modal.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg z-50';
+    
+    modal.innerHTML = `
+        <div class="mb-4">
+            <h3 class="text-lg font-bold">${feature.properties.name || 'Unnamed Road'}</h3>
+            <p class="text-sm text-gray-600">Edit gravel conditions</p>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Gravel Condition (0-6)</label>
+            <select id="gravel-condition" class="w-full p-2 border rounded">
+                <option value="0">0 - Smooth, any bike</option>
+                <option value="1">1 - Well maintained</option>
+                <option value="2">2 - Occasional rough</option>
+                <option value="3">3 - Frequent loose</option>
+                <option value="4">4 - Very rough</option>
+                <option value="5">5 - Technical MTB</option>
+                <option value="6">6 - Extreme MTB</option>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Surface Quality</label>
+            <select id="surface-quality" class="w-full p-2 border rounded">
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="bad">Bad</option>
+                <option value="very_bad">Very Bad</option>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Notes</label>
+            <textarea id="surface-notes" class="w-full p-2 border rounded" rows="2"></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button id="cancel-edit" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+            <button id="save-edit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Save</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add event listeners
+    document.getElementById('cancel-edit').onclick = () => modal.remove();
+    document.getElementById('save-edit').onclick = async () => {
+        const gravelCondition = document.getElementById('gravel-condition').value;
+        const surfaceQuality = document.getElementById('surface-quality').value;
+        const notes = document.getElementById('surface-notes').value;
+
+        try {
+            const response = await fetch('/api/update-road-surface', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    osm_id: feature.properties.osm_id,
+                    gravel_condition: gravelCondition,
+                    surface_quality: surfaceQuality,
+                    notes
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to update');
+
+            // Refresh the layer to show updates
+            window.layers.updateSurfaceData();
+            modal.remove();
+        } catch (error) {
+            console.error('Error saving modification:', error);
+            // Optional: Show error message to user
+        }
+    };
 }
 
 // Function to format highway type (add this with your other helper functions)
@@ -198,6 +281,21 @@ window.layers.initSurfaceLayers = function() {
             map.on('mouseleave', 'road-surfaces-layer', () => {
                 map.getCanvas().style.cursor = '';
                 popup.remove();
+            });
+
+            map.on('click', 'road-surfaces-layer', async (e) => {
+                if (e.features.length > 0) {
+                    const feature = e.features[0];
+                    const auth0 = await window.waitForAuth0();
+                    const isAuthenticated = await auth0.isAuthenticated();
+                    
+                    if (!isAuthenticated) {
+                        // Optional: show login prompt
+                        return;
+                    }
+            
+                    showGravelEditModal(feature);
+                }
             });
 
             // Add debounced moveend event listener
