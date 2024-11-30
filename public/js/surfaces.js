@@ -203,12 +203,18 @@ function showGravelRatingModal(feature) {
             }
     
             const profile = JSON.parse(userProfile);
-            console.log('📍 Found user profile, proceeding with save');
+            console.log('📍 User profile:', profile);
+    
+            // Get auth token
+            const auth0 = await window.waitForAuth0();
+            const token = await auth0.getTokenSilently();
+            console.log('📍 Got auth token:', token ? 'Yes' : 'No');
     
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     osm_id: feature.properties.osm_id,
@@ -218,7 +224,12 @@ function showGravelRatingModal(feature) {
                 })
             });
     
-            if (!response.ok) throw new Error('Failed to update');
+            console.log('📍 Response status:', response.status);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log('📍 Error response:', errorText);
+                throw new Error('Failed to update');
+            }
     
             // Update road color
             if (map.getLayer('road-surfaces-layer')) {
