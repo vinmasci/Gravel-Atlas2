@@ -189,20 +189,16 @@ function showGravelRatingModal(feature) {
         const saveButton = document.getElementById('save-rating');
     
         try {
-            // Get user information
-            const user = await auth0.getUser();
-            if (!user) {
-                throw new Error('User not authenticated');
+            // First verify authentication
+            const auth0 = await window.waitForAuth0();
+            const isAuthenticated = await auth0.isAuthenticated();
+            
+            if (!isAuthenticated) {
+                throw new Error('Please log in to rate roads');
             }
     
-            console.log('📍 Got user info, sending request...');
-    
-            // Get the auth token
+            // Get the authenticated user's token
             const token = await auth0.getTokenSilently();
-            
-            // Get user profile from localStorage
-            const userProfile = localStorage.getItem('userProfile');
-            const profile = userProfile ? JSON.parse(userProfile) : {};
     
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
@@ -213,21 +209,12 @@ function showGravelRatingModal(feature) {
                 body: JSON.stringify({
                     osm_id: feature.properties.osm_id,
                     gravel_condition: gravelCondition,
-                    notes: notes,
-                    user_id: user.sub,         // Add user ID from Auth0
-                    modified_by: profile.bioName || user.name || user.email,  // Add user's name
-                    profile: {
-                        name: profile.bioName || user.name,
-                        email: user.email,
-                        picture: user.picture,
-                        social_links: profile.socialLinks || {}
-                    }
+                    notes: notes
                 })
             });
     
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Server response:', errorData);
+                const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || 'Failed to update');
             }
     
@@ -251,14 +238,11 @@ function showGravelRatingModal(feature) {
                 ]);
             }
     
-            // Show success state
+            // Show success and close
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
-    
-            // Refresh the map display
             await window.layers.updateSurfaceData();
     
-            // Close modal after short delay
             setTimeout(() => {
                 const backdrop = document.getElementById('gravel-rating-backdrop');
                 const modal = document.getElementById('gravel-rating-modal');
@@ -269,7 +253,7 @@ function showGravelRatingModal(feature) {
         } catch (error) {
             console.error('❌ Error saving rating:', error);
             saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error!';
+            saveButton.textContent = error.message === 'Please log in to rate roads' ? 'Login Required' : 'Error!';
             setTimeout(() => {
                 saveButton.style.backgroundColor = '#007bff';
                 saveButton.textContent = 'Save';
