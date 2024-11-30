@@ -182,11 +182,16 @@ function showGravelRatingModal(feature) {
         modal.remove();
     };
 
+    //save rating
     document.getElementById('save-rating').onclick = async () => {
         console.log('📍 Save button clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
+    
+        // Get the feature from the clicked element
+        const currentFeature = document.getElementById('gravel-rating-modal').feature;
+        console.log('📍 Current feature:', currentFeature);
     
         try {
             // Check if user is logged in by looking for profile
@@ -216,7 +221,7 @@ function showGravelRatingModal(feature) {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    osm_id: feature.properties.osm_id,
+                    osm_id: currentFeature.properties.osm_id,
                     gravel_condition: gravelCondition,
                     notes: notes,
                     user_id: profile.auth0Id
@@ -235,7 +240,7 @@ function showGravelRatingModal(feature) {
             if (map.getLayer('road-surfaces-layer')) {
                 map.setPaintProperty('road-surfaces-layer', 'line-color', [
                     'case',
-                    ['==', ['get', 'osm_id'], feature.properties.osm_id], getColorForGravelCondition(gravelCondition),
+                    ['==', ['get', 'osm_id'], currentFeature.properties.osm_id], getColorForGravelCondition(gravelCondition),
                     ['has', 'gravel_condition'], ['match',
                         ['get', 'gravel_condition'],
                         '0', '#2ecc71',
