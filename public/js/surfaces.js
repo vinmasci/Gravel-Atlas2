@@ -156,20 +156,7 @@ function interpolateColor(color1, color2) {
 function getColorForGravelCondition(condition) {
     console.log('🎨 Getting color for condition:', condition);
     const parsedCondition = parseInt(condition);
-    const color = (() => {
-        switch(parsedCondition) {
-            case 0: return '#01bf11'; // Green
-            case 1: return interpolateColor('#01bf11', '#ffa801'); // Between green and yellow
-            case 2: return '#ffa801'; // Yellow
-            case 3: return interpolateColor('#ffa801', '#c0392b'); // Between yellow and red
-            case 4: return '#c0392b'; // Red
-            case 5: return interpolateColor('#c0392b', '#751203'); // Between red and dark red
-            case 6: return '#751203'; // Dark red
-            default: return '#C2B280'; // Default gravel color
-        }
-    })();
-    console.log('🎨 Selected color:', color);
-    return color;
+    return GRAVEL_COLORS[parsedCondition] || '#C2B280';
 }
 
 // Helper function to format username
@@ -416,48 +403,60 @@ window.layers.initSurfaceLayers = function() {
             });
 
             // Add the GeoJSON layer
-            map.addLayer({
-                'id': 'road-surfaces-layer',
-                'type': 'line',
-                'source': 'road-surfaces',
-                'layout': {
-                    'visibility': 'none',
-                    'line-join': 'round',
-                    'line-cap': 'round'
-                },
-                'paint': {
-'line-color': [
-    'case',
-    ['has', 'gravel_condition'],
-    ['match',
-        ['toString', ['get', 'gravel_condition']], // Convert to string before matching
-        '0', '#01bf11',
-        '1', interpolateColor('#01bf11', '#ffa801'),
-        '2', '#ffa801',
-        '3', interpolateColor('#ffa801', '#c0392b'),
-        '4', '#c0392b',
-        '5', interpolateColor('#c0392b', '#751203'),
-        '6', '#751203',
-        '#C2B280'
-    ],
-    '#C2B280'
-],
-                    'line-width': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        8, 2,    // Wider at lower zoom
-                        10, 3,   // Even wider
-                        12, 4,   // Wider still
-                        14, 5    // Maximum width
-                    ],
-                    'line-opacity': [
-                        'case',
-                        ['has', 'gravel_condition'], 0.9,  // More opaque for rated roads
-                        0.7  // Default opacity for unrated
-                    ]
-                }
-            });
+// First define the interpolated colors as constants
+const GRAVEL_COLORS = {
+    '0': '#01bf11',                    // Green
+    '1': '#80b909',                    // Interpolated between green and yellow
+    '2': '#ffa801',                    // Yellow
+    '3': '#e07366',                    // Interpolated between yellow and red
+    '4': '#c0392b',                    // Red
+    '5': '#9a2817',                    // Interpolated between red and dark red
+    '6': '#751203'                     // Dark red
+};
+
+// Then update the layer definition
+map.addLayer({
+    'id': 'road-surfaces-layer',
+    'type': 'line',
+    'source': 'road-surfaces',
+    'layout': {
+        'visibility': 'none',
+        'line-join': 'round',
+        'line-cap': 'round'
+    },
+    'paint': {
+        'line-color': [
+            'case',
+            ['has', 'gravel_condition'],
+            ['match',
+                ['toString', ['get', 'gravel_condition']],
+                '0', GRAVEL_COLORS['0'],
+                '1', GRAVEL_COLORS['1'],
+                '2', GRAVEL_COLORS['2'],
+                '3', GRAVEL_COLORS['3'],
+                '4', GRAVEL_COLORS['4'],
+                '5', GRAVEL_COLORS['5'],
+                '6', GRAVEL_COLORS['6'],
+                '#C2B280'
+            ],
+            '#C2B280'
+        ],
+        'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            8, 2,
+            10, 3,
+            12, 4,
+            14, 5
+        ],
+        'line-opacity': [
+            'case',
+            ['has', 'gravel_condition'], 0.9,
+            0.7
+        ]
+    }
+});
 
             // Click handler for the GeoJSON layer
             map.on('click', 'road-surfaces-layer', async (e) => {
