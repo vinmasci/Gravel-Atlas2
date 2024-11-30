@@ -189,11 +189,20 @@ function showGravelRatingModal(feature) {
         const saveButton = document.getElementById('save-rating');
     
         try {
-            // Get the auth token using the correct method
-            const auth0 = await window.waitForAuth0();
+            // Get user information
+            const user = await auth0.getUser();
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+    
+            console.log('📍 Got user info, sending request...');
+    
+            // Get the auth token
             const token = await auth0.getTokenSilently();
             
-            console.log('📍 Auth token obtained, sending request...');
+            // Get user profile from localStorage
+            const userProfile = localStorage.getItem('userProfile');
+            const profile = userProfile ? JSON.parse(userProfile) : {};
     
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
@@ -204,14 +213,22 @@ function showGravelRatingModal(feature) {
                 body: JSON.stringify({
                     osm_id: feature.properties.osm_id,
                     gravel_condition: gravelCondition,
-                    notes
+                    notes: notes,
+                    user_id: user.sub,         // Add user ID from Auth0
+                    modified_by: profile.bioName || user.name || user.email,  // Add user's name
+                    profile: {
+                        name: profile.bioName || user.name,
+                        email: user.email,
+                        picture: user.picture,
+                        social_links: profile.socialLinks || {}
+                    }
                 })
             });
     
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
+                const errorData = await response.json();
                 console.error('Server response:', errorData);
-                throw new Error(errorData.message || 'Failed to update');
+                throw new Error(errorData.error || 'Failed to update');
             }
     
             // Update the road color immediately
