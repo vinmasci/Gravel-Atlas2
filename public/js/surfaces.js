@@ -152,6 +152,10 @@ function getColorForGravelCondition(condition) {
     return color;
 }
 
+function getConditionIcon(condition) {
+    return `<i class="fa-duotone fa-thin fa-circle-${condition}" style="--fa-secondary-color: ${getColorForGravelCondition(condition)}; --fa-secondary-opacity: 1;"></i>`;
+}
+
 function showGravelRatingModal(feature) {
     // Extract OSM ID with fallback and validation
     const osmId = feature.properties.osm_id || feature.properties.id;
@@ -210,6 +214,20 @@ function showGravelRatingModal(feature) {
         overflow-y: auto !important;
     `;
     
+    // Current details section
+    const currentConditionHtml = feature.properties.gravel_condition ? 
+        `<p style="margin: 4px 0;"><strong>Current Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)} ${feature.properties.gravel_condition}/6</p>` : '';
+
+    const currentDetailsHtml = `
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+            ${feature.properties.surface ? `<p style="margin: 4px 0;"><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
+            ${feature.properties.tracktype ? `<p style="margin: 4px 0;"><strong>Track Grade:</strong> ${feature.properties.tracktype.toUpperCase()}</p>` : ''}
+            ${feature.properties.access ? `<p style="margin: 4px 0;"><strong>Access:</strong> ${formatAccess(feature.properties.access)}</p>` : ''}
+            ${currentConditionHtml}
+            ${feature.properties.notes ? `<p style="margin: 4px 0;"><strong>Notes:</strong> ${feature.properties.notes}</p>` : ''}
+        </div>
+    `;
+
     // Update modal HTML to use validated roadName
     modal.innerHTML = `
         <div style="margin-bottom: 16px;">
@@ -217,21 +235,25 @@ function showGravelRatingModal(feature) {
             <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
         </div>
         <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Current Details</label>
+            ${currentDetailsHtml}
+        </div>
+        <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Gravel Condition (0-6)</label>
             <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="0">0 - Smooth, any bike</option>
-                <option value="1">1 - Well maintained</option>
-                <option value="2">2 - Occasional rough</option>
-                <option value="3">3 - Frequent loose</option>
-                <option value="4">4 - Very rough</option>
-                <option value="5">5 - Technical MTB</option>
-                <option value="6">6 - Extreme MTB</option>
+                <option value="0">0 - Smooth, any bike ${getConditionIcon('0')}</option>
+                <option value="1">1 - Well maintained ${getConditionIcon('1')}</option>
+                <option value="2">2 - Occasional rough ${getConditionIcon('2')}</option>
+                <option value="3">3 - Frequent loose ${getConditionIcon('3')}</option>
+                <option value="4">4 - Very rough ${getConditionIcon('4')}</option>
+                <option value="5">5 - Technical MTB ${getConditionIcon('5')}</option>
+                <option value="6">6 - Extreme MTB ${getConditionIcon('6')}</option>
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
         <div style="margin-bottom: 16px;">
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
-            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;"></textarea>
+            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
@@ -367,6 +389,8 @@ function showGravelRatingModal(feature) {
         }
     };
 }
+
+
 
 function formatHighway(highway) {
     console.log('🛣️ Formatting highway:', highway);
