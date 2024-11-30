@@ -152,32 +152,30 @@ function getColorForGravelCondition(condition) {
     return color;
 }
 
-function getConditionIcon(condition) {
-    return `<i class="fa-duotone fa-thin fa-circle-${condition}" style="--fa-secondary-color: ${getColorForGravelCondition(condition)}; --fa-secondary-opacity: 1;"></i>`;
+function getConditionIcon(condition, includeTooltip = false) {
+    const tooltips = {
+        '0': 'Smooth, any bike',
+        '1': 'Well maintained',
+        '2': 'Occasional rough',
+        '3': 'Frequent loose',
+        '4': 'Very rough',
+        '5': 'Technical MTB',
+        '6': 'Extreme MTB'
+    };
+
+    const icon = `<i class="fa-duotone fa-thin fa-circle-${condition}" style="--fa-secondary-color: ${getColorForGravelCondition(condition)}; --fa-secondary-opacity: 1;"${includeTooltip ? ` title="${tooltips[condition]}"` : ''}></i>`;
+    return icon;
 }
 
 function showGravelRatingModal(feature) {
-    // Extract OSM ID with fallback and validation
     const osmId = feature.properties.osm_id || feature.properties.id;
     const roadName = feature.properties.name || 'Unnamed Road';
     
-    console.log('🔧 Creating modal for feature:', {
-        osmId,
-        name: roadName,
-        properties: feature.properties,
-        geometry: feature.geometry ? {
-            type: feature.geometry.type,
-            coordinates: feature.geometry.coordinates
-        } : null
-    });
-
-    // Validate OSM ID
     if (!osmId) {
         console.error('❌ Cannot create modal: Missing OSM ID');
         return;
     }
 
-    // Create backdrop
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
     backdrop.style.cssText = `
@@ -190,14 +188,11 @@ function showGravelRatingModal(feature) {
         z-index: 99999;
     `;
 
-    // Create modal with validated OSM ID
     const modal = document.createElement('div');
     modal.id = 'gravel-rating-modal';
     modal.className = 'gravel-edit-modal';
     modal.setAttribute('data-road-id', osmId);
-    console.log('🔧 Setting modal road ID:', osmId);
-
-    // Modal styles
+    
     modal.style.cssText = `
         position: fixed !important;
         top: 50% !important;
@@ -214,40 +209,33 @@ function showGravelRatingModal(feature) {
         overflow-y: auto !important;
     `;
     
-    // Current details section
     const currentConditionHtml = feature.properties.gravel_condition ? 
-        `<p style="margin: 4px 0;"><strong>Current Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)} ${feature.properties.gravel_condition}/6</p>` : '';
+        `<b>Current Condition:</b> ${getConditionIcon(feature.properties.gravel_condition, true)}` : '';
 
-    const currentDetailsHtml = `
-        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
-            ${feature.properties.surface ? `<p style="margin: 4px 0;"><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
-            ${feature.properties.tracktype ? `<p style="margin: 4px 0;"><strong>Track Grade:</strong> ${feature.properties.tracktype.toUpperCase()}</p>` : ''}
-            ${feature.properties.access ? `<p style="margin: 4px 0;"><strong>Access:</strong> ${formatAccess(feature.properties.access)}</p>` : ''}
-            ${currentConditionHtml}
-            ${feature.properties.notes ? `<p style="margin: 4px 0;"><strong>Notes:</strong> ${feature.properties.notes}</p>` : ''}
-        </div>
-    `;
-
-    // Update modal HTML to use validated roadName
     modal.innerHTML = `
         <div style="margin-bottom: 16px;">
             <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
+            <div style="font-size: 14px;">
+                <b>Current Details:</b>
+                <div style="margin-top: 8px; font-size: 13px;">
+                    ${feature.properties.surface ? `<b>Surface (OSM Data):</b> ${feature.properties.surface}<br>` : ''}
+                    ${currentConditionHtml}
+                </div>
+            </div>
+        </div>
+        <div style="margin-bottom: 16px;">
             <p style="font-size: 14px; color: #666; margin: 0;">Rate gravel conditions for this road</p>
         </div>
         <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Current Details</label>
-            ${currentDetailsHtml}
-        </div>
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Gravel Condition (0-6)</label>
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Select Condition</label>
             <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="0">0 - Smooth, any bike ${getConditionIcon('0')}</option>
-                <option value="1">1 - Well maintained ${getConditionIcon('1')}</option>
-                <option value="2">2 - Occasional rough ${getConditionIcon('2')}</option>
-                <option value="3">3 - Frequent loose ${getConditionIcon('3')}</option>
-                <option value="4">4 - Very rough ${getConditionIcon('4')}</option>
-                <option value="5">5 - Technical MTB ${getConditionIcon('5')}</option>
-                <option value="6">6 - Extreme MTB ${getConditionIcon('6')}</option>
+                <option value="0">${getConditionIcon('0', true)}</option>
+                <option value="1">${getConditionIcon('1', true)}</option>
+                <option value="2">${getConditionIcon('2', true)}</option>
+                <option value="3">${getConditionIcon('3', true)}</option>
+                <option value="4">${getConditionIcon('4', true)}</option>
+                <option value="5">${getConditionIcon('5', true)}</option>
+                <option value="6">${getConditionIcon('6', true)}</option>
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
@@ -261,34 +249,26 @@ function showGravelRatingModal(feature) {
         </div>
     `;
 
-    // Add to DOM
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-    console.log('🔧 Modal created and added to DOM');
 
-    // Color preview handler
     const select = document.getElementById('gravel-condition');
     const colorPreview = document.getElementById('color-preview');
     select.addEventListener('change', (e) => {
-        console.log('🎨 Condition select changed:', e.target.value);
         colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
     });
 
-    // Cancel handler
     document.getElementById('cancel-rating').onclick = () => {
-        console.log('❌ Cancel rating clicked');
         backdrop.remove();
         modal.remove();
     };
 
-    // Save handler with additional validation
     document.getElementById('save-rating').onclick = async () => {
         console.log('💾 Save rating clicked');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         const saveButton = document.getElementById('save-rating');
         
-        // Get and validate the OSM ID
         const finalOsmId = modal.getAttribute('data-road-id');
         if (!finalOsmId) {
             console.error('❌ Cannot save: Missing OSM ID');
