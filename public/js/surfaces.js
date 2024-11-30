@@ -133,23 +133,44 @@ function formatAccess(access) {
     }
 }
 
+function interpolateColor(color1, color2) {
+    // Convert hex to RGB
+    const hex1 = color1.replace('#', '');
+    const hex2 = color2.replace('#', '');
+    const r1 = parseInt(hex1.slice(0, 2), 16);
+    const g1 = parseInt(hex1.slice(2, 4), 16);
+    const b1 = parseInt(hex1.slice(4, 6), 16);
+    const r2 = parseInt(hex2.slice(0, 2), 16);
+    const g2 = parseInt(hex2.slice(2, 4), 16);
+    const b2 = parseInt(hex2.slice(4, 6), 16);
+
+    // Calculate middle point
+    const r = Math.round((r1 + r2) / 2);
+    const g = Math.round((g1 + g2) / 2);
+    const b = Math.round((b1 + b2) / 2);
+
+    // Convert back to hex
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 function getColorForGravelCondition(condition) {
     console.log('🎨 Getting color for condition:', condition);
     const parsedCondition = parseInt(condition);
     const color = (() => {
         switch(parsedCondition) {
-            case 0: return '#2ecc71'; // Green
-            case 1: return '#a7eb34'; // Green-Yellow
-            case 2: return '#f1c40f'; // Yellow
-            case 3: return '#e67e22'; // Yellow-Red
-            case 4: return '#e74c3c'; // Red
-            case 5: return '#c0392b'; // Red-Maroon
-            case 6: return '#8e44ad'; // Maroon
+            case 0: return '#01bf11'; // Green
+            case 1: return interpolateColor('#01bf11', '#ffa801'); // Between green and yellow
+            case 2: return '#ffa801'; // Yellow
+            case 3: return interpolateColor('#ffa801', '#c0392b'); // Between yellow and red
+            case 4: return '#c0392b'; // Red
+            case 5: return interpolateColor('#c0392b', '#751203'); // Between red and dark red
+            case 6: return '#751203'; // Dark red
             default: return '#C2B280'; // Default gravel color
         }
     })();
     console.log('🎨 Selected color:', color);
     return color;
+}color;
 }
 
 // Helper function to format username
