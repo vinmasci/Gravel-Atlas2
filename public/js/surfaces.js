@@ -1,4 +1,4 @@
-// Initialize surface layer visibility
+// Initialize surface layer visibility2
 if (!window.layerVisibility) {
     window.layerVisibility = {};
 }
@@ -197,9 +197,20 @@ function showGravelRatingModal(feature) {
         max-height: 80vh !important;
         overflow-y: auto !important;
     `;
+
+    // Calculate average condition if votes exist
+    const votes = feature.properties.votes || [];
+    const averageCondition = votes.length > 0 
+        ? Math.round(votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length)
+        : feature.properties.gravel_condition;
     
-    const currentConditionHtml = feature.properties.gravel_condition ? 
-        `Current Condition: ${getConditionIcon(feature.properties.gravel_condition)}` : '';
+    const currentConditionHtml = averageCondition !== undefined ? 
+        `<b>Current Condition:</b> ${getConditionIcon(averageCondition)}` : '';
+
+    // Create icons row
+    const iconButtons = Array.from({length: 7}, (_, i) => 
+        `<span style="cursor: pointer; margin: 0 4px;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
+    ).join('');
 
     modal.innerHTML = `
         <div style="margin-bottom: 16px;">
@@ -207,7 +218,7 @@ function showGravelRatingModal(feature) {
             <div style="font-size: 14px;">
                 <b>Current Details:</b>
                 <div style="margin-top: 8px; font-size: 13px;">
-                    <div>Surface (OSM Data): ${feature.properties.surface || 'Unknown'}</div>
+                    <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                     <div>${currentConditionHtml}</div>
                 </div>
             </div>
@@ -217,15 +228,18 @@ function showGravelRatingModal(feature) {
             <b style="font-size: 14px;">Rate gravel conditions for this road</b>
         </div>
         <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Select Condition</label>
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Selection Condition:</b></label>
+            <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+                ${iconButtons}
+            </div>
             <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="0">${getConditionIcon('0')} Smooth, any bike</option>
-                <option value="1">${getConditionIcon('1')} Well maintained</option>
-                <option value="2">${getConditionIcon('2')} Occasional rough</option>
-                <option value="3">${getConditionIcon('3')} Frequent loose</option>
-                <option value="4">${getConditionIcon('4')} Very rough</option>
-                <option value="5">${getConditionIcon('5')} Technical MTB</option>
-                <option value="6">${getConditionIcon('6')} Extreme MTB</option>
+                <option value="0">0 - Smooth, any bike</option>
+                <option value="1">1 - Well maintained</option>
+                <option value="2">2 - Occasional rough</option>
+                <option value="3">3 - Frequent loose</option>
+                <option value="4">4 - Very rough</option>
+                <option value="5">5 - Technical MTB</option>
+                <option value="6">6 - Extreme MTB</option>
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
@@ -233,6 +247,19 @@ function showGravelRatingModal(feature) {
             <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
             <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
         </div>
+        ${votes.length > 0 ? `
+        <div style="margin-bottom: 16px; font-size: 13px;">
+            <b>Previous Votes:</b>
+            <div style="max-height: 100px; overflow-y: auto;">
+                ${votes.map(vote => `
+                    <div style="margin: 4px 0;">
+                        ${vote.userName}: ${getConditionIcon(vote.condition)}
+                        <span style="color: #666; font-size: 11px;">${new Date(vote.timestamp).toLocaleDateString()}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
             <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
@@ -267,95 +294,43 @@ function showGravelRatingModal(feature) {
             return;
         }
 
-        console.log('💾 Preparing to save with data:', {
+        const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+        
+        const voteData = {
             osmId: finalOsmId,
-            gravelCondition,
-            notes
-        });
+            condition: parseInt(gravelCondition),
+            notes: notes,
+            user_id: userProfile.auth0Id,
+            userName: userProfile.name || userProfile.email,
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('💾 Preparing to save vote:', voteData);
 
         try {
-            const userProfile = localStorage.getItem('userProfile');
-            if (!userProfile) {
-                console.log('⚠️ No user profile found');
-                saveButton.style.backgroundColor = '#dc3545';
-                saveButton.textContent = 'Please Log In';
-                setTimeout(() => {
-                    saveButton.style.backgroundColor = '#007bff';
-                    saveButton.textContent = 'Save';
-                }, 2000);
-                return;
-            }
-
-            const profile = JSON.parse(userProfile);
-            console.log('👤 User profile loaded:', {
-                auth0Id: profile.auth0Id
-            });
-
-            console.log('🌐 Sending update request');
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    osm_id: finalOsmId,
-                    gravel_condition: gravelCondition,
-                    notes: notes,
-                    user_id: profile.auth0Id
-                })
+                body: JSON.stringify(voteData)
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.log('❌ Error response:', errorText);
-                throw new Error('Failed to update');
-            }
-
-            console.log('✅ Update successful');
-
-            // Success - update color and close
-            if (map.getLayer('road-surfaces-layer')) {
-                console.log('🎨 Updating road color on map');
-                map.setPaintProperty('road-surfaces-layer', 'line-color', [
-                    'case',
-                    ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
-                    ['has', 'gravel_condition'], ['match',
-                        ['get', 'gravel_condition'],
-                        '0', '#2ecc71',
-                        '1', '#a7eb34',
-                        '2', '#f1c40f',
-                        '3', '#e67e22',
-                        '4', '#e74c3c',
-                        '5', '#c0392b',
-                        '6', '#8e44ad',
-                        '#C2B280'
-                    ],
-                    '#C2B280'
-                ]);
+                throw new Error('Failed to save vote');
             }
 
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
-            
-            console.log('🔄 Updating surface data');
-            await window.layers.updateSurfaceData();
-
             setTimeout(() => {
-                console.log('🔧 Removing modal');
-                const backdrop = document.getElementById('gravel-rating-backdrop');
-                const modal = document.getElementById('gravel-rating-modal');
-                if (backdrop) backdrop.remove();
-                if (modal) modal.remove();
+                backdrop.remove();
+                modal.remove();
             }, 1000);
 
         } catch (error) {
-            console.error('❌ Error saving rating:', error);
+            console.error('Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
             saveButton.textContent = 'Error!';
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
         }
     };
 }

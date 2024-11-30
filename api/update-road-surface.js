@@ -3,7 +3,6 @@ const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
     console.log('📍 API: Received request');
-
     const { osm_id, gravel_condition, notes, user_id } = req.body;
 
     // Validate required fields
@@ -17,6 +16,32 @@ module.exports = async (req, res) => {
         console.log('📍 API: Connecting to MongoDB');
         client = new MongoClient(uri);
         await client.connect();
+        
+        // First, get the current document to check for existing votes
+        const currentDoc = await client
+            .db('gravelatlas')
+            .collection('road_modifications')
+            .findOne({ osm_id });
+
+        // Initialize or update the votes array
+        let votes = currentDoc?.votes || [];
+        
+        // Remove previous vote by this user if it exists
+        votes = votes.filter(vote => vote.user_id !== user_id);
+        
+        // Add new vote
+        votes.push({
+            user_id,
+            condition: parseInt(gravel_condition),
+            notes,
+            timestamp: new Date(),
+            userName: req.body.userName || 'Anonymous'
+        });
+
+        // Calculate average condition
+        const averageCondition = Math.round(
+            votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
+        );
 
         console.log('📍 API: Updating road modification');
         const modification = await client
@@ -26,13 +51,14 @@ module.exports = async (req, res) => {
                 { osm_id },
                 {
                     $set: {
-                        gravel_condition,
+                        gravel_condition: averageCondition,
                         notes,
                         modified_by: user_id,
                         last_updated: new Date(),
+                        votes: votes,
                         osm_tags: {
                             surface: 'gravel',
-                            tracktype: mapToOSMTrackType(gravel_condition)
+                            tracktype: mapToOSMTrackType(averageCondition)
                         }
                     }
                 },
@@ -43,8 +69,12 @@ module.exports = async (req, res) => {
             );
 
         console.log('📍 API: Update successful');
-        res.json({ success: true, modification });
-
+        res.json({ 
+            success: true, 
+            modification,
+            averageCondition,
+            totalVotes: votes.length
+        });
     } catch (error) {
         console.error('📍 API Error:', error);
         res.status(500).json({ error: 'Failed to update road surface', details: error.message });
