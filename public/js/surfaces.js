@@ -383,16 +383,20 @@ function formatHighway(highway) {
 window.layers.initSurfaceLayers = function() {
     console.log('🚀 Initializing surface layers...');
     
-    // Remove existing layer/source if present
+    // First, check if layer exists and remove if it does
     if (map.getLayer('road-surfaces-layer')) {
+        console.log('🗑️ Removing existing layer');
         map.removeLayer('road-surfaces-layer');
     }
+    
+    // Also remove source if it exists
     if (map.getSource('road-surfaces')) {
+        console.log('🗑️ Removing existing source');
         map.removeSource('road-surfaces');
     }
 
     try {
-        // Add vector tile layer
+        console.log('🗺️ Adding vector tile layer');
         map.addLayer({
             'id': 'road-surfaces-layer',
             'type': 'line',
@@ -421,7 +425,7 @@ window.layers.initSurfaceLayers = function() {
                         '6', '#8e44ad',
                         '#C2B280'
                     ],
-                    '#C2B280'
+                    '#C2B280'  // Default color
                 ],
                 'line-width': [
                     'interpolate',
@@ -436,7 +440,9 @@ window.layers.initSurfaceLayers = function() {
             }
         });
 
-        // Popup setup
+        console.log('✅ Layer added successfully');
+
+        // Create popup
         const popup = new mapboxgl.Popup({
             closeButton: false,
             closeOnClick: false,
@@ -449,30 +455,40 @@ window.layers.initSurfaceLayers = function() {
             if (e.features.length > 0) {
                 const feature = e.features[0];
                 const props = feature.properties;
+                const vectorTile = feature._vectorTileFeature;
                 
-                console.log('🔍 Hover props:', props);
+                console.log('🖱️ Hover feature:', {
+                    properties: props,
+                    vectorTileProperties: vectorTile?.properties
+                });
                 
                 map.getCanvas().style.cursor = 'pointer';
+                
                 let html = '<div class="gravel-popup-content">';
                 
+                // Road name or type
                 if (props.name) {
                     html += `<h4>${props.name}</h4>`;
                 } else {
                     html += `<h4>${(props.highway || 'Unknown Road Type').replace(/_/g, ' ').toUpperCase()}</h4>`;
                 }
                 
+                // Highway type
                 if (props.highway) {
                     html += `<p><strong>Type:</strong> ${formatHighway(props.highway)}</p>`;
                 }
 
+                // Surface type
                 if (props.surface) {
                     html += `<p><strong>Surface:</strong> ${props.surface.replace(/_/g, ' ')}</p>`;
                 }
 
+                // Track type
                 if (props.tracktype) {
                     html += `<p><strong>Track Grade:</strong> ${props.tracktype.toUpperCase()}</p>`;
                 }
 
+                // Access information
                 if (props.access) {
                     const accessStatus = formatAccess(props.access);
                     if (accessStatus) {
@@ -480,10 +496,6 @@ window.layers.initSurfaceLayers = function() {
                             <strong>Access:</strong> ${accessStatus}
                         </p>`;
                     }
-                }
-
-                if (props.osm_id) {
-                    html += `<p><small>OSM ID: ${props.osm_id}</small></p>`;
                 }
 
                 html += '</div>';
@@ -494,7 +506,7 @@ window.layers.initSurfaceLayers = function() {
             }
         });
 
-        // Mouseleave handler
+        // Remove popup on mouseleave
         map.on('mouseleave', 'road-surfaces-layer', () => {
             map.getCanvas().style.cursor = '';
             popup.remove();
@@ -504,34 +516,36 @@ window.layers.initSurfaceLayers = function() {
         map.on('click', 'road-surfaces-layer', async (e) => {
             if (e.features.length > 0) {
                 const feature = e.features[0];
-                const props = feature.properties;
+                const vectorTile = feature._vectorTileFeature;
                 
-                console.log('🔍 Click detected:', {
-                    osm_id: props.osm_id,
-                    properties: props
+                console.log('🔍 Click event:', {
+                    feature: feature,
+                    properties: feature.properties,
+                    vectorTile: vectorTile,
+                    vectorTileProperties: vectorTile?.properties
                 });
 
-                if (!props.osm_id) {
-                    console.error('❌ No OSM ID found for clicked feature');
-                    return;
-                }
+                // Generate a unique identifier using available properties
+                const identifier = `${feature.properties.highway}_${vectorTile?.extent}_${feature.geometry?.coordinates[0].join('_')}`;
+                
+                console.log('🔍 Generated identifier:', identifier);
 
                 const auth0 = await window.waitForAuth0();
                 const isAuthenticated = await auth0.isAuthenticated();
-                if (!isAuthenticated) {
-                    return;
-                }
+                if (!isAuthenticated) return;
 
-                // Pass the feature with the actual OSM ID to the modal
                 showGravelRatingModal({
                     type: 'Feature',
-                    properties: props,
+                    properties: {
+                        ...feature.properties,
+                        osm_id: identifier
+                    },
                     geometry: feature.geometry
                 });
             }
         });
 
-        // Moveend handler for updates
+        // Moveend handler
         const debouncedUpdate = debounce(() => {
             window.layers.updateSurfaceData();
         }, 300);
@@ -539,7 +553,11 @@ window.layers.initSurfaceLayers = function() {
         map.on('moveend', debouncedUpdate);
         
     } catch (error) {
-        console.error('❌ Error in initSurfaceLayers:', error);
+        console.error('❌ Error in initSurfaceLayers:', {
+            error: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         throw error;
     }
 };
