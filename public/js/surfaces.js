@@ -515,20 +515,24 @@ window.layers.initSurfaceLayers = function() {
                 popup.remove();
             });
 
-            // Updated click handler with better feature validation
             map.on('click', 'road-surfaces-layer', async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     const props = feature.properties;
                     const osmId = props.osm_id || props.id;
-
-                    console.log('🖱️ Road clicked:', {
-                        osmId,
-                        properties: props,
+            
+                    console.log('🖱️ Click detected:', {
+                        name: props.name,
+                        highway: props.highway,
+                        surface: props.surface,
+                        tracktype: props.tracktype,
+                        access: props.access,
+                        osmId: osmId,
+                        allProps: props,
                         geometry: feature.geometry,
                         coordinates: feature.geometry.coordinates
                     });
-
+            
                     if (!osmId) {
                         console.error('❌ No OSM ID found for clicked feature');
                         return;
@@ -536,18 +540,16 @@ window.layers.initSurfaceLayers = function() {
             
                     const auth0 = await window.waitForAuth0();
                     const isAuthenticated = await auth0.isAuthenticated();
-                    
                     if (!isAuthenticated) {
                         console.log('🔐 User not authenticated, returning');
                         return;
                     }
             
-                    // Pass normalized feature to modal
                     showGravelRatingModal({
                         type: 'Feature',
                         properties: {
-                            ...props,
-                            osm_id: osmId
+                            ...props,           // Keep all original properties
+                            osm_id: osmId      // Ensure OSM ID is set
                         },
                         geometry: feature.geometry
                     });
