@@ -3,7 +3,7 @@ const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
     console.log('📍 API: Received request');
-    const { osm_id, gravel_condition, notes, user_id, userName } = req.body;
+    const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
 
     if (!osm_id || !gravel_condition || !user_id || !userName) {
         console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id, userName });
@@ -40,25 +40,32 @@ module.exports = async (req, res) => {
         );
         const stringCondition = averageCondition.toString();
 
+        // Prepare update data
+        const updateData = {
+            gravel_condition: stringCondition,
+            notes,
+            modified_by: user_id,
+            last_updated: new Date(),
+            votes,
+            osm_tags: {
+                surface: 'gravel',
+                tracktype: mapToOSMTrackType(stringCondition)
+            }
+        };
+
+        // Add geometry if it exists
+        if (geometry) {
+            console.log('📍 Adding geometry to update data');
+            updateData.geometry = geometry;
+        }
+
         // Update document
         const modification = await client
             .db('gravelatlas')
             .collection('road_modifications')
             .findOneAndUpdate(
                 { osm_id },
-                {
-                    $set: {
-                        gravel_condition: stringCondition,
-                        notes,
-                        modified_by: user_id,
-                        last_updated: new Date(),
-                        votes,
-                        osm_tags: {
-                            surface: 'gravel',
-                            tracktype: mapToOSMTrackType(stringCondition)
-                        }
-                    }
-                },
+                { $set: updateData },
                 {
                     upsert: true,
                     returnDocument: 'after'
