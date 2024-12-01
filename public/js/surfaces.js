@@ -840,8 +840,8 @@ window.layers.updateSurfaceData = async function() {
     // Early return if zoom is too low
     if (zoomLevel < 8) {
         console.log('🔍 Zoom level too low, clearing data');
-        if (map.getSource('road-surfaces')) {
-            map.getSource('road-surfaces').setData({
+        if (map.getSource('road-modifications')) {
+            map.getSource('road-modifications').setData({
                 type: 'FeatureCollection',
                 features: []
             });
@@ -850,6 +850,15 @@ window.layers.updateSurfaceData = async function() {
             surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
         }
         return;
+    }
+
+    // Check if we need to reload modifications
+    const modificationTimestamp = window.modificationCache?.timestamp;
+    const cacheAge = modificationTimestamp ? Date.now() - modificationTimestamp : Infinity;
+    
+    if (!modificationTimestamp || cacheAge > 5 * 60 * 1000) { // Reload mods every 5 minutes
+        console.log('🔄 Reloading modifications (cache expired or missing)');
+        await loadModifications();
     }
 
     const bounds = map.getBounds();
@@ -874,80 +883,10 @@ window.layers.updateSurfaceData = async function() {
 
     console.log('📍 Calculated expanded bbox:', bboxString);
 
-    const params = new URLSearchParams({
-        bbox: bboxString,
-        zoom: zoomLevel.toString()
-    });
-
-    const url = `/api/get-road-surfaces?${params.toString()}`;
-    console.log('🌐 Making request to:', url);
-
-    try {
-        console.time('fetchRequest');
-        const response = await fetch(url);
-        console.timeEnd('fetchRequest');
-        
-        console.log('📥 Response status:', response.status);
-        console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        const responseText = await response.text();
-        console.log('📄 Raw response:', responseText);
-
-        let data;
-        try {
-            data = JSON.parse(responseText);
-            console.log('✅ Successfully parsed JSON response');
-        } catch (e) {
-            console.error('❌ Failed to parse response as JSON:', e);
-            throw new Error('Invalid response format');
-        }
-
-        console.log('📊 Response data structure:', {
-            type: data.type,
-            featuresCount: data.features?.length,
-            hasFeatures: Array.isArray(data.features)
-        });
-
-        if (!data.type || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
-            console.error('❌ Invalid GeoJSON structure:', data);
-            throw new Error('Invalid GeoJSON response');
-        }
-
-        // Update cache
-        SURFACE_CACHE.viewState = {
-            bbox: expandedBbox,
-            zoom: zoomLevel,
-            timestamp: Date.now()
-        };
-
-        if (map.getSource('road-surfaces')) {
-            console.log('🔄 Updating map source with new data');
-            console.log('Features count:', data.features.length);
-            if (data.features.length > 0) {
-                console.log('Sample feature:', data.features[0]);
-            }
-            map.getSource('road-surfaces').setData(data);
-        } else {
-            console.warn('⚠️ road-surfaces source not found on map');
-        }
-
-        if (surfaceToggle) {
-            console.log('✅ Update complete, resetting button state');
-            surfaceToggle.classList.remove('loading');
-            surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
-        }
-    } catch (error) {
-        console.error('❌ Error updating surface data:', {
-            error: error.message,
-            stack: error.stack
-        });
-        if (surfaceToggle) {
-            surfaceToggle.classList.remove('loading');
-            surfaceToggle.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Error loading gravel';
-            setTimeout(() => {
-                surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
-            }, 3000);
-        }
+    if (surfaceToggle) {
+        console.log('✅ Update complete, resetting button state');
+        surfaceToggle.classList.remove('loading');
+        surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
     }
 };
 
@@ -983,6 +922,9 @@ window.layers.toggleSurfaceLayer = async function() {
         parts.forEach(part => {
             console.log(`👁️ Setting visibility for ${part}: ${visibility}`);
             map.setLayoutProperty(`road-surfaces-layer-${part}`, 'visibility', visibility);
+            if (map.getLayer('road-modifications-layer')) {
+                map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
+            }
         });
 
         if (window.layerVisibility.surfaces) {
@@ -995,7 +937,9 @@ window.layers.toggleSurfaceLayer = async function() {
                     surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
                 }
             } else {
-                console.log('🔄 Updating surface data');
+                console.log('🔄 Loading modifications and updating surface data');
+                // Load modifications first
+                await loadModifications();
                 await window.layers.updateSurfaceData();
                 if (surfaceControl) {
                     surfaceControl.classList.add('active');
