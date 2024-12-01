@@ -192,6 +192,12 @@ function getConditionIcon(condition) {
 function showGravelRatingModal(feature) {
     console.log('📱 Opening modal for feature:', feature);
     
+    // Remove any existing modals first
+    const existingModal = document.getElementById('gravel-rating-modal');
+    const existingBackdrop = document.getElementById('gravel-rating-backdrop');
+    if (existingModal) existingModal.remove();
+    if (existingBackdrop) existingBackdrop.remove();
+    
     const osmId = feature.properties.osm_id || feature.properties.id;
     const roadName = feature.properties.name || 'Unnamed Road';
     
@@ -338,28 +344,30 @@ function showGravelRatingModal(feature) {
         }
     });
 
+    const closeModal = () => {
+        backdrop.remove();
+        modal.remove();
+    };
+
     document.getElementById('close-modal').onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         console.log('🔒 Close button clicked');
-        backdrop.remove();
-        modal.remove();
+        closeModal();
     };
 
     document.getElementById('cancel-rating').onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         console.log('🔒 Cancel button clicked');
-        backdrop.remove();
-        modal.remove();
+        closeModal();
     };
 
     // Click outside to close
     backdrop.onclick = (e) => {
         if (e.target === backdrop) {
             console.log('🔒 Backdrop clicked');
-            backdrop.remove();
-            modal.remove();
+            closeModal();
         }
     };
 
@@ -367,8 +375,7 @@ function showGravelRatingModal(feature) {
     const escHandler = (e) => {
         if (e.key === 'Escape') {
             console.log('🔒 Escape key pressed');
-            backdrop.remove();
-            modal.remove();
+            closeModal();
             document.removeEventListener('keydown', escHandler);
         }
     };
@@ -376,9 +383,9 @@ function showGravelRatingModal(feature) {
 
     document.getElementById('save-rating').onclick = async () => {
         console.log('💾 Save rating clicked');
+        const saveButton = document.getElementById('save-rating');
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
-        const saveButton = document.getElementById('save-rating');
         
         if (!gravelCondition) {
             console.error('❌ No condition selected');
@@ -466,8 +473,7 @@ function showGravelRatingModal(feature) {
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             setTimeout(() => {
-                backdrop.remove();
-                modal.remove();
+                closeModal();
             }, 1000);
 
         } catch (error) {
@@ -482,8 +488,6 @@ function showGravelRatingModal(feature) {
         }
     };
 }
-
-
 
 function formatHighway(highway) {
     console.log('🛣️ Formatting highway:', highway);

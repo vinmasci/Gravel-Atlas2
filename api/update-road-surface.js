@@ -3,10 +3,10 @@ const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
     console.log('📍 API: Received request');
-    const { osm_id, gravel_condition, notes, user_id } = req.body;
+    const { osm_id, gravel_condition, notes, user_id, userName } = req.body;
 
-    if (!osm_id || !gravel_condition || !user_id) {
-        console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id });
+    if (!osm_id || !gravel_condition || !user_id || !userName) {
+        console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id, userName });
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -15,14 +15,6 @@ module.exports = async (req, res) => {
         client = new MongoClient(uri);
         await client.connect();
 
-        // Get user's bioName
-        const user = await client
-            .db('photoApp')
-            .collection('users')
-            .findOne({ auth0Id: user_id });
-
-        const userDisplayName = user?.bioName || user?.email?.split('@')[0] || 'Anonymous';
-
         // Get current road document
         const currentDoc = await client
             .db('gravelatlas')
@@ -30,22 +22,25 @@ module.exports = async (req, res) => {
             .findOne({ osm_id });
 
         let votes = currentDoc?.votes || [];
+        // Remove any existing vote from this user
         votes = votes.filter(vote => vote.user_id !== user_id);
-        
+
+        // Add new vote
         const newVote = {
             user_id,
-            userName: userDisplayName,  // Use bioName here
+            userName,
             condition: parseInt(gravel_condition),
             timestamp: new Date()
         };
         votes.push(newVote);
 
+        // Calculate average condition
         const averageCondition = Math.round(
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
-
         const stringCondition = averageCondition.toString();
 
+        // Update document
         const modification = await client
             .db('gravelatlas')
             .collection('road_modifications')
@@ -70,7 +65,7 @@ module.exports = async (req, res) => {
                 }
             );
 
-        console.log('📍 API: Update successful with bio name');
+        console.log('📍 API: Update successful');
         res.json({ success: true, modification });
 
     } catch (error) {
