@@ -164,12 +164,25 @@ module.exports = async (req, res) => {
                 highways: [...new Set(roads.map(r => r.properties?.highway))]
             });
 
+            // Get all user modifications (not just for current bbox)
+            const modifications = await client
+                .db('gravelatlas')
+                .collection('road_modifications')
+                .find({})
+                .toArray();
+
+            // Create lookup map for modifications
+            const modificationLookup = new Map(
+                modifications.map(m => [m.osm_id, m])
+            );
+
             // Create base GeoJSON
             let geojson = {
                 type: 'FeatureCollection',
                 features: roads.map(road => {
                     const tracktype = extractFromOtherTags(road.properties?.other_tags, 'tracktype');
                     const access = extractFromOtherTags(road.properties?.other_tags, 'access');
+                    const modification = modificationLookup.get(road.properties?.osm_id);
 
                     return {
                         type: 'Feature',
@@ -180,53 +193,25 @@ module.exports = async (req, res) => {
                             highway: road.properties?.highway || null,
                             surface: road.properties?.surface || null,
                             tracktype: tracktype,
-                            access: access
+                            access: access,
+                            // Include modification data if exists
+                            ...(modification && {
+                                gravel_condition: modification.gravel_condition,
+                                surface_quality: modification.surface_quality,
+                                notes: modification.notes,
+                                last_updated: modification.last_updated,
+                                modified_by: modification.modified_by,
+                                votes: modification.votes,
+                                osm_compatible_tags: {
+                                    surface: modification.osm_tags?.surface,
+                                    smoothness: modification.osm_tags?.smoothness,
+                                    tracktype: modification.osm_tags?.tracktype
+                                }
+                            })
                         }
                     };
                 })
             };
-
-            // Get user modifications
-            const modifications = await client
-                .db('gravelatlas')
-                .collection('road_modifications')
-                .find({
-                    osm_id: { 
-                        $in: roads.map(r => r.properties?.osm_id)
-                    }
-                })
-                .toArray();
-
-            // Create lookup map for modifications
-            const modificationLookup = new Map(
-                modifications.map(m => [m.osm_id, m])
-            );
-
-            // Merge modifications with base road data
-            geojson.features = geojson.features.map(feature => {
-                const modification = modificationLookup.get(feature.properties.osm_id);
-                
-                if (modification) {
-                    return {
-                        ...feature,
-                        properties: {
-                            ...feature.properties,
-                            gravel_condition: modification.gravel_condition,
-                            surface_quality: modification.surface_quality,
-                            notes: modification.notes,
-                            last_updated: modification.last_updated,
-                            modified_by: modification.modified_by,
-                            // Include OSM compatibility tags
-                            osm_compatible_tags: {
-                                surface: modification.osm_tags?.surface,
-                                smoothness: modification.osm_tags?.smoothness,
-                                tracktype: modification.osm_tags?.tracktype
-                            }
-                        }
-                    };
-                }
-                return feature;
-            });
 
             return res.json(geojson);
 

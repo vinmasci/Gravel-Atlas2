@@ -189,22 +189,22 @@ function getConditionIcon(condition) {
     return `<i class="fa-solid fa-circle-${condition}" style="color: ${getColorForGravelCondition(condition)}; font-size: 1.2em;"></i>`;
 }
 
-function showGravelRatingModal(feature) {
+async function showGravelRatingModal(feature) {
     console.log('📱 Opening modal for feature:', feature);
     
+    const osmId = feature.properties.osm_id || feature.properties.id;
+    if (!osmId) {
+        console.error('❌ Cannot create modal: Missing OSM ID');
+        return;
+    }
+
     // Remove any existing modals first
     const existingModal = document.getElementById('gravel-rating-modal');
     const existingBackdrop = document.getElementById('gravel-rating-backdrop');
     if (existingModal) existingModal.remove();
     if (existingBackdrop) existingBackdrop.remove();
     
-    const osmId = feature.properties.osm_id || feature.properties.id;
     const roadName = feature.properties.name || 'Unnamed Road';
-    
-    if (!osmId) {
-        console.error('❌ Cannot create modal: Missing OSM ID');
-        return;
-    }
 
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
@@ -260,12 +260,12 @@ function showGravelRatingModal(feature) {
     const formattedVotes = votes.length > 0 ? 
         votes
             .sort((a, b) => {
-                const dateA = new Date(typeof a.timestamp === 'object' ? a.timestamp.$date : a.timestamp);
-                const dateB = new Date(typeof b.timestamp === 'object' ? b.timestamp.$date : b.timestamp);
+                const dateA = new Date(typeof a.timestamp === 'object' ? a.timestamp.$date.$numberLong : a.timestamp);
+                const dateB = new Date(typeof b.timestamp === 'object' ? b.timestamp.$date.$numberLong : b.timestamp);
                 return dateB - dateA;
             })
             .map(vote => {
-                const date = new Date(typeof vote.timestamp === 'object' ? vote.timestamp.$date : vote.timestamp)
+                const date = new Date(typeof vote.timestamp === 'object' ? vote.timestamp.$date.$numberLong : vote.timestamp)
                     .toLocaleDateString();
                 return `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${date}`;
             })
@@ -313,7 +313,7 @@ function showGravelRatingModal(feature) {
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
         <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+<label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
             <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
@@ -453,32 +453,7 @@ function showGravelRatingModal(feature) {
             const responseData = await response.json();
             console.log('✅ Vote saved successfully:', responseData);
 
-            // Update all layer parts with the new condition
-            const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
-            parts.forEach(part => {
-                const layerId = `road-surfaces-layer-${part}`;
-                if (map.getLayer(layerId)) {
-                    map.setPaintProperty(layerId, 'line-color', [
-                        'case',
-                        ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
-                        ['has', 'gravel_condition'], [
-                            'match',
-                            ['to-string', ['get', 'gravel_condition']],
-                            '0', '#01bf11',
-                            '1', '#a7eb34',
-                            '2', '#ffa801',
-                            '3', '#e67e22',
-                            '4', '#c0392b',
-                            '5', '#c0392b',
-                            '6', '#751203',
-                            '#C2B280'
-                        ],
-                        '#C2B280'
-                    ]);
-                }
-            });
-
-            // Force a data refresh
+            // Force a reload of the surface data to refresh the map
             await window.layers.updateSurfaceData();
 
             saveButton.style.backgroundColor = '#28a745';
