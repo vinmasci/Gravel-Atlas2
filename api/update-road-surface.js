@@ -3,7 +3,7 @@ const uri = process.env.MONGODB_URI;
 
 module.exports = async (req, res) => {
     console.log('📍 API: Received request');
-    const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
+    const { osm_id, gravel_condition, notes, user_id, userName } = req.body;
 
     if (!osm_id || !gravel_condition || !user_id || !userName) {
         console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id, userName });
@@ -53,7 +53,6 @@ module.exports = async (req, res) => {
                         modified_by: user_id,
                         last_updated: new Date(),
                         votes,
-                        geometry, // Store the geometry
                         osm_tags: {
                             surface: 'gravel',
                             tracktype: mapToOSMTrackType(stringCondition)
