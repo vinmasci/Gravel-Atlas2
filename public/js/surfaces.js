@@ -190,6 +190,8 @@ function getConditionIcon(condition) {
 }
 
 function showGravelRatingModal(feature) {
+    console.log('📱 Opening modal for feature:', feature);
+    
     const osmId = feature.properties.osm_id || feature.properties.id;
     const roadName = feature.properties.name || 'Unnamed Road';
     
@@ -233,9 +235,13 @@ function showGravelRatingModal(feature) {
 
     // Calculate average condition if votes exist
     const votes = feature.properties.votes || [];
+    console.log('🗳️ Existing votes:', votes);
+    
     const averageCondition = votes.length > 0 
-        ? Math.round(votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length)
+        ? Math.round(votes.reduce((sum, vote) => sum + Number(vote.condition), 0) / votes.length)
         : feature.properties.gravel_condition;
+    
+    console.log('📊 Calculated average condition:', averageCondition);
     
     const currentConditionHtml = averageCondition !== undefined ? 
         `<b>Current Condition:</b> ${getConditionIcon(averageCondition)}` : '';
@@ -245,60 +251,73 @@ function showGravelRatingModal(feature) {
         `<span style="cursor: pointer; margin: 0 4px;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
     ).join('');
 
-// Updated modal HTML
-modal.innerHTML = `
-    <div style="margin-bottom: 16px;">
-        <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
-        <div style="font-size: 14px;">
-            <div style="margin-top: 8px; font-size: 13px;">
-                <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
-                <div><b>Current Condition:</b> ${getConditionIcon(feature.properties.gravel_condition || 0)}</div>
+    // Format and sort votes by date
+    const formattedVotes = feature.properties.votes ? 
+        [...feature.properties.votes]
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .map(vote => {
+                const condition = typeof vote.condition === 'object' ? vote.condition.$numberInt : vote.condition;
+                const date = new Date(vote.timestamp).toLocaleDateString();
+                return `${vote.userName} voted ${getConditionIcon(condition)} on ${date}`;
+            })
+            .join('<br>')
+        : 'No votes yet';
+
+    modal.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
+            <div style="font-size: 14px;">
+                <div style="margin-top: 8px; font-size: 13px;">
+                    <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
+                    <div><b>OSM ID:</b> ${osmId}</div>
+                    <div><b>Current Condition:</b> ${getConditionIcon(feature.properties.gravel_condition || 0)}</div>
+                    ${feature.properties.highway ? `<div><b>Road Type:</b> ${formatHighway(feature.properties.highway)}</div>` : ''}
+                    ${feature.properties.access ? `<div><b>Access:</b> ${formatAccess(feature.properties.access)}</div>` : ''}
+                </div>
             </div>
         </div>
-    </div>
-    <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-    <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Vote road condition:</b></label>
-        <div style="display: flex; justify-content: center; margin-bottom: 8px; gap: 12px;">
-            ${Array.from({ length: 7 }, (_, i) => 
-                `<span style="cursor: pointer;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
-            ).join('')}
+        <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Vote road condition:</b></label>
+            <div style="display: flex; justify-content: center; margin-bottom: 8px; gap: 12px;">
+                ${Array.from({ length: 7 }, (_, i) => 
+                    `<span style="cursor: pointer;" onclick="document.getElementById('gravel-condition').value=${i}">${getConditionIcon(i)}</span>`
+                ).join('')}
+            </div>
+            <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="0">0 - Smooth, any bike</option>
+                <option value="1">1 - Well maintained</option>
+                <option value="2">2 - Occasional rough</option>
+                <option value="3">3 - Frequent loose</option>
+                <option value="4">4 - Very rough</option>
+                <option value="5">5 - Technical MTB</option>
+                <option value="6">6 - Extreme MTB</option>
+            </select>
+            <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
         </div>
-        <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <option value="0">0 - Smooth, any bike</option>
-            <option value="1">1 - Well maintained</option>
-            <option value="2">2 - Occasional rough</option>
-            <option value="3">3 - Frequent loose</option>
-            <option value="4">4 - Very rough</option>
-            <option value="5">5 - Technical MTB</option>
-            <option value="6">6 - Extreme MTB</option>
-        </select>
-        <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px; background-color: #2ecc71;"></div>
-    </div>
-    <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
-        <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
-    </div>
-    <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-<div style="margin-bottom: 16px; font-size: 13px; color: #666;">
-    ${feature.properties.votes ? 
-        feature.properties.votes.map(vote => {
-            const condition = typeof vote.condition === 'object' ? vote.condition.$numberInt : vote.condition;
-            return `${vote.userName} voted ${getConditionIcon(condition)}`;
-        }).join('<br>')
-        : 'No votes yet'
-    }
-</div>
-    <div style="display: flex; justify-content: flex-end; gap: 8px;">
-        <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
-        <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
-    </div>
-`;
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+        <div style="margin-bottom: 16px; font-size: 13px; color: #666;">
+            ${formattedVotes}
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
+        </div>
+    `;
+    
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
 
     const select = document.getElementById('gravel-condition');
     const colorPreview = document.getElementById('color-preview');
+    
+    // Set initial color preview
+    colorPreview.style.backgroundColor = getColorForGravelCondition(select.value);
+    
     select.addEventListener('change', (e) => {
         colorPreview.style.backgroundColor = getColorForGravelCondition(e.target.value);
     });
@@ -332,9 +351,9 @@ modal.innerHTML = `
         const voteData = {
             osm_id: finalOsmId,
             gravel_condition: parseInt(gravelCondition),
-            notes: notes,  // Keep original notes
+            notes: notes,
             user_id: userProfile.auth0Id,
-            userName: userProfile.name || userProfile.email.split('@')[0] // Format username here
+            userName: formatUserName(userProfile)
         };
     
         console.log('💾 Preparing to save vote:', voteData);
@@ -351,27 +370,36 @@ modal.innerHTML = `
             if (!response.ok) {
                 throw new Error('Failed to save vote');
             }
+
+            const responseData = await response.json();
+            console.log('✅ Vote saved successfully:', responseData);
     
-            // Update color on map
-            if (map.getLayer('road-surfaces-layer')) {
-                map.setPaintProperty('road-surfaces-layer', 'line-color', [
-                    'case',
-                    ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
-                    ['has', 'gravel_condition'], ['match',
-                        ['get', 'gravel_condition'],
-                        '0', '#2ecc71',
-                        '1', '#a7eb34',
-                        '2', '#f1c40f',
-                        '3', '#e67e22',
-                        '4', '#e74c3c',
-                        '5', '#c0392b',
-                        '6', '#8e44ad',
+            // Update colors on all layer parts
+            const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
+            parts.forEach(part => {
+                const layerId = `road-surfaces-layer-${part}`;
+                console.log(`🎨 Updating color for layer: ${layerId}`);
+                if (map.getLayer(layerId)) {
+                    map.setPaintProperty(layerId, 'line-color', [
+                        'case',
+                        ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
+                        ['has', 'gravel_condition'], ['match',
+                            ['get', 'gravel_condition'],
+                            '0', '#01bf11',
+                            '1', '#a7eb34',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#c0392b',
+                            '5', '#c0392b',
+                            '6', '#751203',
+                            '#C2B280'
+                        ],
                         '#C2B280'
-                    ],
-                    '#C2B280'
-                ]);
-            }
+                    ]);
+                }
+            });
     
+            // Update the surface data to refresh any other UI elements
             await window.layers.updateSurfaceData();
     
             saveButton.style.backgroundColor = '#28a745';
@@ -382,7 +410,7 @@ modal.innerHTML = `
             }, 1000);
     
         } catch (error) {
-            console.error('Error saving vote:', error);
+            console.error('❌ Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
             saveButton.textContent = 'Error!';
             setTimeout(() => {
