@@ -394,148 +394,148 @@ function showGravelRatingModal(feature) {
     };
     document.addEventListener('keydown', escHandler);
 
-    document.getElementById('save-rating').onclick = async () => {
-        console.log('💾 Save rating clicked');
-        const saveButton = document.getElementById('save-rating');
-        const gravelCondition = document.getElementById('gravel-condition').value;
-        const notes = document.getElementById('surface-notes').value;
+document.getElementById('save-rating').onclick = async () => {
+    console.log('💾 Save rating clicked');
+    const saveButton = document.getElementById('save-rating');
+    const gravelCondition = document.getElementById('gravel-condition').value;
+    const notes = document.getElementById('surface-notes').value;
+    
+    if (!gravelCondition) {
+        console.error('❌ No condition selected');
+        saveButton.style.backgroundColor = '#dc3545';
+        saveButton.textContent = 'Please select a condition';
+        setTimeout(() => {
+            saveButton.style.backgroundColor = '#007bff';
+            saveButton.textContent = 'Save';
+        }, 2000);
+        return;
+    }
+
+    const finalOsmId = modal.getAttribute('data-road-id');
+    if (!finalOsmId) {
+        console.error('❌ Cannot save: Missing OSM ID');
+        saveButton.style.backgroundColor = '#dc3545';
+        saveButton.textContent = 'Error: Missing Road ID';
+        return;
+    }
+
+    const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+    if (!userProfile) {
+        console.error('❌ No user profile found');
+        saveButton.style.backgroundColor = '#dc3545';
+        saveButton.textContent = 'Please log in';
+        setTimeout(() => {
+            saveButton.style.backgroundColor = '#007bff';
+            saveButton.textContent = 'Save';
+        }, 2000);
+        return;
+    }
+
+    if (!window.selectedFeature || !window.selectedFeature.geometry) {
+        console.error('❌ No feature geometry found');
+        saveButton.style.backgroundColor = '#dc3545';
+        saveButton.textContent = 'Error: Missing geometry';
+        setTimeout(() => {
+            saveButton.style.backgroundColor = '#007bff';
+            saveButton.textContent = 'Save';
+        }, 2000);
+        return;
+    }
+
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+
+    try {
+        const response = await fetch('/api/update-road-surface', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                osm_id: finalOsmId,
+                gravel_condition: parseInt(gravelCondition),
+                notes: notes,
+                user_id: userProfile.auth0Id,
+                userName: formatUserName(userProfile),
+                geometry: window.selectedFeature.geometry
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save vote');
+        }
+
+        const responseData = await response.json();
+        console.log('✅ Vote saved successfully:', responseData);
+
+        // Update cache AND vector tile layers
+        if (window.updateRoadModification) {
+            await window.updateRoadModification(finalOsmId, responseData.modification);
+        }
+
+        const color = getColorForGravelCondition(gravelCondition);
+        const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
         
-        if (!gravelCondition) {
-            console.error('❌ No condition selected');
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Please select a condition';
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
-            return;
-        }
-    
-        const finalOsmId = modal.getAttribute('data-road-id');
-        if (!finalOsmId) {
-            console.error('❌ Cannot save: Missing OSM ID');
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error: Missing Road ID';
-            return;
-        }
-    
-        const userProfile = JSON.parse(localStorage.getItem('userProfile'));
-        if (!userProfile) {
-            console.error('❌ No user profile found');
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Please log in';
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
-            return;
-        }
-    
-        if (!window.selectedFeature || !window.selectedFeature.geometry) {
-            console.error('❌ No feature geometry found');
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error: Missing geometry';
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
-            return;
-        }
-    
-        saveButton.disabled = true;
-        saveButton.textContent = 'Saving...';
-    
-        try {
-            const response = await fetch('/api/update-road-surface', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    osm_id: finalOsmId,
-                    gravel_condition: parseInt(gravelCondition),
-                    notes: notes,
-                    user_id: userProfile.auth0Id,
-                    userName: formatUserName(userProfile),
-                    geometry: window.selectedFeature.geometry
-                })
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to save vote');
-            }
-    
-            const responseData = await response.json();
-            console.log('✅ Vote saved successfully:', responseData);
-    
-            // Update cache AND vector tile layers
-            if (window.updateRoadModification) {
-                await window.updateRoadModification(finalOsmId, responseData.modification);
-            }
-    
-            const color = getColorForGravelCondition(gravelCondition);
-            const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
+        parts.forEach(part => {
+            const layerId = `road-surfaces-layer-${part}`;
+            console.log(`🎨 Updating color for layer ${layerId}`);
             
-            parts.forEach(part => {
-                const layerId = `road-surfaces-layer-${part}`;
-                console.log(`🎨 Updating color for layer ${layerId}`);
-                
-                if (map.getLayer(layerId)) {
-                    const paintExpression = [
-                        'match',
-                        ['get', 'osm_id'],
-                        finalOsmId, color,
+            if (map.getLayer(layerId)) {
+                const paintExpression = [
+                    'match',
+                    ['get', 'osm_id'],
+                    finalOsmId, color,
+                    [
+                        'case',
+                        ['has', 'gravel_condition'],
                         [
-                            'case',
-                            ['has', 'gravel_condition'],
-                            [
-                                'match',
-                                ['to-string', ['get', 'gravel_condition']],
-                                '0', '#01bf11',
-                                '1', '#a7eb34',
-                                '2', '#ffa801',
-                                '3', '#e67e22',
-                                '4', '#c0392b',
-                                '5', '#c0392b',
-                                '6', '#751203',
-                                '#C2B280'
-                            ],
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
+                            '0', '#01bf11',
+                            '1', '#a7eb34',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#c0392b',
+                            '5', '#c0392b',
+                            '6', '#751203',
                             '#C2B280'
-                        ]
-                    ];
-                    
-                    map.setPaintProperty(layerId, 'line-color', paintExpression);
-                    console.log(`✅ Updated paint property for ${layerId}`);
-                }
-            });
-    
-            // Update the modal content
-            const currentConditionDiv = modal.querySelector('.current-condition');
-            if (currentConditionDiv) {
-                currentConditionDiv.innerHTML = `<b>Current Condition:</b> ${getConditionIcon(gravelCondition)}`;
+                        ],
+                        '#C2B280'
+                    ]
+                ];
+                
+                map.setPaintProperty(layerId, 'line-color', paintExpression);
+                console.log(`✅ Updated paint property for ${layerId}`);
             }
-    
-            const votesDiv = modal.querySelector('.votes-list');
-            if (votesDiv) {
-                const newVoteHtml = `${formatUserName(userProfile)} voted ${getConditionIcon(gravelCondition)} on ${new Date().toLocaleDateString()}<br>${votesDiv.innerHTML}`;
-                votesDiv.innerHTML = newVoteHtml;
-            }
-    
-            saveButton.style.backgroundColor = '#28a745';
-            saveButton.textContent = 'Saved!';
-            saveButton.disabled = false;
-    
-        } catch (error) {
-            console.error('Error saving vote:', error);
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error!';
-            saveButton.disabled = false;
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
+        });
+
+        // Update the modal content
+        const currentConditionDiv = modal.querySelector('.current-condition');
+        if (currentConditionDiv) {
+            currentConditionDiv.innerHTML = `<b>Current Condition:</b> ${getConditionIcon(gravelCondition)}`;
         }
-    };
+
+        const votesDiv = modal.querySelector('.votes-list');
+        if (votesDiv) {
+            const newVoteHtml = `${formatUserName(userProfile)} voted ${getConditionIcon(gravelCondition)} on ${new Date().toLocaleDateString()}<br>${votesDiv.innerHTML}`;
+            votesDiv.innerHTML = newVoteHtml;
+        }
+
+        saveButton.style.backgroundColor = '#28a745';
+        saveButton.textContent = 'Saved!';
+        saveButton.disabled = false;
+
+    } catch (error) {
+        console.error('Error saving vote:', error);
+        saveButton.style.backgroundColor = '#dc3545';
+        saveButton.textContent = 'Error!';
+        saveButton.disabled = false;
+        setTimeout(() => {
+            saveButton.style.backgroundColor = '#007bff';
+            saveButton.textContent = 'Save';
+        }, 2000);
+    }
+};
 }
 
 function formatHighway(highway) {
