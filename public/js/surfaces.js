@@ -408,70 +408,55 @@ function formatHighway(highway) {
 window.layers.initSurfaceLayers = function() {
     console.log('🚀 Initializing surface layers...');
     
-    if (!map.getSource('road-surfaces-part1a')) {
+    if (!map.getSource('road-surfaces')) {
         try {
-            // Add all vector tile sources
-            const sources = [
-                { id: 'part1a', url: 'vinmasci.5whtbr8a' },
-                { id: 'part1b', url: 'vinmasci.1s9s322u' },
-                { id: 'part2', url: 'vinmasci.9lxc6kxx' },
-                { id: 'part3', url: 'vinmasci.1zcoxbke' },
-                { id: 'part4', url: 'vinmasci.8su483ex' }
-            ];
-
-            // Add sources and layers for each part
-            sources.forEach(({ id, url }) => {
-                // Add source
-                map.addSource(`road-surfaces-${id}`, {
+            // Add vector tile source for the base roads layer
+            map.addLayer({
+                'id': 'road-surfaces-layer',
+                'type': 'line',
+                'source': {
                     'type': 'vector',
-                    'url': `mapbox://${url}`
-                });
-
-                // Add layer
-                map.addLayer({
-                    'id': `road-surfaces-layer-${id}`,
-                    'type': 'line',
-                    'source': `road-surfaces-${id}`,
-                    'source-layer': 'road_surfaces',
-                    'layout': {
-                        'visibility': 'none',
-                        'line-join': 'round',
-                        'line-cap': 'round'
-                    },
-                    'paint': {
-                        'line-color': [
-                            'case',
-                            ['has', 'gravel_condition'],
-                            [
-                                'match',
-                                ['to-string', ['get', 'gravel_condition']],
-                                '0', '#01bf11',
-                                '1', '#a7eb34',
-                                '2', '#ffa801',
-                                '3', '#e67e22',
-                                '4', '#c0392b',
-                                '5', '#c0392b',
-                                '6', '#751203',
-                                '#C2B280'
-                            ],
+                    'url': 'mapbox://vinmasci.5nvlqfla'
+                },
+                'source-layer': 'road_surfaces',
+                'layout': {
+                    'visibility': 'none',
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': [
+                        'case',
+                        ['has', 'gravel_condition'],
+                        [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
+                            '0', '#01bf11',
+                            '1', '#a7eb34',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#c0392b',
+                            '5', '#c0392b',
+                            '6', '#751203',
                             '#C2B280'
                         ],
-                        'line-width': [
-                            'interpolate',
-                            ['linear'],
-                            ['zoom'],
-                            8, 2,
-                            10, 3,
-                            12, 4,
-                            14, 5
-                        ],
-                        'line-opacity': [
-                            'case',
-                            ['has', 'gravel_condition'], 0.9,
-                            0.7
-                        ]
-                    }
-                });
+                        '#C2B280'
+                    ],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        8, 2,
+                        10, 3,
+                        12, 4,
+                        14, 5
+                    ],
+                    'line-opacity': [
+                        'case',
+                        ['has', 'gravel_condition'], 0.9,
+                        0.7
+                    ]
+                }
             });
 
             // Add GeoJSON source for dynamic updates
@@ -517,73 +502,67 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Click handler for all layers
-            const handleLayerClick = async (e) => {
-                if (e.features.length > 0) {
-                    const feature = e.features[0];
-                    console.log('🔍 Clicked feature:', feature);
-                    
-                    const osmId = feature.properties.osm_id;
-                    if (!osmId) {
-                        console.error('❌ No OSM ID found for feature:', feature);
-                        return;
-                    }
+// Click handler for both layers
+const handleLayerClick = async (e) => {
+    if (e.features.length > 0) {
+        const feature = e.features[0];
+        console.log('🔍 Clicked feature:', feature);
+        
+        const osmId = feature.properties.osm_id;
+        if (!osmId) {
+            console.error('❌ No OSM ID found for feature:', feature);
+            return;
+        }
 
-                    const auth0 = await window.waitForAuth0();
-                    const isAuthenticated = await auth0.isAuthenticated();
-                    if (!isAuthenticated) return;
+        const auth0 = await window.waitForAuth0();
+        const isAuthenticated = await auth0.isAuthenticated();
+        if (!isAuthenticated) return;
 
-                    showGravelRatingModal(feature);
-                }
-            };
+        showGravelRatingModal(feature);
+    }
+};
 
-            // Add click handlers for all layers
-            sources.forEach(({ id }) => {
-                map.on('click', `road-surfaces-layer-${id}`, handleLayerClick);
-            });
-            map.on('click', 'road-surfaces-updates-layer', handleLayerClick);
+// Add click handlers for both layers
+map.on('click', 'road-surfaces-layer', handleLayerClick);
+map.on('click', 'road-surfaces-updates-layer', handleLayerClick);
 
-            // Add hover effects
-            const popup = new mapboxgl.Popup({
-                closeButton: false,
-                closeOnClick: false,
-                maxWidth: '300px',
-                className: 'gravel-popup'
-            });
+// Hover effects
+const popup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: '300px',
+    className: 'gravel-popup'
+});
 
-            const handleHover = (e) => {
-                const feature = e.features[0];
-                map.getCanvas().style.cursor = 'pointer';
-                
-                let html = `
-                    <div class="gravel-popup-content">
-                        <h4>${feature.properties.name || 'Unnamed Road'}</h4>
-                        ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
-                        ${feature.properties.gravel_condition ? `<p><strong>Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)}</p>` : ''}
-                    </div>
-                `;
+const handleHover = (e) => {
+    const feature = e.features[0];
+    map.getCanvas().style.cursor = 'pointer';
+    
+    let html = `
+        <div class="gravel-popup-content">
+            <h4>${feature.properties.name || 'Unnamed Road'}</h4>
+            ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
+            ${feature.properties.gravel_condition ? `<p><strong>Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)}</p>` : ''}
+        </div>
+    `;
 
-                popup.setLngLat(e.lngLat)
-                    .setHTML(html)
-                    .addTo(map);
-            };
+    popup.setLngLat(e.lngLat)
+        .setHTML(html)
+        .addTo(map);
+};
 
-            // Add hover handlers for all layers
-            sources.forEach(({ id }) => {
-                map.on('mousemove', `road-surfaces-layer-${id}`, handleHover);
-            });
-            map.on('mousemove', 'road-surfaces-updates-layer', handleHover);
+// Add hover handlers for both layers
+map.on('mousemove', 'road-surfaces-layer', handleHover);
+map.on('mousemove', 'road-surfaces-updates-layer', handleHover);
 
-            // Mouse leave handlers
-            const handleMouseLeave = () => {
-                map.getCanvas().style.cursor = '';
-                popup.remove();
-            };
+// Mouse leave handlers for both layers
+const handleMouseLeave = () => {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+};
 
-            sources.forEach(({ id }) => {
-                map.on('mouseleave', `road-surfaces-layer-${id}`, handleMouseLeave);
-            });
-            map.on('mouseleave', 'road-surfaces-updates-layer', handleMouseLeave);
+map.on('mouseleave', 'road-surfaces-layer', handleMouseLeave);
+map.on('mouseleave', 'road-surfaces-updates-layer', handleMouseLeave);
 
         } catch (error) {
             console.error('❌ Error in initSurfaceLayers:', error);
@@ -727,12 +706,15 @@ window.layers.toggleSurfaceLayer = async function() {
     console.log('Before toggle - Current state:', {
         isActive: surfaceControl?.classList.contains('active'),
         isLoading: surfaceControl?.classList.contains('loading'),
-        visibility: window.layerVisibility.surfaces
+        visibility: window.layerVisibility.surfaces,
+        mapLayerVisibility: map.getSource('road-surfaces') ? 
+            map.getLayoutProperty('road-surfaces-layer', 'visibility') : 
+            'not initialized'
     });
 
     try {
         // Ensure surface layers are initialized first
-        if (!map.getSource('road-surfaces-part1a')) {
+        if (!map.getSource('road-surfaces')) {
             console.log('📍 Initializing surface layers for first use');
             window.layers.initSurfaceLayers();
         }
@@ -747,12 +729,8 @@ window.layers.toggleSurfaceLayer = async function() {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        // Update visibility for all parts
-        const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
-        parts.forEach(part => {
-            console.log(`👁️ Setting visibility for ${part}: ${visibility}`);
-            map.setLayoutProperty(`road-surfaces-layer-${part}`, 'visibility', visibility);
-        });
+        console.log('👁️ Setting visibility:', visibility);
+        map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
 
         if (window.layerVisibility.surfaces) {
             console.log('🔄 Layer visible, checking zoom level');
@@ -782,7 +760,8 @@ window.layers.toggleSurfaceLayer = async function() {
         console.log('After toggle - Current state:', {
             isActive: surfaceControl?.classList.contains('active'),
             isLoading: surfaceControl?.classList.contains('loading'),
-            visibility: window.layerVisibility.surfaces
+            visibility: window.layerVisibility.surfaces,
+            mapLayerVisibility: map.getLayoutProperty('road-surfaces-layer', 'visibility')
         });
 
     } catch (error) {
