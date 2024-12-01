@@ -216,6 +216,9 @@ function showGravelRatingModal(feature) {
         bottom: 0;
         background-color: rgba(0, 0, 0, 0.5);
         z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     `;
 
     const modal = document.createElement('div');
@@ -224,40 +227,47 @@ function showGravelRatingModal(feature) {
     modal.setAttribute('data-road-id', osmId);
     
     modal.style.cssText = `
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+        position: relative !important;
         background-color: #fff !important;
         padding: 20px !important;
         border-radius: 8px !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
         z-index: 100000 !important;
         width: 300px !important;
-        display: block !important;
         max-height: 80vh !important;
         overflow-y: auto !important;
-        position: relative !important;
     `;
 
-    // Calculate average condition if votes exist
-    const votes = feature.properties.votes || [];
-    console.log('🗳️ Existing votes:', votes);
+    // Parse votes carefully, handling MongoDB number format
+    const votes = feature.properties.votes?.map(vote => ({
+        ...vote,
+        condition: typeof vote.condition === 'object' ? 
+            parseInt(vote.condition.$numberInt || vote.condition) : 
+            parseInt(vote.condition)
+    })) || [];
+
+    console.log('🗳️ Parsed votes:', votes);
     
     const averageCondition = votes.length > 0 
-        ? Math.round(votes.reduce((sum, vote) => sum + Number(vote.condition), 0) / votes.length)
-        : feature.properties.gravel_condition;
+        ? Math.round(votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length)
+        : typeof feature.properties.gravel_condition === 'object' ?
+            parseInt(feature.properties.gravel_condition.$numberInt) :
+            parseInt(feature.properties.gravel_condition);
     
     console.log('📊 Calculated average condition:', averageCondition);
 
-    // Format and sort votes by date
-    const formattedVotes = feature.properties.votes ? 
-        [...feature.properties.votes]
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    // Format votes with proper date handling
+    const formattedVotes = votes.length > 0 ? 
+        votes
+            .sort((a, b) => {
+                const dateA = new Date(typeof a.timestamp === 'object' ? a.timestamp.$date : a.timestamp);
+                const dateB = new Date(typeof b.timestamp === 'object' ? b.timestamp.$date : b.timestamp);
+                return dateB - dateA;
+            })
             .map(vote => {
-                const condition = typeof vote.condition === 'object' ? vote.condition.$numberInt : vote.condition;
-                const date = new Date(vote.timestamp).toLocaleDateString();
-                return `${vote.userName} voted ${getConditionIcon(condition)} on ${date}`;
+                const date = new Date(typeof vote.timestamp === 'object' ? vote.timestamp.$date : vote.timestamp)
+                    .toLocaleDateString();
+                return `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${date}`;
             })
             .join('<br>')
         : 'No votes yet';
@@ -443,17 +453,17 @@ function showGravelRatingModal(feature) {
             const responseData = await response.json();
             console.log('✅ Vote saved successfully:', responseData);
 
-            // Update colors on all layer parts
+            // Update all layer parts with the new condition
             const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
             parts.forEach(part => {
                 const layerId = `road-surfaces-layer-${part}`;
-                console.log(`🎨 Updating color for layer: ${layerId}`);
                 if (map.getLayer(layerId)) {
                     map.setPaintProperty(layerId, 'line-color', [
                         'case',
                         ['==', ['get', 'osm_id'], finalOsmId], getColorForGravelCondition(gravelCondition),
-                        ['has', 'gravel_condition'], ['match',
-                            ['get', 'gravel_condition'],
+                        ['has', 'gravel_condition'], [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
                             '0', '#01bf11',
                             '1', '#a7eb34',
                             '2', '#ffa801',
@@ -468,6 +478,7 @@ function showGravelRatingModal(feature) {
                 }
             });
 
+            // Force a data refresh
             await window.layers.updateSurfaceData();
 
             saveButton.style.backgroundColor = '#28a745';
