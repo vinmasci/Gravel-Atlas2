@@ -727,15 +727,12 @@ window.layers.toggleSurfaceLayer = async function() {
     console.log('Before toggle - Current state:', {
         isActive: surfaceControl?.classList.contains('active'),
         isLoading: surfaceControl?.classList.contains('loading'),
-        visibility: window.layerVisibility.surfaces,
-        mapLayerVisibility: map.getSource('road-surfaces') ? 
-            map.getLayoutProperty('road-surfaces-layer', 'visibility') : 
-            'not initialized'
+        visibility: window.layerVisibility.surfaces
     });
 
     try {
         // Ensure surface layers are initialized first
-        if (!map.getSource('road-surfaces')) {
+        if (!map.getSource('road-surfaces-part1a')) {
             console.log('📍 Initializing surface layers for first use');
             window.layers.initSurfaceLayers();
         }
@@ -750,8 +747,12 @@ window.layers.toggleSurfaceLayer = async function() {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        console.log('👁️ Setting visibility:', visibility);
-        map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
+        // Update visibility for all parts
+        const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
+        parts.forEach(part => {
+            console.log(`👁️ Setting visibility for ${part}: ${visibility}`);
+            map.setLayoutProperty(`road-surfaces-layer-${part}`, 'visibility', visibility);
+        });
 
         if (window.layerVisibility.surfaces) {
             console.log('🔄 Layer visible, checking zoom level');
@@ -781,8 +782,7 @@ window.layers.toggleSurfaceLayer = async function() {
         console.log('After toggle - Current state:', {
             isActive: surfaceControl?.classList.contains('active'),
             isLoading: surfaceControl?.classList.contains('loading'),
-            visibility: window.layerVisibility.surfaces,
-            mapLayerVisibility: map.getLayoutProperty('road-surfaces-layer', 'visibility')
+            visibility: window.layerVisibility.surfaces
         });
 
     } catch (error) {
