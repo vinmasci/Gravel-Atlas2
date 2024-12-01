@@ -159,10 +159,10 @@ function getColorForGravelCondition(condition) {
     const color = (() => {
         switch(parsedCondition) {
             case 0: return '#01bf11'; // Green
-            case 1: return '#a7eb34'; // Change this to '#badc58'
+            case 1: return '#badc58'; // Change this to '#badc58'
             case 2: return '#ffa801'; // Yellow
             case 3: return '#e67e22'; // Yellow-Red
-            case 4: return '#c0392b'; // Change this to '#eb4d4b'
+            case 4: return '#eb4d4b'; // Change this to '#eb4d4b'
             case 5: return '#c0392b'; // Red-Maroon
             case 6: return '#751203'; // Dark red
             default: return '#C2B280'; // Default gravel color
@@ -492,10 +492,10 @@ document.getElementById('save-rating').onclick = async () => {
                             'match',
                             ['to-string', ['get', 'gravel_condition']],
                             '0', '#01bf11',
-                            '1', '#a7eb34',  // Change this to '#badc58'
+                            '1', '#badc58',  // Change this to '#badc58'
                             '2', '#ffa801',
                             '3', '#e67e22',
-                            '4', '#c0392b',  // Change this to '#eb4d4b'
+                            '4', '#eb4d4b',  // Change this to '#eb4d4b'
                             '5', '#c0392b',
                             '6', '#751203',
                             '#C2B280'
@@ -608,10 +608,10 @@ window.layers.initSurfaceLayers = function() {
                                 'match',
                                 ['to-string', ['get', 'gravel_condition']],
                                 '0', '#01bf11',
-                                '1', '#a7eb34',  // Change this to '#badc58'
+                                '1', '#badc58',  // Change this to '#badc58'
                                 '2', '#ffa801',
                                 '3', '#e67e22',
-                                '4', '#c0392b',  // Change this to '#eb4d4b'
+                                '4', '#eb4d4b',  // Change this to '#eb4d4b'
                                 '5', '#c0392b',
                                 '6', '#751203',
                                 '#C2B280'
@@ -660,10 +660,10 @@ window.layers.initSurfaceLayers = function() {
                         'match',
                         ['to-string', ['get', 'gravel_condition']],
                         '0', '#01bf11',
-                        '1', '#a7eb34',  // Change this to '#badc58'
+                        '1', '#badc58',  // Change this to '#badc58'
                         '2', '#ffa801',
                         '3', '#e67e22',
-                        '4', '#c0392b',  // Change this to '#eb4d4b'
+                        '4', '#eb4d4b',  // Change this to '#eb4d4b'
                         '5', '#c0392b',
                         '6', '#751203',
                         '#C2B280'
