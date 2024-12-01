@@ -460,7 +460,7 @@ function showGravelRatingModal(feature) {
                     geometry: window.selectedFeature.geometry
                 })
             });
-            
+    
             if (!response.ok) {
                 throw new Error('Failed to save vote');
             }
@@ -468,65 +468,11 @@ function showGravelRatingModal(feature) {
             const responseData = await response.json();
             console.log('✅ Vote saved successfully:', responseData);
     
-            // Update the cache and modification layer
+            // Update cache AND vector tile layers
             if (window.updateRoadModification) {
                 await window.updateRoadModification(finalOsmId, responseData.modification);
             }
     
-            // Update the modal content
-            const currentConditionDiv = modal.querySelector('.current-condition');
-            if (currentConditionDiv) {
-                currentConditionDiv.innerHTML = `<b>Current Condition:</b> ${getConditionIcon(gravelCondition)}`;
-            }
-    
-            const votesDiv = modal.querySelector('.votes-list');
-            if (votesDiv) {
-                const newVoteHtml = `${formatUserName(userProfile)} voted ${getConditionIcon(gravelCondition)} on ${new Date().toLocaleDateString()}<br>${votesDiv.innerHTML}`;
-                votesDiv.innerHTML = newVoteHtml;
-            }
-    
-            saveButton.style.backgroundColor = '#28a745';
-            saveButton.textContent = 'Saved!';
-            saveButton.disabled = false;
-    
-        } catch (error) {
-            console.error('Error saving vote:', error);
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error!';
-            saveButton.disabled = false;
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
-            return;
-        }
-
-        saveButton.disabled = true;
-        saveButton.textContent = 'Saving...';
-
-        try {
-            const response = await fetch('/api/update-road-surface', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    osm_id: finalOsmId,
-                    gravel_condition: parseInt(gravelCondition),
-                    notes: notes,
-                    user_id: userProfile.auth0Id,
-                    userName: formatUserName(userProfile)
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to save vote');
-            }
-
-            const responseData = await response.json();
-            console.log('✅ Vote saved successfully:', responseData);
-
-            // Update the vector tile layers with new color
             const color = getColorForGravelCondition(gravelCondition);
             const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
             
@@ -562,23 +508,23 @@ function showGravelRatingModal(feature) {
                     console.log(`✅ Updated paint property for ${layerId}`);
                 }
             });
-
+    
             // Update the modal content
             const currentConditionDiv = modal.querySelector('.current-condition');
             if (currentConditionDiv) {
                 currentConditionDiv.innerHTML = `<b>Current Condition:</b> ${getConditionIcon(gravelCondition)}`;
             }
-
+    
             const votesDiv = modal.querySelector('.votes-list');
             if (votesDiv) {
                 const newVoteHtml = `${formatUserName(userProfile)} voted ${getConditionIcon(gravelCondition)} on ${new Date().toLocaleDateString()}<br>${votesDiv.innerHTML}`;
                 votesDiv.innerHTML = newVoteHtml;
             }
-
+    
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
-            saveButton.disabled = false; 
-
+            saveButton.disabled = false;
+    
         } catch (error) {
             console.error('Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
