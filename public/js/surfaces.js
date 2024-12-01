@@ -581,6 +581,7 @@ window.layers.initSurfaceLayers = function() {
                     'type': 'line',
                     'source': `road-surfaces-${id}`,
                     'source-layer': 'road_surfaces',
+                    'filter': ['==', ['get', 'osm_id'], ['at', 0, ['collect', ['get', 'osm_id']]]], // Only show first occurrence of each OSM ID
                     'filter': [
                         'any',
                         ['in', ['get', 'surface'], [
