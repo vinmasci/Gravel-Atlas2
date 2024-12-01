@@ -14,3 +14,16 @@ importRoads.js
 australia-latest.osm.pbf
 analyze-road.js
 tiles.mbtiles-journal
+check-mongo.js
+extract-surface-all.js
+mbtiles-splitter.js
+extract-surface-all.js
+part1-splitter.js
+regional-tile-generator.js
+tiles-part1.mbtiles
+tiles-part1a.mbtiles
+tiles-part1b.mbtiles
+tiles-part2.mbtiles
+tiles-part3.mbtiles
+tiles-part4.mbtiles
+extract-surface-all.js
