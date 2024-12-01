@@ -504,9 +504,7 @@ function showGravelRatingModal(feature) {
 
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
-            setTimeout(() => {
-                closeModal();
-            }, 1000);
+            saveButton.disabled = false; 
 
         } catch (error) {
             console.error('Error saving vote:', error);
