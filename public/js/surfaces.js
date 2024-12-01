@@ -189,22 +189,22 @@ function getConditionIcon(condition) {
     return `<i class="fa-solid fa-circle-${condition}" style="color: ${getColorForGravelCondition(condition)}; font-size: 1.2em;"></i>`;
 }
 
-async function showGravelRatingModal(feature) {
+function showGravelRatingModal(feature) {
     console.log('📱 Opening modal for feature:', feature);
     
-    const osmId = feature.properties.osm_id || feature.properties.id;
-    if (!osmId) {
-        console.error('❌ Cannot create modal: Missing OSM ID');
-        return;
-    }
-
     // Remove any existing modals first
     const existingModal = document.getElementById('gravel-rating-modal');
     const existingBackdrop = document.getElementById('gravel-rating-backdrop');
     if (existingModal) existingModal.remove();
     if (existingBackdrop) existingBackdrop.remove();
     
+    const osmId = feature.properties.osm_id || feature.properties.id;
     const roadName = feature.properties.name || 'Unnamed Road';
+    
+    if (!osmId) {
+        console.error('❌ Cannot create modal: Missing OSM ID');
+        return;
+    }
 
     const backdrop = document.createElement('div');
     backdrop.id = 'gravel-rating-backdrop';
@@ -282,7 +282,7 @@ async function showGravelRatingModal(feature) {
                 <div style="margin-top: 8px; font-size: 13px;">
                     <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                     <div><b>OSM ID:</b> ${osmId}</div>
-                    <div><b>Current Condition:</b> ${
+                    <div class="current-condition"><b>Current Condition:</b> ${
                         feature.properties.gravel_condition !== undefined ? 
                         getConditionIcon(feature.properties.gravel_condition) : 
                         '<span style="color: #666;">Requires update</span>'
@@ -313,11 +313,11 @@ async function showGravelRatingModal(feature) {
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
         <div style="margin-bottom: 16px;">
-<label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
             <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${feature.properties.notes || ''}</textarea>
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-        <div style="margin-bottom: 16px; font-size: 13px; color: #666;">
+        <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
             ${formattedVotes}
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
@@ -407,7 +407,7 @@ async function showGravelRatingModal(feature) {
             }, 2000);
             return;
         }
-    
+
         const finalOsmId = modal.getAttribute('data-road-id');
         if (!finalOsmId) {
             console.error('❌ Cannot save: Missing OSM ID');
@@ -415,7 +415,7 @@ async function showGravelRatingModal(feature) {
             saveButton.textContent = 'Error: Missing Road ID';
             return;
         }
-    
+
         const userProfile = JSON.parse(localStorage.getItem('userProfile'));
         if (!userProfile) {
             console.error('❌ No user profile found');
@@ -427,10 +427,10 @@ async function showGravelRatingModal(feature) {
             }, 2000);
             return;
         }
-    
+
         saveButton.disabled = true;
         saveButton.textContent = 'Saving...';
-    
+
         try {
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
@@ -445,15 +445,15 @@ async function showGravelRatingModal(feature) {
                     userName: formatUserName(userProfile)
                 })
             });
-    
+
             if (!response.ok) {
                 throw new Error('Failed to save vote');
             }
-    
+
             const responseData = await response.json();
             console.log('✅ Vote saved successfully:', responseData);
-    
-            // Immediately update the vector tile layers with new color
+
+            // Update the vector tile layers with new color
             const color = getColorForGravelCondition(gravelCondition);
             const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
             
@@ -489,13 +489,25 @@ async function showGravelRatingModal(feature) {
                     console.log(`✅ Updated paint property for ${layerId}`);
                 }
             });
-    
+
+            // Update the modal content
+            const currentConditionDiv = modal.querySelector('.current-condition');
+            if (currentConditionDiv) {
+                currentConditionDiv.innerHTML = `<b>Current Condition:</b> ${getConditionIcon(gravelCondition)}`;
+            }
+
+            const votesDiv = modal.querySelector('.votes-list');
+            if (votesDiv) {
+                const newVoteHtml = `${formatUserName(userProfile)} voted ${getConditionIcon(gravelCondition)} on ${new Date().toLocaleDateString()}<br>${votesDiv.innerHTML}`;
+                votesDiv.innerHTML = newVoteHtml;
+            }
+
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             setTimeout(() => {
                 closeModal();
             }, 1000);
-    
+
         } catch (error) {
             console.error('Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
