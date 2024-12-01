@@ -407,7 +407,7 @@ async function showGravelRatingModal(feature) {
             }, 2000);
             return;
         }
-
+    
         const finalOsmId = modal.getAttribute('data-road-id');
         if (!finalOsmId) {
             console.error('❌ Cannot save: Missing OSM ID');
@@ -415,7 +415,7 @@ async function showGravelRatingModal(feature) {
             saveButton.textContent = 'Error: Missing Road ID';
             return;
         }
-
+    
         const userProfile = JSON.parse(localStorage.getItem('userProfile'));
         if (!userProfile) {
             console.error('❌ No user profile found');
@@ -427,10 +427,10 @@ async function showGravelRatingModal(feature) {
             }, 2000);
             return;
         }
-
+    
         saveButton.disabled = true;
         saveButton.textContent = 'Saving...';
-
+    
         try {
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
@@ -445,23 +445,57 @@ async function showGravelRatingModal(feature) {
                     userName: formatUserName(userProfile)
                 })
             });
-
+    
             if (!response.ok) {
                 throw new Error('Failed to save vote');
             }
-
+    
             const responseData = await response.json();
             console.log('✅ Vote saved successfully:', responseData);
-
-            // Force a reload of the surface data to refresh the map
-            await window.layers.updateSurfaceData();
-
+    
+            // Immediately update the vector tile layers with new color
+            const color = getColorForGravelCondition(gravelCondition);
+            const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
+            
+            parts.forEach(part => {
+                const layerId = `road-surfaces-layer-${part}`;
+                console.log(`🎨 Updating color for layer ${layerId}`);
+                
+                if (map.getLayer(layerId)) {
+                    const paintExpression = [
+                        'match',
+                        ['get', 'osm_id'],
+                        finalOsmId, color,
+                        [
+                            'case',
+                            ['has', 'gravel_condition'],
+                            [
+                                'match',
+                                ['to-string', ['get', 'gravel_condition']],
+                                '0', '#01bf11',
+                                '1', '#a7eb34',
+                                '2', '#ffa801',
+                                '3', '#e67e22',
+                                '4', '#c0392b',
+                                '5', '#c0392b',
+                                '6', '#751203',
+                                '#C2B280'
+                            ],
+                            '#C2B280'
+                        ]
+                    ];
+                    
+                    map.setPaintProperty(layerId, 'line-color', paintExpression);
+                    console.log(`✅ Updated paint property for ${layerId}`);
+                }
+            });
+    
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             setTimeout(() => {
                 closeModal();
             }, 1000);
-
+    
         } catch (error) {
             console.error('Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
