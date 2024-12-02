@@ -1439,9 +1439,9 @@ map.addLayer({
 });
 
 const surfaceTypes = [
-    { id: 'paved', color: '#00ffff', width: 2 },     // Reduced width from 4
+    { id: 'paved', color: '#ff6b6b', width: 2 },     // Reduced width from 4
     { id: 'gravel', color: '#00ffff', width: 2 },    // Changed to cyan, reduced width
-    { id: 'unknown', color: '#00ffff', width: 2 }    // Reduced width from 4
+    { id: 'unknown', color: '#ff9f43', width: 2 }    // Reduced width from 4
 ];
 
 surfaceTypes.forEach(({ id, color, width }) => {
