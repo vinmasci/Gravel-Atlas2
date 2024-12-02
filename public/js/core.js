@@ -126,6 +126,10 @@ map.addControl(new mapboxgl.NavigationControl({
     showZoom: true,
     visualizePitch: true
 }));
+
+
+// Be very explicit about the position
+map.addControl(navControl, 'top-left');
  
  window.map = map;
  

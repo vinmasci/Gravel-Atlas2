@@ -2291,10 +2291,16 @@
  SECTION: Zoom Controls
  ============================ */
 
-/* Position zoom controls below navbar */
-.mapboxgl-control-container .mapboxgl-ctrl-top-left {
-    top: 65px !important; /* Adjust this value based on your navbar height */
-    left: 10px !important; /* Add some left margin */
+/* Target both possible positions */
+.mapboxgl-control-container .mapboxgl-ctrl-top-left,
+.mapboxgl-control-container .mapboxgl-ctrl-top-right {
+    top: 65px !important;
+}
+
+/* Specifically force left positioning */
+.mapboxgl-control-container .mapboxgl-ctrl-top-right {
+    right: auto !important;
+    left: 10px !important;
 }
 
 /* Style the zoom controls to match your theme */
