@@ -1419,59 +1419,59 @@ async function handleGpxUpload(file) {
             lineMetrics: true
         });
 
-        // Background layer for better visibility
-        map.addLayer({
-            id: 'gpx-background',
-            type: 'line',
-            source: 'gpx-overlay',
-            layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            paint: {
-                'line-color': '#ffffff',
-                'line-width': ['interpolate', ['linear'], ['zoom'],
-                    10, 6,
-                    15, 8
-                ],
-                'line-opacity': 0.6
-            }
-        });
+// Background layer - make thinner and more transparent
+map.addLayer({
+    id: 'gpx-background',
+    type: 'line',
+    source: 'gpx-overlay',
+    layout: {
+        'line-join': 'round',
+        'line-cap': 'round'
+    },
+    paint: {
+        'line-color': '#ffffff',
+        'line-width': ['interpolate', ['linear'], ['zoom'],
+            10, 3,  // Reduced from 6
+            15, 4   // Reduced from 8
+        ],
+        'line-opacity': 0.4  // Reduced from 0.6
+    }
+});
 
-        const surfaceTypes = [
-            { id: 'paved', color: '#ff6b6b', width: 4 },
-            { id: 'gravel', color: '#48dbfb', width: 4 },
-            { id: 'unknown', color: '#ff9f43', width: 4 }
-        ];
+const surfaceTypes = [
+    { id: 'paved', color: '#ff6b6b', width: 2 },     // Reduced width from 4
+    { id: 'gravel', color: '#00ffff', width: 2 },    // Changed to cyan, reduced width
+    { id: 'unknown', color: '#ff9f43', width: 2 }    // Reduced width from 4
+];
 
-        surfaceTypes.forEach(({ id, color, width }) => {
-            map.addLayer({
-                id: `gpx-${id}`,
-                type: 'line',
-                source: 'gpx-overlay',
-                filter: ['==', ['get', 'surface'], id],
-                layout: {
-                    'line-join': 'round',
-                    'line-cap': 'round',
-                    'visibility': 'visible'
-                },
-                paint: {
-                    'line-color': color,
-                    'line-width': ['interpolate', ['linear'], ['zoom'],
-                        10, width,
-                        15, width * 1.5
-                    ],
-                    'line-opacity': 0.8,
-                    'line-gradient': [
-                        'interpolate',
-                        ['linear'],
-                        ['line-progress'],
-                        0, color,
-                        1, color
-                    ]
-                }
-            });
-        });
+surfaceTypes.forEach(({ id, color, width }) => {
+    map.addLayer({
+        id: `gpx-${id}`,
+        type: 'line',
+        source: 'gpx-overlay',
+        filter: ['==', ['get', 'surface'], id],
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            'visibility': 'visible'
+        },
+        paint: {
+            'line-color': color,
+            'line-width': ['interpolate', ['linear'], ['zoom'],
+                10, width,
+                15, width * 1.5
+            ],
+            'line-opacity': 0.6,  // Reduced from 0.8
+            'line-gradient': [
+                'interpolate',
+                ['linear'],
+                ['line-progress'],
+                0, color,
+                1, color
+            ]
+        }
+    });
+});
 
         fitToBounds(geojson);
         addRouteHoverEffects();
