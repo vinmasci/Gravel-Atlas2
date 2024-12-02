@@ -116,19 +116,13 @@ function waitForAuth0() {
     zoom: config.defaultZoom
  });
 
- // Add zoom and rotation controls to the map
-map.addControl(new mapboxgl.NavigationControl({
-    // Position the controls on the top right of the map
-    // Other options are 'top-left', 'bottom-right', 'bottom-left'
-    position: 'top-left',
-    // Show all controls including compass
+// Replace with just this:
+const navControl = new mapboxgl.NavigationControl({
     showCompass: true,
     showZoom: true,
     visualizePitch: true
-}));
+});
 
-
-// Be very explicit about the position
 map.addControl(navControl, 'top-left');
  
  window.map = map;
