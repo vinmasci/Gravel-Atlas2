@@ -2286,6 +2286,34 @@
     max-width: 400px;
     min-width: 300px;
 }
+
+ /* ============================
+ SECTION: Zoom Controls
+ ============================ */
+
+/* Position zoom controls below navbar */
+.mapboxgl-control-container .mapboxgl-ctrl-top-left {
+    top: 65px !important; /* Adjust this value based on your navbar height */
+    left: 10px !important; /* Add some left margin */
+}
+
+/* Style the zoom controls to match your theme */
+.mapboxgl-ctrl-group {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Optional: Style the buttons to match your theme */
+.mapboxgl-ctrl-group button {
+    border: none !important;
+    width: 30px !important;
+    height: 30px !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
     </style>
     
     <!-- Navigation Bar -->

@@ -120,7 +120,7 @@ function waitForAuth0() {
 map.addControl(new mapboxgl.NavigationControl({
     // Position the controls on the top right of the map
     // Other options are 'top-left', 'bottom-right', 'bottom-left'
-    position: 'bottom-left',
+    position: 'top-left',
     // Show all controls including compass
     showCompass: true,
     showZoom: true,
