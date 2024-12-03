@@ -776,6 +776,24 @@ window.layers.initSurfaceLayers = function() {
     }
 };
 
+// Helper function to load modifications
+async function loadModifications() {
+    try {
+        const response = await fetch('/api/get-road-modifications');
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.modifications)) {
+            // Update modification cache
+            data.modifications.forEach(mod => {
+                window.modificationCache.set(mod.osm_id, mod);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading modifications:', error);
+    }
+}
+
+// Function to update surface data
 window.layers.updateSurfaceData = async function() {
     console.log('🔄 updateSurfaceData called');
     console.log('Current visibility state:', window.layerVisibility.surfaces);
@@ -791,35 +809,10 @@ window.layers.updateSurfaceData = async function() {
 
     // Early return if zoom is too low
     if (zoomLevel < 8) {
-        console.log('🔍 Zoom level too low, clearing data');
-        if (map.getSource('road-modifications')) {
-            map.getSource('road-modifications').setData({
-                type: 'FeatureCollection',
-                features: []
-            });
-        }
+        console.log('🔍 Zoom level too low');
         if (surfaceToggle) {
             surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
         }
-        return;
-    }
-
-    // Check if we need to reload modifications
-    const modificationTimestamp = window.modificationCache?.timestamp;
-    const cacheAge = modificationTimestamp ? Date.now() - modificationTimestamp : Infinity;
-    
-    if (!modificationTimestamp || cacheAge > 5 * 60 * 1000) { // Reload mods every 5 minutes
-        console.log('🔄 Reloading modifications (cache expired or missing)');
-        await loadModifications();
-    }
-
-    const bounds = map.getBounds();
-
-    // Check if we're within cached area and cache isn't expired
-    if (isWithinCachedArea(bounds) && 
-        SURFACE_CACHE.viewState.zoom === zoomLevel &&
-        Date.now() - SURFACE_CACHE.viewState.timestamp < SURFACE_CACHE.maxAge) {
-        console.log('📦 Using cached view data');
         return;
     }
 
@@ -829,16 +822,21 @@ window.layers.updateSurfaceData = async function() {
         surfaceToggle.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading gravel...';
     }
 
-    // Calculate expanded bbox for buffered loading
-    const expandedBbox = calculateExpandedBbox(bounds);
-    const bboxString = expandedBbox.join(',');
-
-    console.log('📍 Calculated expanded bbox:', bboxString);
-
-    if (surfaceToggle) {
-        console.log('✅ Update complete, resetting button state');
-        surfaceToggle.classList.remove('loading');
-        surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
+    try {
+        // Check if we need to reload modifications
+        const modificationTimestamp = window.modificationCache?.timestamp;
+        const cacheAge = modificationTimestamp ? Date.now() - modificationTimestamp : Infinity;
+        
+        if (!modificationTimestamp || cacheAge > 5 * 60 * 1000) { // Reload mods every 5 minutes
+            console.log('🔄 Reloading modifications (cache expired or missing)');
+            await loadModifications();
+        }
+    } finally {
+        if (surfaceToggle) {
+            console.log('✅ Update complete, resetting button state');
+            surfaceToggle.classList.remove('loading');
+            surfaceToggle.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Layer';
+        }
     }
 };
 
@@ -854,7 +852,7 @@ window.layers.toggleSurfaceLayer = async function() {
 
     try {
         // Ensure surface layers are initialized first
-        if (!map.getSource('road-surfaces-part1a')) {
+        if (!map.getSource('road-surfaces')) {
             console.log('📍 Initializing surface layers for first use');
             window.layers.initSurfaceLayers();
         }
@@ -869,15 +867,9 @@ window.layers.toggleSurfaceLayer = async function() {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        // Update visibility for all parts
-        const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
-        parts.forEach(part => {
-            console.log(`👁️ Setting visibility for ${part}: ${visibility}`);
-            map.setLayoutProperty(`road-surfaces-layer-${part}`, 'visibility', visibility);
-            if (map.getLayer('road-modifications-layer')) {
-                map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
-            }
-        });
+        // Update visibility for main layer
+        console.log(`👁️ Setting visibility for road surfaces: ${visibility}`);
+        map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
 
         if (window.layerVisibility.surfaces) {
             console.log('🔄 Layer visible, checking zoom level');
@@ -890,7 +882,6 @@ window.layers.toggleSurfaceLayer = async function() {
                 }
             } else {
                 console.log('🔄 Loading modifications and updating surface data');
-                // Load modifications first
                 await loadModifications();
                 await window.layers.updateSurfaceData();
                 if (surfaceControl) {
@@ -905,12 +896,6 @@ window.layers.toggleSurfaceLayer = async function() {
                 surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel Off';
             }
         }
-
-        console.log('After toggle - Current state:', {
-            isActive: surfaceControl?.classList.contains('active'),
-            isLoading: surfaceControl?.classList.contains('loading'),
-            visibility: window.layerVisibility.surfaces
-        });
 
     } catch (error) {
         console.error('❌ Error in toggleSurfaceLayer:', error);
