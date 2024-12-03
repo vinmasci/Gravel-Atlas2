@@ -898,7 +898,7 @@ window.layers.toggleSurfaceLayer = async function() {
 
     try {
         // Ensure surface layers are initialized first
-        if (!map.getSource('road-surfaces-part1a')) {
+        if (!map.getSource('road-surfaces')) {
             console.log('📍 Initializing surface layers for first use');
             window.layers.initSurfaceLayers();
         }
@@ -913,15 +913,12 @@ window.layers.toggleSurfaceLayer = async function() {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        // Update visibility for all parts
-        const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
-        parts.forEach(part => {
-            console.log(`👁️ Setting visibility for ${part}: ${visibility}`);
-            map.setLayoutProperty(`road-surfaces-layer-${part}`, 'visibility', visibility);
-            if (map.getLayer('road-modifications-layer')) {
-                map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
-            }
-        });
+        // Update visibility for main layer and modifications layer
+        console.log(`👁️ Setting visibility for road surfaces: ${visibility}`);
+        map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
+        if (map.getLayer('road-modifications-layer')) {
+            map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
+        }
 
         if (window.layerVisibility.surfaces) {
             console.log('🔄 Layer visible, checking zoom level');
