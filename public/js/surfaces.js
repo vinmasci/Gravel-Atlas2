@@ -573,20 +573,11 @@ window.layers.initSurfaceLayers = function() {
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': 'road-surfaces',
-                'source-layer': 'transportation', // Adjust this if your layer name is different
+                'source-layer': 'road_surfaces', // Updated to match your data
                 'filter': [
-                    'any',
-                    ['in', ['get', 'surface'], [
-                        'literal', [
-                            'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
-                            'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
-                            'sand', 'clay', 'mud', 'grass', 'woodchips',
-                            'fine_gravel', 'crushed_limestone', 'compacted',
-                            'laterite', 'caliche', 'coral', 'shell_grit', 'tundra',
-                            'chalk', 'limestone', 'shale', 'crusher_run', 'decomposed_granite'
-                        ]]
-                    ],
-                    ['has', 'tracktype']
+                    'all',
+                    ['!=', ['get', 'surface'], 'paved'], // Filter out paved roads
+                    ['has', 'osm_id'] // Ensure we have an OSM ID
                 ],
                 'layout': {
                     'visibility': 'none',
@@ -627,6 +618,8 @@ window.layers.initSurfaceLayers = function() {
                     ]
                 }
             });
+
+            // Rest of the code remains the same...
 
             // Add source for modifications overlay
             map.addSource('road-modifications', {
