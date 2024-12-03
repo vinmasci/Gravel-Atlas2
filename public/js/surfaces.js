@@ -673,8 +673,8 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Click handler
-            map.on('click', 'road-surfaces-layer', async (e) => {
+            // Define click handler function
+            const handleFeatureClick = async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     console.log('🔍 Clicked feature:', feature);
@@ -700,8 +700,11 @@ window.layers.initSurfaceLayers = function() {
 
                     showGravelRatingModal(feature);
                 }
-            });
-            map.on('click', 'road-modifications-layer', handleLayerClick);
+            };
+
+            // Add click handlers
+            map.on('click', 'road-surfaces-layer', handleFeatureClick);
+            map.on('click', 'road-modifications-layer', handleFeatureClick);
 
             // Add hover effects
             const popup = new mapboxgl.Popup({
@@ -760,8 +763,6 @@ window.layers.initSurfaceLayers = function() {
         }
     }
 };
-
-// Rest of your existing functions remain the same...
 
 // Helper function to load modifications
 async function loadModifications() {
