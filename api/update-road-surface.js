@@ -1,7 +1,29 @@
+// update-road-surface.js
 const { MongoClient } = require('mongodb');
+const cors = require('cors');
 const uri = process.env.MONGODB_URI;
 
+// CORS middleware configuration
+const corsMiddleware = cors({
+    origin: ['https://gravel-atlas2.vercel.app', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+});
+
 module.exports = async (req, res) => {
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        res.setHeader('Access-Control-Allow-Origin', 'https://gravel-atlas2.vercel.app');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Max-Age', '3600');
+        return res.status(204).end();
+    }
+
+    // Apply CORS
+    await new Promise((resolve) => corsMiddleware(req, res, resolve));
+
     console.log('📍 API: Received request');
     const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
 
@@ -94,3 +116,6 @@ function mapToOSMTrackType(condition) {
     };
     return mapping[condition] || 'grade3';
 }
+
+// Export the function for mapToOSMTrackType if needed elsewhere
+module.exports.mapToOSMTrackType = mapToOSMTrackType;
