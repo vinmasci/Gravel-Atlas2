@@ -558,25 +558,17 @@ window.layers.initSurfaceLayers = function() {
     
     if (!map.getSource('road-surfaces')) {
         try {
-            // Add TileServer GL source using exact domain from config
+            // Add TileServer GL source
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
+                    // Using your hosted tileserver
                     'http://170.64.193.31:8080/data/unpaved/{z}/{x}/{y}.pbf'
                 ],
                 'minzoom': 5,
                 'maxzoom': 14,
-                'bounds': [96.817905, -54.772405, 167.994058, -9.230553] // From your mbtiles metadata
-            });
-
-            // Add cycleways source as well
-            map.addSource('cycleways', {
-                'type': 'vector',
-                'tiles': [
-                    'http://170.64.193.31:8080/data/cycleways/{z}/{x}/{y}.pbf'
-                ],
-                'minzoom': 5,
-                'maxzoom': 14
+                'bounds': [96.817905, -54.772405, 167.994058, -9.230553],
+                'attribution': '© OpenStreetMap contributors'
             });
 
             // Add unpaved roads layer
@@ -584,21 +576,9 @@ window.layers.initSurfaceLayers = function() {
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': 'road-surfaces',
-                'source-layer': 'unpaved',
-                'filter': [
-                    'any',
-                    ['in', ['get', 'surface'], [
-                        'literal', [
-                            'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
-                            'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
-                            'sand', 'clay', 'mud', 'grass', 'woodchips',
-                            'fine_gravel', 'gravel_rock_sand', 'compacted',
-                            'dirt;gravel', 'gravel;dirt', 'ground;gravel',
-                            'unpaved;gravel', 'gravel/rock'
-                        ]
-                    ]],
-                    ['has', 'surface']
-                ],
+                'source-layer': 'unpaved', // This matches your tile layer name
+                'minzoom': 5,
+                'maxzoom': 14,
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',
@@ -633,6 +613,7 @@ window.layers.initSurfaceLayers = function() {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
+                        5, 1,
                         8, 2,
                         10, 3,
                         12, 4,
@@ -643,24 +624,6 @@ window.layers.initSurfaceLayers = function() {
                         ['has', 'gravel_condition'], 0.9,
                         0.7
                     ]
-                }
-            });
-
-            // Add cycleways layer
-            map.addLayer({
-                'id': 'cycleways-layer',
-                'type': 'line',
-                'source': 'cycleways',
-                'source-layer': 'cycleways',
-                'layout': {
-                    'visibility': 'none',
-                    'line-join': 'round',
-                    'line-cap': 'round'
-                },
-                'paint': {
-                    'line-color': '#4CAF50',
-                    'line-width': 2,
-                    'line-opacity': 0.8
                 }
             });
 
@@ -736,32 +699,6 @@ window.layers.initSurfaceLayers = function() {
 
             // Mouse leave handler for road surfaces
             map.on('mouseleave', 'road-surfaces-layer', () => {
-                map.getCanvas().style.cursor = '';
-                popup.remove();
-            });
-
-            // Hover handler for cycleways
-            map.on('mousemove', 'cycleways-layer', (e) => {
-                if (e.features.length > 0) {
-                    const feature = e.features[0];
-                    map.getCanvas().style.cursor = 'pointer';
-                    
-                    let html = `
-                        <div class="gravel-popup-content">
-                            <h4>${feature.properties.name || 'Unnamed Cycleway'}</h4>
-                            ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
-                            ${feature.properties.highway ? `<p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>` : ''}
-                        </div>
-                    `;
-
-                    popup.setLngLat(e.lngLat)
-                        .setHTML(html)
-                        .addTo(map);
-                }
-            });
-
-            // Mouse leave handler for cycleways
-            map.on('mouseleave', 'cycleways-layer', () => {
                 map.getCanvas().style.cursor = '';
                 popup.remove();
             });
