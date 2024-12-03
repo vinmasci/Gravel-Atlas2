@@ -568,18 +568,37 @@ window.layers.initSurfaceLayers = function() {
                 'minzoom': 5,
                 'maxzoom': 14,
                 'bounds': [96.817905, -54.772405, 167.994058, -9.230553],
-                'attribution': '© OpenStreetMap contributors'
+                'attribution': '© OpenStreetMap contributors',
+                'maxRetries': 3,  // Add retry attempts
+                'timeout': 10000  // 10 second timeout
             });
-            
-            // Add error handling
-            map.on('sourcedata', (e) => {
-                if (e.sourceId === 'road-surfaces' && e.isSourceLoaded) {
-                    console.log('Source loaded successfully:', e);
+     
+            // Add more detailed tile loading monitoring
+            map.on('sourcedataloading', (e) => {
+                if (e.sourceId === 'road-surfaces') {
+                    console.log('🔄 Loading tile data:', e);
                 }
             });
-            
+     
+            map.on('sourcedata', (e) => {
+                if (e.sourceId === 'road-surfaces') {
+                    if (e.isSourceLoaded) {
+                        console.log('✅ Source data loaded:', e);
+                    } else {
+                        console.log('⏳ Source data loading:', e);
+                    }
+                }
+            });
+     
             map.on('error', (e) => {
-                console.error('Map error:', e);
+                console.error('❌ Map error:', e);
+                // If it's a timeout error, try to reload the tile
+                if (e.error.message === 'Load failed' && e.sourceId === 'road-surfaces') {
+                    console.log('🔄 Attempting to reload failed tile');
+                    if (e.tile) {
+                        e.tile.retry();
+                    }
+                }
             });
 
             // Add unpaved roads layer
