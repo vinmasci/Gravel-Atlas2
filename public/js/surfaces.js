@@ -563,7 +563,7 @@ window.layers.initSurfaceLayers = function() {
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
-                    'https://170.64.193.31/data/unpaved/{z}/{x}/{y}.pbf'
+                    'http://170.64.193.31/data/unpaved/{z}/{x}/{y}.pbf'
                 ],
                 'minzoom': 5,
                 'maxzoom': 14,
