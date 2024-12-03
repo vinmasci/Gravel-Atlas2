@@ -573,11 +573,29 @@ window.layers.initSurfaceLayers = function() {
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': 'road-surfaces',
-                'source-layer': 'road_surfaces', // Updated to match your data
+                'source-layer': 'road_surfaces',
                 'filter': [
                     'all',
-                    ['!=', ['get', 'surface'], 'paved'], // Filter out paved roads
-                    ['has', 'osm_id'] // Ensure we have an OSM ID
+                    ['!=', ['get', 'surface'], 'paved'],  // Exclude paved roads
+                    [
+                        'any',
+                        ['==', ['get', 'surface'], 'unpaved'],
+                        ['==', ['get', 'surface'], 'dirt'],
+                        ['==', ['get', 'surface'], 'gravel'],
+                        ['==', ['get', 'surface'], 'earth'],
+                        ['==', ['get', 'surface'], 'grass'],
+                        ['==', ['get', 'surface'], 'ground'],
+                        ['==', ['get', 'surface'], 'sand'],
+                        ['==', ['get', 'surface'], 'woodchips'],
+                        ['==', ['get', 'surface'], 'rock'],
+                        ['==', ['get', 'surface'], 'rocks'],
+                        ['==', ['get', 'surface'], 'stones'],
+                        ['==', ['get', 'surface'], 'pebblestone'],
+                        ['==', ['get', 'surface'], 'compacted'],
+                        ['==', ['get', 'surface'], 'fine_gravel'],
+                        ['==', ['get', 'surface'], 'clay'],
+                        ['in', ['get', 'tracktype'], ['literal', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5']]]
+                    ]
                 ],
                 'layout': {
                     'visibility': 'none',
@@ -618,9 +636,6 @@ window.layers.initSurfaceLayers = function() {
                     ]
                 }
             });
-
-            // Rest of the code remains the same...
-
             // Add source for modifications overlay
             map.addSource('road-modifications', {
                 type: 'geojson',
