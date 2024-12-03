@@ -569,35 +569,36 @@ window.layers.initSurfaceLayers = function() {
                 'maxzoom': 14,
                 'bounds': [96.817905, -54.772405, 167.994058, -9.230553],
                 'attribution': '© OpenStreetMap contributors',
-                'maxRetries': 3,  // Add retry attempts
-                'timeout': 10000  // 10 second timeout
+                'maxRetries': 3,
+                'timeout': 10000,
+                'scheme': 'xyz'
             });
-     
-            // Add more detailed tile loading monitoring
-            map.on('sourcedataloading', (e) => {
-                if (e.sourceId === 'road-surfaces') {
-                    console.log('🔄 Loading tile data:', e);
-                }
-            });
-     
+            
+            // Add detailed error handling for tile loading
             map.on('sourcedata', (e) => {
                 if (e.sourceId === 'road-surfaces') {
                     if (e.isSourceLoaded) {
-                        console.log('✅ Source data loaded:', e);
-                    } else {
-                        console.log('⏳ Source data loading:', e);
+                        console.log('✅ Tile source loaded successfully');
+                    } else if (e.tile) {
+                        console.log(`🔄 Loading tile: ${e.tile.tileID.canonical.toString()}`);
                     }
                 }
             });
-     
+            
+            map.on('sourcedataloading', (e) => {
+                if (e.sourceId === 'road-surfaces') {
+                    console.log('⏳ Source data loading:', e.tile?.tileID.canonical.toString());
+                }
+            });
+            
+            // Add specific error handler for tile loading failures
             map.on('error', (e) => {
-                console.error('❌ Map error:', e);
-                // If it's a timeout error, try to reload the tile
-                if (e.error.message === 'Load failed' && e.sourceId === 'road-surfaces') {
-                    console.log('🔄 Attempting to reload failed tile');
-                    if (e.tile) {
-                        e.tile.retry();
-                    }
+                if (e.sourceId === 'road-surfaces') {
+                    console.error('❌ Tile loading error:', {
+                        error: e.error,
+                        source: e.sourceId,
+                        tile: e.tile?.tileID.canonical.toString()
+                    });
                 }
             });
 
@@ -746,17 +747,29 @@ window.layers.initSurfaceLayers = function() {
 // Helper function to load modifications
 async function loadModifications() {
     try {
-        const response = await fetch('/api/get-road-modifications');
+        const response = await fetch('/api/get-road-modifications', {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success && Array.isArray(data.modifications)) {
-            // Update modification cache
+            console.log('✅ Successfully loaded modifications:', data.modifications.length);
             data.modifications.forEach(mod => {
                 window.modificationCache.set(mod.osm_id, mod);
             });
+        } else {
+            console.warn('⚠️ Unexpected data format:', data);
         }
     } catch (error) {
-        console.error('Error loading modifications:', error);
+        console.error('❌ Error loading modifications:', error);
     }
 }
 
