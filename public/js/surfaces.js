@@ -576,25 +576,21 @@ window.layers.initSurfaceLayers = function() {
                 'source-layer': 'road_surfaces',
                 'filter': [
                     'all',
-                    ['!=', ['get', 'surface'], 'paved'],  // Exclude paved roads
+                    ['!=', ['get', 'surface'], 'paved'],
                     [
                         'any',
-                        ['==', ['get', 'surface'], 'unpaved'],
-                        ['==', ['get', 'surface'], 'dirt'],
-                        ['==', ['get', 'surface'], 'gravel'],
-                        ['==', ['get', 'surface'], 'earth'],
-                        ['==', ['get', 'surface'], 'grass'],
-                        ['==', ['get', 'surface'], 'ground'],
-                        ['==', ['get', 'surface'], 'sand'],
-                        ['==', ['get', 'surface'], 'woodchips'],
-                        ['==', ['get', 'surface'], 'rock'],
-                        ['==', ['get', 'surface'], 'rocks'],
-                        ['==', ['get', 'surface'], 'stones'],
-                        ['==', ['get', 'surface'], 'pebblestone'],
-                        ['==', ['get', 'surface'], 'compacted'],
-                        ['==', ['get', 'surface'], 'fine_gravel'],
-                        ['==', ['get', 'surface'], 'clay'],
-                        ['in', ['get', 'tracktype'], ['literal', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5']]]
+                        ['in', 
+                            ['get', 'surface'], 
+                            ['literal', [
+                                'unpaved', 'dirt', 'gravel', 'earth', 'grass',
+                                'ground', 'sand', 'woodchips', 'rock', 'rocks',
+                                'stones', 'pebblestone', 'compacted', 'fine_gravel', 'clay'
+                            ]]
+                        ],
+                        ['in', 
+                            ['get', 'tracktype'], 
+                            ['literal', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5']]
+                        ]
                     ]
                 ],
                 'layout': {
@@ -636,6 +632,7 @@ window.layers.initSurfaceLayers = function() {
                     ]
                 }
             });
+
             // Add source for modifications overlay
             map.addSource('road-modifications', {
                 type: 'geojson',
