@@ -562,8 +562,7 @@ window.layers.initSurfaceLayers = function() {
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
-                    // Using your hosted tileserver
-                    'http://170.64.193.31:8080/data/unpaved/{z}/{x}/{y}.pbf'
+                    'https://170.64.193.31/data/unpaved/{z}/{x}/{y}.pbf'
                 ],
                 'minzoom': 5,
                 'maxzoom': 14,
