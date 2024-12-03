@@ -563,16 +563,27 @@ window.layers.initSurfaceLayers = function() {
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
-                    'https://170.64.193.31/data/unpaved/{z}/{x}/{y}.pbf'
+                    'https://170.64.193.31/data/unpaved/{z}/{x}/{y}.pbf'.replace('http://', 'https://')
                 ],
                 'minzoom': 5,
                 'maxzoom': 14,
                 'bounds': [96.817905, -54.772405, 167.994058, -9.230553],
                 'attribution': '© OpenStreetMap contributors',
                 'maxRetries': 3,
-                'timeout': 10000,
-                'scheme': 'xyz'
+                'timeout': 10000
             });
+            
+            // Add a request transformer to handle HTTP to HTTPS conversion
+            const originalTransform = map.transformRequest;
+            map.transformRequest = (url, resourceType) => {
+                // Always convert HTTP to HTTPS for our tile server
+                if (url.includes('170.64.193.31')) {
+                    url = url.replace('http://', 'https://');
+                }
+                
+                // Call original transform
+                return originalTransform(url, resourceType);
+            };
             
             // Add detailed error handling for tile loading
             map.on('sourcedata', (e) => {
