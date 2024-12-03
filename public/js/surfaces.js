@@ -558,6 +558,7 @@ window.layers.initSurfaceLayers = function() {
     
     if (!map.getSource('road-surfaces')) {
         try {
+            console.log('🗺️ Adding road-surfaces source');
             // Add TileServer GL source
             map.addSource('road-surfaces', {
                 'type': 'vector',
