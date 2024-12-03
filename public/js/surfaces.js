@@ -569,6 +569,17 @@ window.layers.initSurfaceLayers = function() {
                 'bounds': [96.817905, -54.772405, 167.994058, -9.230553],
                 'attribution': '© OpenStreetMap contributors'
             });
+            
+            // Add error handling
+            map.on('sourcedata', (e) => {
+                if (e.sourceId === 'road-surfaces' && e.isSourceLoaded) {
+                    console.log('Source loaded successfully:', e);
+                }
+            });
+            
+            map.on('error', (e) => {
+                console.error('Map error:', e);
+            });
 
             // Add unpaved roads layer
             map.addLayer({
