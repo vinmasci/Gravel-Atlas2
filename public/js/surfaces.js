@@ -556,84 +556,76 @@ window.layers.initSurfaceLayers = function() {
         window.modificationCache = new Map();
     }
     
-    if (!map.getSource('road-surfaces-part1a')) {
+    if (!map.getSource('road-surfaces')) {
         try {
-            // Add all vector tile sources
-            const sources = [
-                { id: 'part1a', url: 'vinmasci.5whtbr8a' },
-                { id: 'part1b', url: 'vinmasci.1s9s322u' },
-                { id: 'part2', url: 'vinmasci.9lxc6kxx' },
-                { id: 'part3', url: 'vinmasci.1zcoxbke' },
-                { id: 'part4', url: 'vinmasci.8su483ex' }
-            ];
+            // Add MapTiler vector tile source
+            map.addSource('road-surfaces', {
+                'type': 'vector',
+                'tiles': [
+                    'https://api.maptiler.com/tiles/3375636d-6be1-4bca-8fb0-65ffafb9a984/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
+                ],
+                'minzoom': 8,
+                'maxzoom': 14
+            });
 
-            // Add sources and layers for each part
-            sources.forEach(({ id, url }) => {
-                // Add source
-                map.addSource(`road-surfaces-${id}`, {
-                    'type': 'vector',
-                    'url': `mapbox://${url}`
-                });
-
-                // Add base vector tile layer
-                map.addLayer({
-                    'id': `road-surfaces-layer-${id}`,
-                    'type': 'line',
-                    'source': `road-surfaces-${id}`,
-                    'source-layer': 'road_surfaces',
-                    'filter': [
-                        'any',
-                        ['in', ['get', 'surface'], [
-                            'literal', [
-                                'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
-                                'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
-                                'sand', 'clay', 'mud', 'grass', 'woodchips',
-                                'fine_gravel', 'crushed_limestone', 'compacted',
-                                'laterite', 'caliche', 'coral', 'shell_grit', 'tundra',
-                                'chalk', 'limestone', 'shale', 'crusher_run', 'decomposed_granite'
-                            ]]
-                        ],
-                        ['has', 'tracktype']
+            // Add base vector tile layer
+            map.addLayer({
+                'id': 'road-surfaces-layer',
+                'type': 'line',
+                'source': 'road-surfaces',
+                'source-layer': 'transportation', // Adjust this if your layer name is different
+                'filter': [
+                    'any',
+                    ['in', ['get', 'surface'], [
+                        'literal', [
+                            'unpaved', 'dirt', 'gravel', 'earth', 'soil', 'ground',
+                            'rock', 'rocks', 'stone', 'stones', 'pebblestone', 'loose_rocks',
+                            'sand', 'clay', 'mud', 'grass', 'woodchips',
+                            'fine_gravel', 'crushed_limestone', 'compacted',
+                            'laterite', 'caliche', 'coral', 'shell_grit', 'tundra',
+                            'chalk', 'limestone', 'shale', 'crusher_run', 'decomposed_granite'
+                        ]]
                     ],
-                    'layout': {
-                        'visibility': 'none',
-                        'line-join': 'round',
-                        'line-cap': 'round'
-                    },
-                    'paint': {
-                        'line-color': [
-                            'case',
-                            ['has', 'gravel_condition'],
-                            [
-                                'match',
-                                ['to-string', ['get', 'gravel_condition']],
-                                '0', '#01bf11',
-                                '1', '#badc58',  // Change this to '#badc58'
-                                '2', '#ffa801',
-                                '3', '#e67e22',
-                                '4', '#eb4d4b',  // Change this to '#eb4d4b'
-                                '5', '#c0392b',
-                                '6', '#751203',
-                                '#C2B280'
-                            ],
+                    ['has', 'tracktype']
+                ],
+                'layout': {
+                    'visibility': 'none',
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': [
+                        'case',
+                        ['has', 'gravel_condition'],
+                        [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
+                            '0', '#01bf11',
+                            '1', '#badc58',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#eb4d4b',
+                            '5', '#c0392b',
+                            '6', '#751203',
                             '#C2B280'
                         ],
-                        'line-width': [
-                            'interpolate',
-                            ['linear'],
-                            ['zoom'],
-                            8, 2,
-                            10, 3,
-                            12, 4,
-                            14, 5
-                        ],
-                        'line-opacity': [
-                            'case',
-                            ['has', 'gravel_condition'], 0.9,
-                            0.7
-                        ]
-                    }
-                });
+                        '#C2B280'
+                    ],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        8, 2,
+                        10, 3,
+                        12, 4,
+                        14, 5
+                    ],
+                    'line-opacity': [
+                        'case',
+                        ['has', 'gravel_condition'], 0.9,
+                        0.7
+                    ]
+                }
             });
 
             // Add source for modifications overlay
@@ -660,10 +652,10 @@ window.layers.initSurfaceLayers = function() {
                         'match',
                         ['to-string', ['get', 'gravel_condition']],
                         '0', '#01bf11',
-                        '1', '#badc58',  // Change this to '#badc58'
+                        '1', '#badc58',
                         '2', '#ffa801',
                         '3', '#e67e22',
-                        '4', '#eb4d4b',  // Change this to '#eb4d4b'
+                        '4', '#eb4d4b',
                         '5', '#c0392b',
                         '6', '#751203',
                         '#C2B280'
@@ -681,8 +673,8 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Click handler for all layers
-            const handleLayerClick = async (e) => {
+            // Click handler
+            map.on('click', 'road-surfaces-layer', async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     console.log('🔍 Clicked feature:', feature);
@@ -696,7 +688,6 @@ window.layers.initSurfaceLayers = function() {
                     // Check if we have a modification for this feature
                     const modification = window.modificationCache.get(osmId);
                     if (modification) {
-                        // Merge modification data with feature
                         feature.properties = {
                             ...feature.properties,
                             ...modification
@@ -709,11 +700,6 @@ window.layers.initSurfaceLayers = function() {
 
                     showGravelRatingModal(feature);
                 }
-            };
-
-            // Add click handlers for all layers
-            sources.forEach(({ id }) => {
-                map.on('click', `road-surfaces-layer-${id}`, handleLayerClick);
             });
             map.on('click', 'road-modifications-layer', handleLayerClick);
 
@@ -727,10 +713,9 @@ window.layers.initSurfaceLayers = function() {
 
             const handleHover = (e) => {
                 const feature = e.features[0];
-                
-                // Check for modifications
                 const osmId = feature.properties.osm_id;
                 const modification = window.modificationCache.get(osmId);
+                
                 if (modification) {
                     feature.properties = {
                         ...feature.properties,
@@ -753,10 +738,8 @@ window.layers.initSurfaceLayers = function() {
                     .addTo(map);
             };
 
-            // Add hover handlers for all layers
-            sources.forEach(({ id }) => {
-                map.on('mousemove', `road-surfaces-layer-${id}`, handleHover);
-            });
+            // Add hover handlers
+            map.on('mousemove', 'road-surfaces-layer', handleHover);
             map.on('mousemove', 'road-modifications-layer', handleHover);
 
             // Mouse leave handlers
@@ -765,9 +748,7 @@ window.layers.initSurfaceLayers = function() {
                 popup.remove();
             };
 
-            sources.forEach(({ id }) => {
-                map.on('mouseleave', `road-surfaces-layer-${id}`, handleMouseLeave);
-            });
+            map.on('mouseleave', 'road-surfaces-layer', handleMouseLeave);
             map.on('mouseleave', 'road-modifications-layer', handleMouseLeave);
 
             // Load initial modifications
@@ -779,6 +760,8 @@ window.layers.initSurfaceLayers = function() {
         }
     }
 };
+
+// Rest of your existing functions remain the same...
 
 // Helper function to load modifications
 async function loadModifications() {
