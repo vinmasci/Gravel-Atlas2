@@ -345,3 +345,246 @@ setInterval(async () => {
         await loadModifications();
     }
 }, SURFACE_CACHE.maxAge);
+
+function showGravelRatingModal(feature) {
+    console.log('📱 Opening modal for feature:', feature);
+    
+    // Store the selected feature globally
+    window.selectedFeature = feature;
+
+    // Remove any existing modals first
+    const existingModal = document.getElementById('gravel-rating-modal');
+    const existingBackdrop = document.getElementById('gravel-rating-backdrop');
+    if (existingModal) existingModal.remove();
+    if (existingBackdrop) existingBackdrop.remove();
+    
+    const osmId = feature.properties.osm_id;
+    const roadName = feature.properties.name || 'Unnamed Road';
+    
+    if (!osmId) {
+        console.error('❌ Cannot create modal: Missing OSM ID');
+        return;
+    }
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'gravel-rating-backdrop';
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+
+    const modal = document.createElement('div');
+    modal.id = 'gravel-rating-modal';
+    modal.className = 'gravel-edit-modal';
+    modal.setAttribute('data-road-id', osmId);
+    
+    modal.style.cssText = `
+        position: relative !important;
+        background-color: #fff !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        z-index: 100000 !important;
+        width: 300px !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+    `;
+
+    // Get existing modification if any
+    const existingMod = window.modificationCache.get(osmId);
+    const votes = existingMod?.votes || [];
+    
+    console.log('🗳️ Existing votes:', votes);
+    
+    const averageCondition = votes.length > 0 
+        ? Math.round(votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length)
+        : undefined;
+    
+    console.log('📊 Calculated average condition:', averageCondition);
+
+    // Format votes with proper date handling
+    const formattedVotes = votes.length > 0 ? 
+        votes
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .map(vote => `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${new Date(vote.timestamp).toLocaleDateString()}`)
+            .join('<br>')
+        : 'No votes yet';
+
+    modal.innerHTML = `
+        <div style="position: absolute; top: 10px; right: 10px; cursor: pointer;" id="close-modal">
+            <i class="fa-solid fa-times" style="font-size: 18px; color: #666;"></i>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 18px; margin: 0 0 8px 0; color: #333;">${roadName}</h3>
+            <div style="font-size: 14px;">
+                <div style="margin-top: 8px; font-size: 13px;">
+                    <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
+                    <div><b>OSM ID:</b> ${osmId}</div>
+                    <div class="current-condition"><b>Current Condition:</b> ${
+                        averageCondition !== undefined ? 
+                        getConditionIcon(averageCondition) : 
+                        '<span style="color: #666;">Requires update</span>'
+                    }</div>
+                    ${feature.properties.highway ? `<div><b>Road Type:</b> ${formatHighway(feature.properties.highway)}</div>` : ''}
+                    ${feature.properties.access ? `<div><b>Access:</b> ${formatAccess(feature.properties.access)}</div>` : ''}
+                </div>
+            </div>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;"><b>Vote road condition:</b></label>
+            <div style="display: flex; justify-content: center; margin-bottom: 8px; gap: 12px;" id="condition-icons">
+                ${Array.from({ length: 7 }, (_, i) => 
+                    `<span style="cursor: pointer;" data-value="${i}">${getConditionIcon(i)}</span>`
+                ).join('')}
+            </div>
+            <select id="gravel-condition" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="" disabled selected>Select condition...</option>
+                <option value="0">0 - Smooth surface, any bike</option>
+                <option value="1">1 - Well maintained, gravel bike</option>
+                <option value="2">2 - Occasional rough surface</option>
+                <option value="3">3 - Frequent loose surface</option>
+                <option value="4">4 - Very rough surface</option>
+                <option value="5">5 - Extremely rough surface, MTB</option>
+                <option value="6">6 - Hike-A-Bike</option>
+            </select>
+            <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
+            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${existingMod?.notes || ''}</textarea>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+        <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
+            ${formattedVotes}
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
+        </div>
+    `;
+    
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+
+    function updateColorPreview(value) {
+        const colorPreview = document.getElementById('color-preview');
+        if (value === '') {
+            colorPreview.style.backgroundColor = '';
+        } else {
+            colorPreview.style.backgroundColor = getColorForGravelCondition(value);
+        }
+    }
+
+    // Event Listeners
+    const select = document.getElementById('gravel-condition');
+    select.addEventListener('change', (e) => {
+        updateColorPreview(e.target.value);
+    });
+
+    document.getElementById('condition-icons').addEventListener('click', (e) => {
+        const iconSpan = e.target.closest('span[data-value]');
+        if (iconSpan) {
+            const value = iconSpan.getAttribute('data-value');
+            const select = document.getElementById('gravel-condition');
+            select.value = value;
+            updateColorPreview(value);
+        }
+    });
+
+    const closeModal = () => {
+        backdrop.remove();
+        modal.remove();
+    };
+
+    document.getElementById('close-modal').onclick = closeModal;
+    document.getElementById('cancel-rating').onclick = closeModal;
+    backdrop.onclick = (e) => {
+        if (e.target === backdrop) closeModal();
+    };
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    document.getElementById('save-rating').onclick = async () => {
+        console.log('💾 Save rating clicked');
+        const saveButton = document.getElementById('save-rating');
+        const gravelCondition = document.getElementById('gravel-condition').value;
+        const notes = document.getElementById('surface-notes').value;
+        
+        if (!gravelCondition) {
+            console.error('❌ No condition selected');
+            saveButton.style.backgroundColor = '#dc3545';
+            saveButton.textContent = 'Please select a condition';
+            setTimeout(() => {
+                saveButton.style.backgroundColor = '#007bff';
+                saveButton.textContent = 'Save';
+            }, 2000);
+            return;
+        }
+
+        if (!window.selectedFeature?.geometry) {
+            console.error('❌ No feature geometry found');
+            saveButton.style.backgroundColor = '#dc3545';
+            saveButton.textContent = 'Error: Missing geometry';
+            return;
+        }
+
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
+
+        try {
+            const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+            if (!userProfile) throw new Error('No user profile found');
+
+            const response = await fetch('/api/update-road-surface', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    osm_id: osmId,
+                    gravel_condition: parseInt(gravelCondition),
+                    notes: notes,
+                    user_id: userProfile.auth0Id,
+                    userName: formatUserName(userProfile),
+                    geometry: window.selectedFeature.geometry
+                })
+            });
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to save vote');
+            }
+
+            console.log('✅ Vote saved successfully:', data);
+
+            // Update cache and UI
+            await updateRoadModification(osmId, data.modification);
+
+            saveButton.style.backgroundColor = '#28a745';
+            saveButton.textContent = 'Saved!';
+            
+            setTimeout(closeModal, 1000);
+
+        } catch (error) {
+            console.error('Error saving vote:', error);
+            saveButton.style.backgroundColor = '#dc3545';
+            saveButton.textContent = 'Error!';
+            setTimeout(() => {
+                saveButton.style.backgroundColor = '#007bff';
+                saveButton.textContent = 'Save';
+                saveButton.disabled = false;
+            }, 2000);
+        }
+    };
+}
