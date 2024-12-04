@@ -31,6 +31,28 @@ console.log('🔧 Initial setup complete:', {
     }
 });
 
+function formatAccess(access) {
+    const result = access?.toLowerCase();
+    switch(result) {
+        case 'private': return 'Private - No Public Access';
+        case 'permissive': return 'Access with Permission';
+        case 'restricted': return 'Restricted Access';
+        case 'customers': return 'Customers Only';
+        case 'destination': return 'Local Access Only';
+        case 'yes':
+        case 'public': return 'Public Access';
+        default:
+            return access ? `Access: ${access}` : 'Unknown Access';
+    }
+}
+
+function formatHighway(highway) {
+    return highway
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
 async function loadModifications() {
     console.log('🔄 Loading modifications...');
     try {
@@ -41,16 +63,12 @@ async function loadModifications() {
             throw new Error(data.error || 'Failed to load modifications');
         }
 
-        // Clear existing cache
         window.modificationCache.clear();
-        
-        // Update cache with new modifications
         Object.entries(data.modifications).forEach(([osmId, mod]) => {
             window.modificationCache.set(osmId, mod);
         });
 
         SURFACE_CACHE.viewState.timestamp = Date.now();
-        
         console.log(`✅ Loaded ${window.modificationCache.size} modifications`);
         return true;
 
@@ -61,22 +79,17 @@ async function loadModifications() {
 }
 
 function getColorForGravelCondition(condition) {
-    console.log('🎨 Getting color for condition:', condition);
     const parsedCondition = parseInt(condition);
-    const color = (() => {
-        switch(parsedCondition) {
-            case 0: return '#01bf11'; // Green - Smooth surface
-            case 1: return '#badc58'; // Light green - Well maintained
-            case 2: return '#ffa801'; // Yellow - Occasional rough
-            case 3: return '#e67e22'; // Orange - Frequent loose
-            case 4: return '#eb4d4b'; // Red - Very rough
-            case 5: return '#c0392b'; // Dark red - Extremely rough
-            case 6: return '#751203'; // Darker red - Hike-a-bike
-            default: return '#C2B280'; // Default gravel color
-        }
-    })();
-    console.log('🎨 Selected color:', color);
-    return color;
+    switch(parsedCondition) {
+        case 0: return '#01bf11'; // Green - Smooth surface
+        case 1: return '#badc58'; // Light green - Well maintained
+        case 2: return '#ffa801'; // Yellow - Occasional rough
+        case 3: return '#e67e22'; // Orange - Frequent loose
+        case 4: return '#eb4d4b'; // Red - Very rough
+        case 5: return '#c0392b'; // Dark red - Extremely rough
+        case 6: return '#751203'; // Darker red - Hike-a-bike
+        default: return '#C2B280'; // Default gravel color
+    }
 }
 
 function getConditionIcon(condition) {
@@ -91,44 +104,8 @@ function formatUserName(profile) {
 
 async function updateRoadModification(osmId, modificationData) {
     console.log('🔄 Updating modification for:', osmId);
-    
-    // Update cache
     window.modificationCache.set(osmId, modificationData);
-    
-    // Update layer colors
-    const color = getColorForGravelCondition(modificationData.gravel_condition);
-    const parts = ['part1a', 'part1b', 'part2', 'part3', 'part4'];
-    
-    parts.forEach(part => {
-        const layerId = `road-surfaces-layer-${part}`;
-        if (map.getLayer(layerId)) {
-            const paintExpression = [
-                'match',
-                ['get', 'osm_id'],
-                osmId,
-                color,
-                [
-                    'case',
-                    ['has', 'gravel_condition'],
-                    [
-                        'match',
-                        ['to-string', ['get', 'gravel_condition']],
-                        '0', '#01bf11',
-                        '1', '#badc58',
-                        '2', '#ffa801',
-                        '3', '#e67e22',
-                        '4', '#eb4d4b',
-                        '5', '#c0392b',
-                        '6', '#751203',
-                        '#C2B280'
-                    ],
-                    '#C2B280'
-                ]
-            ];
-            
-            map.setPaintProperty(layerId, 'line-color', paintExpression);
-        }
-    });
+    await window.layers.updateSurfaceData();
 }
 
 window.layers.initSurfaceLayers = async function() {
@@ -136,7 +113,6 @@ window.layers.initSurfaceLayers = async function() {
     
     if (!map.getSource('road-surfaces')) {
         try {
-            // Add vector tile source
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
@@ -146,7 +122,6 @@ window.layers.initSurfaceLayers = async function() {
                 'maxzoom': 16
             });
             
-            // Add surface layer
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
@@ -160,6 +135,7 @@ window.layers.initSurfaceLayers = async function() {
                 'paint': {
                     'line-color': [
                         'case',
+                        // First check for modifications
                         ['has', 'gravel_condition'],
                         [
                             'match',
@@ -173,7 +149,56 @@ window.layers.initSurfaceLayers = async function() {
                             '6', '#751203',
                             '#C2B280'
                         ],
-                        '#C2B280'
+                        // Check for cycleways and paths
+                        [
+                            'any',
+                            ['all',
+                                ['any',
+                                    ['==', ['get', 'railway'], 'abandoned'],
+                                    ['==', ['get', 'railway'], 'disused']
+                                ],
+                                ['==', ['get', 'highway'], 'cycleway']
+                            ],
+                            ['all',
+                                ['==', ['get', 'highway'], 'cycleway']
+                            ],
+                            ['all',
+                                ['==', ['get', 'highway'], 'path'],
+                                ['==', ['get', 'bicycle'], 'designated']
+                            ],
+                            ['all',
+                                ['==', ['get', 'highway'], 'track'],
+                                ['==', ['get', 'bicycle'], 'designated']
+                            ],
+                            ['all',
+                                ['==', ['get', 'cycleway'], 'track']
+                            ],
+                            ['all',
+                                ['==', ['get', 'cycleway'], 'shared']
+                            ]
+                        ],
+                        [
+                            'case',
+                            ['match', 
+                                ['get', 'surface'],
+                                ['asphalt', 'concrete', 'paved', 'metal'],
+                                true,
+                                false
+                            ],
+                            '#9370DB',  // Purple for paved cycleways
+                            '#000080'   // Navy for unpaved cycleways
+                        ],
+                        // For all other surfaces
+                        [
+                            'match',
+                            ['get', 'surface'],
+                            ['unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted',
+                             'grass', 'earth', 'sand', 'woodchips', 'pebblestone', 
+                             'gravel;grass', 'soil', 'rock', 'stones', 'ground',
+                             'natural', 'clay', 'dirt/sand', 'limestone', 'shell'],
+                            '#C2B280',  // Standard unpaved color
+                            'transparent' // Hide paved and unknown surfaces
+                        ]
                     ],
                     'line-width': [
                         'interpolate',
@@ -185,18 +210,30 @@ window.layers.initSurfaceLayers = async function() {
                         12, 4,
                         14, 5
                     ],
-                    'line-opacity': 0.8
-                }
+                    'line-opacity': [
+                        'case',
+                        ['has', 'name'],
+                        0.8,
+                        0.4  // Lower opacity for unnamed roads
+                    ]
+                },
+                'filter': [
+                    'all',
+                    ['!=', ['get', 'surface'], 'asphalt'],
+                    ['!=', ['get', 'surface'], 'concrete'],
+                    ['!=', ['get', 'surface'], 'paved']
+                ]
             });
 
             // Add click handler
             map.on('click', 'road-surfaces-layer', async (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
-                    const osmId = feature.properties.osm_id;
+                    console.log('Clicked feature:', feature);
                     
+                    const osmId = feature.properties.osm_id;
                     if (!osmId) {
-                        console.error('❌ No OSM ID found for feature');
+                        console.error('No OSM ID found for feature');
                         return;
                     }
 
@@ -211,7 +248,6 @@ window.layers.initSurfaceLayers = async function() {
 
                     const auth0 = await window.waitForAuth0();
                     if (!await auth0.isAuthenticated()) {
-                        // Handle unauthenticated user
                         return;
                     }
 
@@ -245,8 +281,20 @@ window.layers.initSurfaceLayers = async function() {
                     const html = `
                         <div class="gravel-popup-content">
                             <h4>${feature.properties.name || 'Unnamed Road'}</h4>
-                            ${feature.properties.surface ? `<p><strong>Surface:</strong> ${feature.properties.surface}</p>` : ''}
-                            ${feature.properties.gravel_condition ? `<p><strong>Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)}</p>` : ''}
+                            <p><strong>Surface:</strong> ${feature.properties.surface || 'Unknown'}</p>
+                            ${feature.properties.gravel_condition ? 
+                              `<p><strong>Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)}</p>` : 
+                              ''}
+                            ${feature.properties.highway ? 
+                              `<p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>` : 
+                              ''}
+                            ${feature.properties.access ? 
+                              `<p><strong>Access:</strong> ${formatAccess(feature.properties.access)}</p>` : 
+                              ''}
+                            ${modification ? 
+                              `<p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
+                               <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` : 
+                              ''}
                         </div>
                     `;
 
@@ -261,11 +309,10 @@ window.layers.initSurfaceLayers = async function() {
                 popup.remove();
             });
 
-            // Load initial modifications
             await loadModifications();
 
         } catch (error) {
-            console.error('❌ Error initializing surface layers:', error);
+            console.error('Error initializing surface layers:', error);
             throw error;
         }
     }
@@ -332,19 +379,6 @@ window.layers.toggleSurfaceLayer = async function() {
         }
     }
 };
-
-// Set up global references
-window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
-window.updateRoadModification = updateRoadModification;
-
-console.log('✅ Surface layer module loaded');
-
-// Auto-refresh modifications periodically
-setInterval(async () => {
-    if (window.layerVisibility.surfaces && map.getZoom() >= 8) {
-        await loadModifications();
-    }
-}, SURFACE_CACHE.maxAge);
 
 function showGravelRatingModal(feature) {
     console.log('📱 Opening modal for feature:', feature);
@@ -588,3 +622,16 @@ function showGravelRatingModal(feature) {
         }
     };
 }
+
+// Set up global references
+window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
+window.updateRoadModification = updateRoadModification;
+
+// Auto-refresh modifications periodically
+setInterval(async () => {
+    if (window.layerVisibility.surfaces && map.getZoom() >= 8) {
+        await loadModifications();
+    }
+}, SURFACE_CACHE.maxAge);
+
+console.log('✅ Surface layer module loaded');
