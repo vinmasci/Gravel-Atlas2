@@ -30,3 +30,4 @@ extract-surface-all.js
 gravelatlas-tiles/config.json
 gravelatlas-tiles/data/osm-2020-02-10-v3.11_australia-oceania.mbtiles
 gravelatlas-tiles/styles/basic.json
+tilemaker/
