@@ -11,8 +11,8 @@ function initPOILayers() {
                 'tiles': [
                     'https://api.maptiler.com/tiles/c206d0fc-f093-499d-898c-5e0b038a4398/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
                 ],
-                'minzoom': 1,  // Changed from default to show from further out
-                'maxzoom': 16
+                'maxzoom': 16,
+                'promoteId': 'osm_id'
             });
 
             // Background circles layer
@@ -21,12 +21,14 @@ function initPOILayers() {
                 'type': 'circle',
                 'source': 'pois',
                 'source-layer': 'pois',
-                'minzoom': 1,  // Added to match source
                 'layout': {
                     'visibility': 'none'
                 },
                 'paint': {
-                    'circle-radius': 10,
+                    'circle-radius': ['interpolate', ['linear'], ['zoom'],
+                        0, 10,
+                        22, 10
+                    ],
                     'circle-color': [
                         'match',
                         ['get', 'amenity_type'],
@@ -55,18 +57,7 @@ function initPOILayers() {
                         0.8,
                         0
                     ],
-                    'circle-stroke-width': [
-                        'case',
-                        ['any',
-                            ['==', ['get', 'amenity_type'], 'toilets'],
-                            ['==', ['get', 'amenity_type'], 'drinking_water'],
-                            ['==', ['get', 'amenity_type'], 'cafe'],
-                            ['==', ['get', 'tourism'], 'camp_site'],
-                            ['==', ['get', 'shop'], 'supermarket']
-                        ],
-                        2,
-                        0
-                    ],
+                    'circle-stroke-width': 2,
                     'circle-stroke-color': '#ffffff'
                 }
             });
@@ -82,7 +73,6 @@ function initPOILayers() {
                 'type': 'symbol',
                 'source': 'pois',
                 'source-layer': 'pois',
-                'minzoom': 1,  // Added to match source
                 'layout': {
                     'visibility': 'none',
                     'icon-image': [
@@ -101,7 +91,10 @@ function initPOILayers() {
                             ]
                         ]
                     ],
-                    'icon-size': 0.7,
+                    'icon-size': ['interpolate', ['linear'], ['zoom'],
+                        0, 0.7,
+                        22, 0.7
+                    ],
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true
                 },
