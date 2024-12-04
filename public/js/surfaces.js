@@ -684,7 +684,7 @@ window.layers.initSurfaceLayers = function() {
                                         'natural', 'ground;grass', 'clay', 'dirt/sand', 'limestone',
                                         'cobblestone:flattened', 'shell'
                                     ],
-                                    '#C2B280', // Same color as other unpaved surfaces
+                                    '#000080', // Navy blue for unpaved cycleways
                                     'transparent' // Hide if surface type not matched
                                 ]
                             ],
@@ -714,7 +714,7 @@ window.layers.initSurfaceLayers = function() {
                         12, 4,
                         14, 5
                     ],
-                    'line-opacity': 0.7
+                    'line-opacity': 0.8
                 }
             });
 
