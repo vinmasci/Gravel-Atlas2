@@ -11,7 +11,6 @@ function initPOILayers() {
                 'tiles': [
                     'https://api.maptiler.com/tiles/c206d0fc-f093-499d-898c-5e0b038a4398/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
                 ],
-                'minzoom': 6,
                 'maxzoom': 16
             });
 
@@ -29,17 +28,15 @@ function initPOILayers() {
                     'circle-color': [
                         'match',
                         ['get', 'amenity_type'],
-                        'toilets', '#e74c3c',      // Red for toilets
-                        'fuel', '#f1c40f',         // Yellow for service stations
-                        'cafe', '#9b59b6',         // Purple for cafes
-                        'drinking_water', '#3498db', // Blue for drinking water
+                        'toilets', '#e74c3c',
+                        'drinking_water', '#3498db',
+                        'cafe', '#9b59b6',
                         ['match', 
                             ['get', 'tourism'],
-                            'camp_site', '#2ecc71',  // Green for campsites
+                            'camp_site', '#2ecc71',
                             ['match',
                                 ['get', 'shop'],
-                                'bicycle', '#3498db',    // Blue for bike shops
-                                'supermarket', '#e67e22', // Orange for supermarkets
+                                'supermarket', '#e67e22',
                                 'transparent'
                             ]
                         ]
@@ -48,11 +45,9 @@ function initPOILayers() {
                         'case',
                         ['any',
                             ['==', ['get', 'amenity_type'], 'toilets'],
-                            ['==', ['get', 'amenity_type'], 'fuel'],
-                            ['==', ['get', 'amenity_type'], 'cafe'],
                             ['==', ['get', 'amenity_type'], 'drinking_water'],
+                            ['==', ['get', 'amenity_type'], 'cafe'],
                             ['==', ['get', 'tourism'], 'camp_site'],
-                            ['==', ['get', 'shop'], 'bicycle'],
                             ['==', ['get', 'shop'], 'supermarket']
                         ],
                         0.8,
@@ -62,11 +57,9 @@ function initPOILayers() {
                         'case',
                         ['any',
                             ['==', ['get', 'amenity_type'], 'toilets'],
-                            ['==', ['get', 'amenity_type'], 'fuel'],
-                            ['==', ['get', 'amenity_type'], 'cafe'],
                             ['==', ['get', 'amenity_type'], 'drinking_water'],
+                            ['==', ['get', 'amenity_type'], 'cafe'],
                             ['==', ['get', 'tourism'], 'camp_site'],
-                            ['==', ['get', 'shop'], 'bicycle'],
                             ['==', ['get', 'shop'], 'supermarket']
                         ],
                         2,
@@ -76,14 +69,10 @@ function initPOILayers() {
                 }
             });
 
-            // Create Font Awesome icons first
-            addFontAwesomeIcon('fa-restroom');      // Toilets
-            addFontAwesomeIcon('fa-gas-pump');      // Service stations
-            addFontAwesomeIcon('fa-mug-hot');       // Cafes
-            addFontAwesomeIcon('fa-faucet');        // Drinking water
-            addFontAwesomeIcon('fa-campground');    // Campsites
-            addFontAwesomeIcon('fa-bicycle');       // Bike shops
-            addFontAwesomeIcon('fa-shopping-cart'); // Supermarkets
+            // Create icons in white with transparent background
+            ['fa-restroom', 'fa-faucet', 'fa-mug-hot', 'fa-campground', 'fa-shopping-cart'].forEach(icon => {
+                createIcon(icon);
+            });
 
             // Icon layer
             map.addLayer({
@@ -97,23 +86,25 @@ function initPOILayers() {
                         'match',
                         ['get', 'amenity_type'],
                         'toilets', 'fa-restroom',
-                        'fuel', 'fa-gas-pump',
-                        'cafe', 'fa-mug-hot',
                         'drinking_water', 'fa-faucet',
+                        'cafe', 'fa-mug-hot',
                         ['match',
                             ['get', 'tourism'],
                             'camp_site', 'fa-campground',
                             ['match',
                                 ['get', 'shop'],
-                                'bicycle', 'fa-bicycle',
                                 'supermarket', 'fa-shopping-cart',
                                 ''
                             ]
                         ]
                     ],
-                    'icon-size': 0.5,
+                    'icon-size': 0.7,
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true
+                },
+                'paint': {
+                    'icon-opacity': 1,
+                    'icon-color': '#ffffff'
                 }
             });
 
@@ -135,20 +126,14 @@ function initPOILayers() {
                     case 'toilets':
                         icon = '<i class="fa-solid fa-restroom"></i>';
                         break;
-                    case 'fuel':
-                        icon = '<i class="fa-solid fa-gas-pump"></i>';
+                    case 'drinking_water':
+                        icon = '<i class="fa-solid fa-faucet"></i>';
                         break;
                     case 'cafe':
                         icon = '<i class="fa-solid fa-mug-hot"></i>';
                         break;
-                    case 'drinking_water':
-                        icon = '<i class="fa-solid fa-faucet"></i>';
-                        break;
                     case 'camp_site':
                         icon = '<i class="fa-solid fa-campground"></i>';
-                        break;
-                    case 'bicycle':
-                        icon = '<i class="fa-solid fa-bicycle"></i>';
                         break;
                     case 'supermarket':
                         icon = '<i class="fa-solid fa-shopping-cart"></i>';
@@ -178,36 +163,37 @@ function initPOILayers() {
     }
 }
 
-function addFontAwesomeIcon(iconClass) {
+function createIcon(iconClass) {
+    const size = 40; // Larger canvas for better quality
     const canvas = document.createElement('canvas');
-    canvas.width = 20;
-    canvas.height = 20;
+    canvas.width = size;
+    canvas.height = size;
     const ctx = canvas.getContext('2d');
     
-    // Background should be transparent
-    ctx.fillStyle = '#ffffff';  // White icons
-    ctx.font = '14px "Font Awesome 6 Free Solid"';
+    // Clear canvas with transparent background
+    ctx.clearRect(0, 0, size, size);
+    
+    // Draw icon in white
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${size * 0.7}px "Font Awesome 6 Free Solid"`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
     const iconUnicode = {
         'fa-restroom': 'f7bd',
-        'fa-gas-pump': 'f52f',
+        'fa-faucet': 'e005',
         'fa-mug-hot': 'f7b6',
         'fa-campground': 'f6bb',
-        'fa-bicycle': 'f206',
-        'fa-faucet': 'e005',
         'fa-shopping-cart': 'f07a'
     };
     
-    ctx.fillText(String.fromCharCode('0x' + iconUnicode[iconClass]), 10, 10);
+    ctx.fillText(String.fromCharCode('0x' + iconUnicode[iconClass]), size/2, size/2);
     
     if (!map.hasImage(iconClass)) {
         map.addImage(iconClass, {
-            width: 20,
-            height: 20,
-            data: ctx.getImageData(0, 0, 20, 20).data,
-            sdf: true  // Added this to help with icon rendering
+            width: size,
+            height: size,
+            data: ctx.getImageData(0, 0, size, size).data
         });
     }
 }
