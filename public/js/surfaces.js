@@ -684,10 +684,15 @@ window.layers.initSurfaceLayers = function() {
                                 ['get', 'surface'],
                                 ['asphalt', 'concrete', 'paved', 'metal'],
                                 true,
-                                false
+                                ['match',
+                                    ['get', 'surface'],
+                                    ['fine_gravel'],  // Adding fine_gravel to unpaved category
+                                    false,
+                                    true
+                                ]
                             ],
                             '#9370DB', // Purple for paved bike paths/rail trails
-                            '#000080'  // Navy for unpaved bike paths/rail trails
+                            '#000080'  // Navy for unpaved bike paths/rail trails (including fine_gravel)
                         ],
                         // For all other unpaved surfaces
                         [
