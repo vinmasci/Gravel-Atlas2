@@ -576,20 +576,25 @@ window.layers.initSurfaceLayers = function() {
                 'source-layer': 'road-surfaces',
                 'filter': [
                     'all',
-                    // Check for all types of unpaved surfaces
-                    ['any',
-                        ['==', ['get', 'surface'], 'unpaved'],
-                        ['==', ['get', 'surface'], 'gravel'],
-                        ['==', ['get', 'surface'], 'dirt'],
-                        ['==', ['get', 'surface'], 'earth'],
-                        ['==', ['get', 'surface'], 'grass'],
-                        ['==', ['get', 'surface'], 'ground']
-                    ],
-                    // Make sure it's a road
-                    ['==', ['get', 'network'], 'road']
+                    ['!=', ['get', 'surface'], 'paved'],
+                    [
+                        'any',
+                        ['in', 
+                            ['get', 'surface'], 
+                            ['literal', [
+                                'unpaved', 'dirt', 'gravel', 'earth', 'grass',
+                                'ground', 'sand', 'woodchips', 'rock', 'rocks',
+                                'stones', 'pebblestone', 'compacted', 'fine_gravel', 'clay'
+                            ]]
+                        ],
+                        ['in', 
+                            ['get', 'tracktype'], 
+                            ['literal', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5']]
+                        ]
+                    ]
                 ],
                 'layout': {
-                    'visibility': 'visible',
+                    'visibility': 'none',
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
@@ -620,7 +625,12 @@ window.layers.initSurfaceLayers = function() {
                         10, 3,
                         12, 4,
                         14, 5
-                    ]
+                    ],
+                'line-opacity': [
+                    'case',
+                    ['has', 'gravel_condition'], 0.9,
+                    0.7
+                ]
                 }
             });
 
