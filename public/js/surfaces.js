@@ -573,28 +573,21 @@ window.layers.initSurfaceLayers = function() {
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': 'road-surfaces',
-                'source-layer': 'road_surfaces',
+                'source-layer': 'transportation', // This is the correct layer name
                 'filter': [
                     'all',
-                    ['!=', ['get', 'surface'], 'paved'],
-                    [
-                        'any',
-                        ['in', 
-                            ['get', 'surface'], 
-                            ['literal', [
-                                'unpaved', 'dirt', 'gravel', 'earth', 'grass',
-                                'ground', 'sand', 'woodchips', 'rock', 'rocks',
-                                'stones', 'pebblestone', 'compacted', 'fine_gravel', 'clay'
-                            ]]
-                        ],
-                        ['in', 
-                            ['get', 'tracktype'], 
-                            ['literal', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5']]
-                        ]
-                    ]
+                    // Look for unpaved surfaces specifically
+                    ['==', ['get', 'surface'], 'unpaved'],
+                    // Include relevant road classes
+                    ['in', 
+                        ['get', 'class'],
+                        ['literal', ['minor', 'residential', 'primary', 'secondary', 'tertiary', 'track']]
+                    ],
+                    // Make sure it's a road in the network
+                    ['==', ['get', 'network'], 'road']
                 ],
                 'layout': {
-                    'visibility': 'none',
+                    'visibility': 'visible',
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
@@ -614,7 +607,7 @@ window.layers.initSurfaceLayers = function() {
                             '6', '#751203',
                             '#C2B280'
                         ],
-                        '#C2B280'
+                        '#C2B280' // Default gravel color
                     ],
                     'line-width': [
                         'interpolate',
@@ -624,11 +617,6 @@ window.layers.initSurfaceLayers = function() {
                         10, 3,
                         12, 4,
                         14, 5
-                    ],
-                    'line-opacity': [
-                        'case',
-                        ['has', 'gravel_condition'], 0.9,
-                        0.7
                     ]
                 }
             });
