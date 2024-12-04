@@ -562,7 +562,7 @@ window.layers.initSurfaceLayers = function() {
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
-                    'https://api.maptiler.com/tiles/2c0e1e81-770c-476f-ae97-bd064cfd56e1/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
+                    'https://api.maptiler.com/tiles/3375636d-6be1-4bca-8fb0-65ffafb9a984/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
                 ],
                 'minzoom': 8,
                 'maxzoom': 14
@@ -573,7 +573,7 @@ window.layers.initSurfaceLayers = function() {
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': 'road-surfaces',
-                'source-layer': 'transportation',
+                'source-layer': 'road-surfaces',
                 'filter': [
                     'all',
                     // Check for all types of unpaved surfaces

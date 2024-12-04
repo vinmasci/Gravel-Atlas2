@@ -31,3 +31,13 @@ gravelatlas-tiles/config.json
 gravelatlas-tiles/data/osm-2020-02-10-v3.11_australia-oceania.mbtiles
 gravelatlas-tiles/styles/basic.json
 tilemaker/
+add_osm_id.js
+all_roads.json
+all_unpaved_roads.geojson
+all_unpaved_roads_fixed.geojson
+all_unpaved_ways.osm.pbf
+extract-osm-data.js
+pois.json
+unpaved_roads.geojson
+unpaved_roads.json
+unpaved_ways.osm.pbf
