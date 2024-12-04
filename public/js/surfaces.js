@@ -568,71 +568,65 @@ window.layers.initSurfaceLayers = function() {
                 'maxzoom': 14
             });
 
-            // Add base vector tile layer
-            map.addLayer({
-                'id': 'road-surfaces-layer',
-                'type': 'line',
-                'source': 'road-surfaces',
-                'source-layer': 'road-surfaces',
-                'filter': [
-                    'all',
-                    ['!=', ['get', 'surface'], 'paved'],
-                    [
-                        'any',
-                        ['in', 
-                            ['get', 'surface'], 
-                            ['literal', [
-                                'unpaved', 'dirt', 'gravel', 'earth', 'grass',
-                                'ground', 'sand', 'woodchips', 'rock', 'rocks',
-                                'stones', 'pebblestone', 'compacted', 'fine_gravel', 'clay'
-                            ]]
-                        ],
-                        ['in', 
-                            ['get', 'tracktype'], 
-                            ['literal', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5']]
-                        ]
-                    ]
-                ],
-                'layout': {
-                    'visibility': 'none',
-                    'line-join': 'round',
-                    'line-cap': 'round'
-                },
-                // Rest of your style properties remain the same
-                'paint': {
-                    'line-color': [
-                        'case',
-                        ['has', 'gravel_condition'],
-                        [
-                            'match',
-                            ['to-string', ['get', 'gravel_condition']],
-                            '0', '#01bf11',
-                            '1', '#badc58',
-                            '2', '#ffa801',
-                            '3', '#e67e22',
-                            '4', '#eb4d4b',
-                            '5', '#c0392b',
-                            '6', '#751203',
-                            '#C2B280'
-                        ],
-                        '#C2B280' // Default gravel color
-                    ],
-                    'line-width': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        8, 2,
-                        10, 3,
-                        12, 4,
-                        14, 5
-                    ],
-                'line-opacity': [
-                    'case',
-                    ['has', 'gravel_condition'], 0.9,
-                    0.7
-                ]
-                }
-            });
+// Add MapTiler vector tile source
+map.addSource('road-surfaces', {
+    'type': 'vector',
+    'tiles': [
+        'https://api.maptiler.com/tiles/24ef3773-9c7b-4cc0-b056-16b14afb5fe4/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
+    ],
+    'minzoom': 5,  // adjusted for broader view
+    'maxzoom': 16
+});
+
+// Add base vector tile layer
+map.addLayer({
+    'id': 'road-surfaces-layer',
+    'type': 'line',
+    'source': 'road-surfaces',
+    'source-layer': 'roads',  // make sure this matches your layer name in MapTiler
+    'layout': {
+        'visibility': 'none',
+        'line-join': 'round',
+        'line-cap': 'round'
+    },
+    'paint': {
+        'line-color': [
+            'case',
+            ['has', 'gravel_condition'],
+            [
+                'match',
+                ['to-string', ['get', 'gravel_condition']],
+                '0', '#01bf11',
+                '1', '#badc58',
+                '2', '#ffa801',
+                '3', '#e67e22',
+                '4', '#eb4d4b',
+                '5', '#c0392b',
+                '6', '#751203',
+                '#C2B280'
+            ],
+            // Default color based on surface type
+            [
+                'match',
+                ['get', 'surface'],
+                'unpaved', '#b8860b',
+                'unknown', '#808080',
+                '#C2B280'  // default gravel color
+            ]
+        ],
+        'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            5, 1,   // thinner at zoom 5
+            8, 2,
+            10, 3,
+            12, 4,
+            14, 5
+        ],
+        'line-opacity': 0.8
+    }
+});
 
             // Add source for modifications overlay
             map.addSource('road-modifications', {

@@ -41,3 +41,10 @@ pois.json
 unpaved_roads.geojson
 unpaved_roads.json
 unpaved_ways.osm.pbf
+all_unpaved_roads_fixed.mbtiles
+pois_first.mbtiles
+pois_flattened.js
+pois_flattened.json
+pois_new.mbtiles
+unpaced_roads_big.mbtiles
+unpaved_roads_big.mbtiles
