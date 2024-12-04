@@ -26,6 +26,9 @@ module.exports = async (req, res) => {
     
     const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
 
+    // Log received data
+    console.log('📍 Received data:', { osm_id, gravel_condition, user_id, userName, hasGeometry: !!geometry });
+
     // Validate required fields
     if (!osm_id || gravel_condition === undefined || !user_id || !userName) {
         console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id, userName });
@@ -37,7 +40,7 @@ module.exports = async (req, res) => {
 
     // Validate geometry if provided
     if (geometry && (!geometry.type || !geometry.coordinates)) {
-        console.log('📍 API: Invalid geometry format');
+        console.log('📍 API: Invalid geometry format', geometry);
         return res.status(400).json({
             success: false,
             error: 'Invalid geometry format'
@@ -47,12 +50,15 @@ module.exports = async (req, res) => {
     let client;
     try {
         client = new MongoClient(uri);
+        console.log('📍 Connecting to MongoDB...');
         await client.connect();
+        console.log('📍 Connected to MongoDB');
         
         const collection = client.db('gravelatlas').collection('road_modifications');
 
         // Get current document
         const currentDoc = await collection.findOne({ osm_id });
+        console.log('📍 Current document:', currentDoc);
         
         // Prepare votes array
         let votes = currentDoc?.votes || [];
@@ -94,35 +100,58 @@ module.exports = async (req, res) => {
             updateData.geometry = geometry;
         }
 
-        // Perform update
-        const result = await collection.findOneAndUpdate(
-            { osm_id },
-            { $set: updateData },
-            { 
-                upsert: true,
-                returnDocument: 'after'
+        console.log('📍 Update data prepared:', updateData);
+
+        try {
+            // Perform update with proper error handling
+            const result = await collection.findOneAndUpdate(
+                { osm_id: osm_id },
+                { $set: updateData },
+                { 
+                    upsert: true,
+                    returnDocument: 'after'
+                }
+            );
+
+            console.log('📍 Update result:', result);
+
+            if (!result.value && !result.ok) {
+                throw new Error('MongoDB update failed');
             }
-        );
 
-        if (!result.value) {
-            throw new Error('Failed to update document');
+            const updatedDoc = result.value || await collection.findOne({ osm_id });
+            
+            if (!updatedDoc) {
+                throw new Error('Failed to retrieve updated document');
+            }
+
+            console.log('📍 API: Update successful');
+            
+            res.json({
+                success: true,
+                modification: updatedDoc
+            });
+
+        } catch (updateError) {
+            console.error('📍 Update operation error:', updateError);
+            throw new Error(`Failed to update document: ${updateError.message}`);
         }
-
-        console.log('📍 API: Update successful');
-        
-        res.json({
-            success: true,
-            modification: result.value
-        });
 
     } catch (error) {
         console.error('📍 API Error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to update road surface'
+            error: error.message || 'Failed to update road surface'
         });
     } finally {
-        if (client) await client.close();
+        if (client) {
+            try {
+                await client.close();
+                console.log('📍 MongoDB connection closed');
+            } catch (closeError) {
+                console.error('📍 Error closing MongoDB connection:', closeError);
+            }
+        }
     }
 };
 

@@ -132,99 +132,148 @@ window.layers.initSurfaceLayers = async function() {
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
-'paint': {
-    'line-color': [
-        'case',
-        // First check for modifications
-        ['has', 'gravel_condition'],
-        [
-            'match',
-            ['to-string', ['get', 'gravel_condition']],
-            '0', '#01bf11',
-            '1', '#badc58',
-            '2', '#ffa801',
-            '3', '#e67e22',
-            '4', '#eb4d4b',
-            '5', '#c0392b',
-            '6', '#751203',
-            '#C2B280'
-        ],
-        // Check if it's a cycleway (before checking other surfaces)
-        [
-            'any',
-            // Rail trails
-            ['all',
-                ['any',
-                    ['==', ['get', 'railway'], 'abandoned'],
-                    ['==', ['get', 'railway'], 'disused']
-                ],
-                ['==', ['get', 'highway'], 'cycleway']
-            ],
-            // Dedicated cycleways
-            ['==', ['get', 'highway'], 'cycleway'],
-            // Path with bicycle designation
-            ['all',
-                ['==', ['get', 'highway'], 'path'],
-                ['==', ['get', 'bicycle'], 'designated']
-            ],
-            // Track with bicycle designation
-            ['all',
-                ['==', ['get', 'highway'], 'track'],
-                ['==', ['get', 'bicycle'], 'designated']
-            ],
-            ['==', ['get', 'cycleway'], 'track']
-        ],
-        '#9370DB',  // All cycleways get purple
-        // Then check other surfaces
-        [
-            'match',
-            ['get', 'surface'],
-            ['unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
-             'grass', 'earth', 'mud', 'sand', 'woodchips', 'pebblestone', 
-             'gravel;grass', 'soil', 'rock', 'stones', 'natural', 'ground;grass',
-             'clay', 'dirt/sand', 'limestone', 'shell'],
-            '#C2B280',  // Standard unpaved color
-            '#C2B280'   // Default color for unknown surfaces
-        ]
-    ],
-    'line-width': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        5, 1,
-        8, 2,
-        10, 3,
-        12, 4,
-        14, 5
-    ],
-    'line-opacity': [
-        'case',
-        // Check if it's a cycleway (always full opacity)
-        [
-            'any',
-            ['==', ['get', 'highway'], 'cycleway'],
-            ['all',
-                ['==', ['get', 'highway'], 'path'],
-                ['==', ['get', 'bicycle'], 'designated']
-            ]
-        ],
-        0.8,
-        // Check for known surface
-        ['has', 'surface'],
-        [
-            'case',
-            ['has', 'name'],
-            0.8,  // Named roads with known surface
-            0.6   // Unnamed roads with known surface
-        ],
-        0.4     // Unknown surface
-    ]
-},
+                'paint': {
+                    'line-color': [
+                        'case',
+                        // First check for modifications
+                        ['has', 'gravel_condition'],
+                        [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
+                            '0', '#01bf11',
+                            '1', '#badc58',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#eb4d4b',
+                            '5', '#c0392b',
+                            '6', '#751203',
+                            '#C2B280'
+                        ],
+                        // Extended cycleway detection
+                        [
+                            'any',
+                            // Rail trails
+                            ['all',
+                                ['any',
+                                    ['==', ['get', 'railway'], 'abandoned'],
+                                    ['==', ['get', 'railway'], 'disused']
+                                ],
+                                ['==', ['get', 'highway'], 'cycleway']
+                            ],
+                            // Direct cycleway tags
+                            ['==', ['get', 'highway'], 'cycleway'],
+                            ['==', ['get', 'cycleway'], 'track'],
+                            ['==', ['get', 'cycleway'], 'shared'],
+                            ['==', ['get', 'cycleway:both'], 'track'],
+                            ['==', ['get', 'cycleway:left'], 'track'],
+                            ['==', ['get', 'cycleway:right'], 'track'],
+                            // Paths and tracks with bicycle designation
+                            ['all',
+                                ['==', ['get', 'highway'], 'path'],
+                                ['any',
+                                    ['==', ['get', 'bicycle'], 'designated'],
+                                    ['==', ['get', 'bicycle'], 'yes'],
+                                    ['==', ['get', 'bicycle'], 'permissive']
+                                ]
+                            ],
+                            ['all',
+                                ['==', ['get', 'highway'], 'track'],
+                                ['any',
+                                    ['==', ['get', 'bicycle'], 'designated'],
+                                    ['==', ['get', 'bicycle'], 'yes'],
+                                    ['==', ['get', 'bicycle'], 'permissive']
+                                ]
+                            ],
+                            // Additional bike path variations
+                            ['==', ['get', 'bicycle_road'], 'yes'],
+                            ['==', ['get', 'cyclestreet'], 'yes']
+                        ],
+                        [
+                            'case',
+                            // Check surface type for cycleways
+                            ['match', 
+                                ['get', 'surface'],
+                                ['asphalt', 'concrete', 'paved', 'metal', 'wood'],
+                                true,
+                                false
+                            ],
+                            '#9370DB',  // Purple for paved cycleways
+                            '#000080'   // Navy for unpaved cycleways
+                        ],
+                        // Then check other surfaces
+                        [
+                            'match',
+                            ['get', 'surface'],
+                            [
+                                'unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
+                                'grass', 'earth', 'mud', 'sand', 'woodchips', 'pebblestone',
+                                'gravel;grass', 'soil', 'rock', 'stones', 'natural', 'ground;grass',
+                                'clay', 'dirt/sand', 'limestone', 'shell', 'crushed_stone',
+                                'pebbles', 'ground;dirt', 'dirt;grass'
+                            ],
+                            '#C2B280',  // Standard unpaved color
+                            '#C2B280'   // Default color for unknown surfaces
+                        ]
+                    ],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        5, 1,
+                        8, 2,
+                        10, 3,
+                        12, 4,
+                        14, 5
+                    ],
+                    'line-opacity': [
+                        'case',
+                        // Cycleways always full opacity
+                        [
+                            'any',
+                            ['==', ['get', 'highway'], 'cycleway'],
+                            ['==', ['get', 'cycleway'], 'track'],
+                            ['==', ['get', 'cycleway:both'], 'track'],
+                            ['==', ['get', 'bicycle'], 'designated'],
+                            ['==', ['get', 'bicycle_road'], 'yes'],
+                            ['==', ['get', 'cyclestreet'], 'yes']
+                        ],
+                        0.9,
+                        // Modifications get high opacity
+                        ['has', 'gravel_condition'],
+                        0.85,
+                        // Known surface with name
+                        ['all', 
+                            ['has', 'surface'],
+                            ['has', 'name']
+                        ],
+                        0.8,
+                        // Known surface without name
+                        ['has', 'surface'],
+                        0.6,
+                        // Unknown surface/unnamed
+                        0.4
+                    ]
+                },
                 'filter': [
                     'all',
-                    ['!=', ['get', 'surface'], 'asphalt'],
-                    ['!=', ['get', 'surface'], 'concrete'],
-                    ['!=', ['get', 'surface'], 'paved']
+                    // Don't show paved roads unless they're cycleways
+                    [
+                        'any',
+                        [
+                            'none',
+                            ['==', ['get', 'surface'], 'asphalt'],
+                            ['==', ['get', 'surface'], 'concrete'],
+                            ['==', ['get', 'surface'], 'paved']
+                        ],
+                        // But show paved cycleways
+                        [
+                            'any',
+                            ['==', ['get', 'highway'], 'cycleway'],
+                            ['==', ['get', 'cycleway'], 'track'],
+                            ['==', ['get', 'bicycle'], 'designated'],
+                            ['==', ['get', 'bicycle_road'], 'yes']
+                        ]
+                    ]
                 ]
             });
 
