@@ -11,6 +11,7 @@ function initPOILayers() {
                 'tiles': [
                     'https://api.maptiler.com/tiles/c206d0fc-f093-499d-898c-5e0b038a4398/{z}/{x}/{y}.pbf?key=DFSAZFJXzvprKbxHrHXv'
                 ],
+                'minzoom': 1,  // Changed from default to show from further out
                 'maxzoom': 16
             });
 
@@ -20,6 +21,7 @@ function initPOILayers() {
                 'type': 'circle',
                 'source': 'pois',
                 'source-layer': 'pois',
+                'minzoom': 1,  // Added to match source
                 'layout': {
                     'visibility': 'none'
                 },
@@ -80,6 +82,7 @@ function initPOILayers() {
                 'type': 'symbol',
                 'source': 'pois',
                 'source-layer': 'pois',
+                'minzoom': 1,  // Added to match source
                 'layout': {
                     'visibility': 'none',
                     'icon-image': [
@@ -164,7 +167,7 @@ function initPOILayers() {
 }
 
 function createIcon(iconClass) {
-    const size = 40; // Larger canvas for better quality
+    const size = 40;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
