@@ -658,50 +658,50 @@ window.layers.initSurfaceLayers = function() {
                             '6', '#751203',
                             '#C2B280'
                         ],
-                        // Then check if it's a cycleway
+                        // Check if it's a dedicated bike path or rail trail
+                        [
+                            'any',
+                            // Rail trails
+                            [
+                                'all',
+                                ['any',
+                                    ['==', ['get', 'railway'], 'abandoned'],
+                                    ['==', ['get', 'railway'], 'disused']
+                                ],
+                                ['==', ['get', 'highway'], 'cycleway']
+                            ],
+                            // Dedicated bike paths
+                            ['all',
+                                ['==', ['get', 'highway'], 'cycleway'],
+                                ['!=', ['get', 'footway'], 'sidewalk'],
+                                ['!=', ['get', 'cycleway'], 'lane']
+                            ]
+                        ],
+                        [
+                            'case',
+                            // Check surface for bike paths/rail trails
+                            ['match', 
+                                ['get', 'surface'],
+                                ['asphalt', 'concrete', 'paved', 'metal'],
+                                true,
+                                false
+                            ],
+                            '#9370DB', // Purple for paved bike paths/rail trails
+                            '#000080'  // Navy for unpaved bike paths/rail trails
+                        ],
+                        // For all other unpaved surfaces
                         [
                             'match',
-                            ['get', 'highway'],
-                            ['cycleway', 'path', 'track'],
+                            ['get', 'surface'],
                             [
-                                'case',
-                                // Check if cycleway is paved
-                                ['match', 
-                                    ['get', 'surface'],
-                                    ['asphalt', 'concrete', 'paved', 'metal', 'wood', 'boardwalk'],
-                                    true,
-                                    false
-                                ],
-                                '#9370DB', // Purple for paved cycleways
-                                // If not paved, check if it's an unpaved surface
-                                [
-                                    'match',
-                                    ['get', 'surface'],
-                                    [
-                                        'unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
-                                        'grass', 'grass_paver', 'earth', 'mud', 'sand', 'woodchips',
-                                        'pebblestone', 'gravel;grass', 'soil', 'rock', 'stones',
-                                        'natural', 'ground;grass', 'clay', 'dirt/sand', 'limestone',
-                                        'cobblestone:flattened', 'shell'
-                                    ],
-                                    '#000080', // Navy blue for unpaved cycleways
-                                    'transparent' // Hide if surface type not matched
-                                ]
+                                'unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
+                                'grass', 'grass_paver', 'earth', 'mud', 'sand', 'woodchips',
+                                'pebblestone', 'gravel;grass', 'soil', 'rock', 'stones',
+                                'natural', 'ground;grass', 'clay', 'dirt/sand', 'limestone',
+                                'cobblestone:flattened', 'shell'
                             ],
-                            // For non-cycleways, check surface
-                            [
-                                'match',
-                                ['get', 'surface'],
-                                [
-                                    'unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
-                                    'grass', 'grass_paver', 'earth', 'mud', 'sand', 'woodchips',
-                                    'pebblestone', 'gravel;grass', 'soil', 'rock', 'stones',
-                                    'natural', 'ground;grass', 'clay', 'dirt/sand', 'limestone',
-                                    'cobblestone:flattened', 'shell'
-                                ],
-                                '#C2B280', // Standard unpaved color
-                                'transparent' // Hide if not matched
-                            ]
+                            '#C2B280', // Standard unpaved color
+                            'transparent' // Hide if not matched
                         ]
                     ],
                     'line-width': [
