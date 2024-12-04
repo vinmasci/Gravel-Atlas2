@@ -24,7 +24,7 @@ function initPOILayers() {
                     'visibility': 'none'
                 },
                 'paint': {
-                    'circle-radius': 10,
+                    'circle-radius': 6,
                     'circle-color': [
                         'match',
                         ['get', 'amenity_type'],
@@ -62,7 +62,7 @@ function initPOILayers() {
                             ['==', ['get', 'tourism'], 'camp_site'],
                             ['==', ['get', 'shop'], 'supermarket']
                         ],
-                        2,
+                        1,
                         0
                     ],
                     'circle-stroke-color': '#ffffff'
@@ -98,7 +98,7 @@ function initPOILayers() {
                             ]
                         ]
                     ],
-                    'icon-size': 0.7,
+                    'icon-size': 0.4,
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true
                 },
@@ -164,7 +164,7 @@ function initPOILayers() {
 }
 
 function createIcon(iconClass) {
-    const size = 40; // Larger canvas for better quality
+    const size = 40;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
