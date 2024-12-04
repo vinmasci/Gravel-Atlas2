@@ -20,7 +20,7 @@ function initPOILayers() {
                 'id': 'poi-layer',
                 'type': 'circle',
                 'source': 'pois',
-                'source-layer': 'pois',  
+                'source-layer': 'pois',
                 'layout': {
                     'visibility': 'none'
                 },
@@ -42,8 +42,30 @@ function initPOILayers() {
                             ]
                         ]
                     ],
-                    'circle-opacity': 0.8,
-                    'circle-stroke-width': 2,
+                    'circle-opacity': [
+                        'case',
+                        ['any',
+                            ['==', ['get', 'amenity_type'], 'toilets'],
+                            ['==', ['get', 'amenity_type'], 'fuel'],
+                            ['==', ['get', 'amenity_type'], 'cafe'],
+                            ['==', ['get', 'tourism'], 'camp_site'],
+                            ['==', ['get', 'shop'], 'bicycle']
+                        ],
+                        0.8,
+                        0  // Make unwanted POIs completely invisible
+                    ],
+                    'circle-stroke-width': [
+                        'case',
+                        ['any',
+                            ['==', ['get', 'amenity_type'], 'toilets'],
+                            ['==', ['get', 'amenity_type'], 'fuel'],
+                            ['==', ['get', 'amenity_type'], 'cafe'],
+                            ['==', ['get', 'tourism'], 'camp_site'],
+                            ['==', ['get', 'shop'], 'bicycle']
+                        ],
+                        2,
+                        0  // No stroke for unwanted POIs
+                    ],
                     'circle-stroke-color': '#ffffff'
                 }
             });
