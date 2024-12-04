@@ -633,9 +633,10 @@ window.layers.initSurfaceLayers = function() {
 
             // Add modifications overlay layer
             map.addLayer({
-                'id': 'road-modifications-layer',
+                'id': 'road-surfaces-layer',
                 'type': 'line',
-                'source': 'road-modifications',
+                'source': 'road-surfaces',
+                'source-layer': 'roads',
                 'layout': {
                     'visibility': 'none',
                     'line-join': 'round',
@@ -643,27 +644,44 @@ window.layers.initSurfaceLayers = function() {
                 },
                 'paint': {
                     'line-color': [
-                        'match',
-                        ['to-string', ['get', 'gravel_condition']],
-                        '0', '#01bf11',
-                        '1', '#badc58',
-                        '2', '#ffa801',
-                        '3', '#e67e22',
-                        '4', '#eb4d4b',
-                        '5', '#c0392b',
-                        '6', '#751203',
-                        '#C2B280'
+                        'case',
+                        // First check for modifications
+                        ['has', 'gravel_condition'],
+                        [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition']],
+                            '0', '#01bf11',
+                            '1', '#badc58',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#eb4d4b',
+                            '5', '#c0392b',
+                            '6', '#751203',
+                            '#C2B280'
+                        ],
+                        // If no gravel_condition, check surface type
+                        [
+                            'match',
+                            ['get', 'surface'],
+                            'unpaved', '#b8860b',
+                            'unknown', '#808080',
+                            'track', '#8B4513',
+                            'path', '#A0522D',
+                            'unclassified', '#DEB887',
+                            '#C2B280'  // default color
+                        ]
                     ],
                     'line-width': [
                         'interpolate',
                         ['linear'],
                         ['zoom'],
+                        5, 1,
                         8, 2,
                         10, 3,
                         12, 4,
                         14, 5
                     ],
-                    'line-opacity': 0.9
+                    'line-opacity': 0.8
                 }
             });
 
