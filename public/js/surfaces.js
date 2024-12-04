@@ -132,91 +132,94 @@ window.layers.initSurfaceLayers = async function() {
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
-                'paint': {
-                    'line-color': [
-                        'case',
-                        // First check for modifications
-                        ['has', 'gravel_condition'],
-                        [
-                            'match',
-                            ['to-string', ['get', 'gravel_condition']],
-                            '0', '#01bf11',
-                            '1', '#badc58',
-                            '2', '#ffa801',
-                            '3', '#e67e22',
-                            '4', '#eb4d4b',
-                            '5', '#c0392b',
-                            '6', '#751203',
-                            '#C2B280'
-                        ],
-                        // Check for cycleways and paths
-                        [
-                            'any',
-                            ['all',
-                                ['any',
-                                    ['==', ['get', 'railway'], 'abandoned'],
-                                    ['==', ['get', 'railway'], 'disused']
-                                ],
-                                ['==', ['get', 'highway'], 'cycleway']
-                            ],
-                            ['all',
-                                ['==', ['get', 'highway'], 'cycleway']
-                            ],
-                            ['all',
-                                ['==', ['get', 'highway'], 'path'],
-                                ['==', ['get', 'bicycle'], 'designated']
-                            ],
-                            ['all',
-                                ['==', ['get', 'highway'], 'track'],
-                                ['==', ['get', 'bicycle'], 'designated']
-                            ],
-                            ['all',
-                                ['==', ['get', 'cycleway'], 'track']
-                            ],
-                            ['all',
-                                ['==', ['get', 'cycleway'], 'shared']
-                            ]
-                        ],
-                        [
-                            'case',
-                            ['match', 
-                                ['get', 'surface'],
-                                ['asphalt', 'concrete', 'paved', 'metal'],
-                                true,
-                                false
-                            ],
-                            '#9370DB',  // Purple for paved cycleways
-                            '#000080'   // Navy for unpaved cycleways
-                        ],
-                        // For all other surfaces
-                        [
-                            'match',
-                            ['get', 'surface'],
-                            ['unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted',
-                             'grass', 'earth', 'sand', 'woodchips', 'pebblestone', 
-                             'gravel;grass', 'soil', 'rock', 'stones', 'ground',
-                             'natural', 'clay', 'dirt/sand', 'limestone', 'shell'],
-                            '#C2B280',  // Standard unpaved color
-                            'transparent' // Hide paved and unknown surfaces
-                        ]
-                    ],
-                    'line-width': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        5, 1,
-                        8, 2,
-                        10, 3,
-                        12, 4,
-                        14, 5
-                    ],
-                    'line-opacity': [
-                        'case',
-                        ['has', 'name'],
-                        0.8,
-                        0.4  // Lower opacity for unnamed roads
-                    ]
-                },
+'paint': {
+    'line-color': [
+        'case',
+        // First check for modifications
+        ['has', 'gravel_condition'],
+        [
+            'match',
+            ['to-string', ['get', 'gravel_condition']],
+            '0', '#01bf11',
+            '1', '#badc58',
+            '2', '#ffa801',
+            '3', '#e67e22',
+            '4', '#eb4d4b',
+            '5', '#c0392b',
+            '6', '#751203',
+            '#C2B280'
+        ],
+        // Check if it's a cycleway (before checking other surfaces)
+        [
+            'any',
+            // Rail trails
+            ['all',
+                ['any',
+                    ['==', ['get', 'railway'], 'abandoned'],
+                    ['==', ['get', 'railway'], 'disused']
+                ],
+                ['==', ['get', 'highway'], 'cycleway']
+            ],
+            // Dedicated cycleways
+            ['==', ['get', 'highway'], 'cycleway'],
+            // Path with bicycle designation
+            ['all',
+                ['==', ['get', 'highway'], 'path'],
+                ['==', ['get', 'bicycle'], 'designated']
+            ],
+            // Track with bicycle designation
+            ['all',
+                ['==', ['get', 'highway'], 'track'],
+                ['==', ['get', 'bicycle'], 'designated']
+            ],
+            ['==', ['get', 'cycleway'], 'track']
+        ],
+        '#9370DB',  // All cycleways get purple
+        // Then check other surfaces
+        [
+            'match',
+            ['get', 'surface'],
+            ['unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
+             'grass', 'earth', 'mud', 'sand', 'woodchips', 'pebblestone', 
+             'gravel;grass', 'soil', 'rock', 'stones', 'natural', 'ground;grass',
+             'clay', 'dirt/sand', 'limestone', 'shell'],
+            '#C2B280',  // Standard unpaved color
+            '#C2B280'   // Default color for unknown surfaces
+        ]
+    ],
+    'line-width': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        5, 1,
+        8, 2,
+        10, 3,
+        12, 4,
+        14, 5
+    ],
+    'line-opacity': [
+        'case',
+        // Check if it's a cycleway (always full opacity)
+        [
+            'any',
+            ['==', ['get', 'highway'], 'cycleway'],
+            ['all',
+                ['==', ['get', 'highway'], 'path'],
+                ['==', ['get', 'bicycle'], 'designated']
+            ]
+        ],
+        0.8,
+        // Check for known surface
+        ['has', 'surface'],
+        [
+            'case',
+            ['has', 'name'],
+            0.8,  // Named roads with known surface
+            0.6   // Unnamed roads with known surface
+        ],
+        0.4     // Unknown surface
+    ]
+},
                 'filter': [
                     'all',
                     ['!=', ['get', 'surface'], 'asphalt'],
@@ -578,7 +581,7 @@ function showGravelRatingModal(feature) {
         try {
             const userProfile = JSON.parse(localStorage.getItem('userProfile'));
             if (!userProfile) throw new Error('No user profile found');
-
+        
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -587,38 +590,47 @@ function showGravelRatingModal(feature) {
                 body: JSON.stringify({
                     osm_id: osmId,
                     gravel_condition: parseInt(gravelCondition),
-                    notes: notes,
+                    notes: notes || '',
                     user_id: userProfile.auth0Id,
                     userName: formatUserName(userProfile),
                     geometry: window.selectedFeature.geometry
                 })
             });
-
+        
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Server error: ${response.status}`);
+            }
+        
             const data = await response.json();
             
             if (!data.success) {
                 throw new Error(data.error || 'Failed to save vote');
             }
-
+        
             console.log('✅ Vote saved successfully:', data);
-
+        
             // Update cache and UI
             await updateRoadModification(osmId, data.modification);
-
+        
             saveButton.style.backgroundColor = '#28a745';
             saveButton.textContent = 'Saved!';
             
             setTimeout(closeModal, 1000);
-
+        
         } catch (error) {
             console.error('Error saving vote:', error);
             saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error!';
+            saveButton.textContent = error.message || 'Error!';
+            saveButton.disabled = false;
+            
+            // Keep error visible longer for user to read
             setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-                saveButton.disabled = false;
-            }, 2000);
+                if (saveButton) {
+                    saveButton.style.backgroundColor = '#007bff';
+                    saveButton.textContent = 'Save';
+                }
+            }, 3000);
         }
     };
 }
