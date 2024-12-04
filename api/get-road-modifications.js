@@ -1,9 +1,7 @@
-// get-road-modifications.js
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const uri = process.env.MONGODB_URI;
 
-// CORS middleware configuration
 const corsMiddleware = cors({
     origin: ['https://gravel-atlas2.vercel.app', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -28,21 +26,29 @@ module.exports = async (req, res) => {
     try {
         client = new MongoClient(uri);
         await client.connect();
-        
+
+        console.log('📊 Fetching modifications from database');
+
         // Fetch all modifications
         const modifications = await client
             .db('gravelatlas')
             .collection('road_modifications')
             .find({})
             .toArray();
-            
+
         console.log(`📊 Found ${modifications.length} modifications`);
-        
+
+        // Convert to lookup object
+        const modificationsLookup = modifications.reduce((acc, mod) => {
+            acc[mod.osm_id] = mod;
+            return acc;
+        }, {});
+
         return res.json({
             success: true,
-            modifications: modifications
+            modifications: modificationsLookup
         });
-        
+
     } catch (error) {
         console.error('Error fetching modifications:', error);
         return res.status(500).json({
