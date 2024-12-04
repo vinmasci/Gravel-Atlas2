@@ -31,17 +31,38 @@ function initPOILayers() {
                 'id': 'poi-layer',
                 'type': 'circle',
                 'source': 'pois',
-                'source-layer': 'pois',  // Try 'pois' instead of 'poi'
+                'source-layer': 'pois',
+                'minzoom': 11, // Start showing at zoom 11
                 'layout': {
                     'visibility': 'none'
                 },
                 'paint': {
-                    'circle-radius': 15,  // Made bigger for testing
-                    'circle-color': '#FF0000',  // Bright red for visibility
+                    'circle-radius': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        11, 4,  // Smaller at zoom 11
+                        14, 8,  // Larger at zoom 14+
+                        16, 10  // Maximum size
+                    ],
+                    'circle-color': [
+                        'match',
+                        ['get', 'amenity_type'],
+                        'toilets', '#e74c3c',  // Red for toilets
+                        ['get', 'tourism'],    // Check tourism if amenity_type doesn't match
+                        'camp_site', '#2ecc71', // Green for campsites
+                        'transparent'  // Hide others
+                    ],
                     'circle-opacity': 0.8,
                     'circle-stroke-width': 2,
                     'circle-stroke-color': '#ffffff'
-                }
+                },
+                'filter': [
+                    'any',
+                    ['==', ['get', 'amenity_type'], 'toilets'],
+                    ['==', ['get', 'tourism'], 'camp_site']
+                    // Add your third type here
+                ]
             });
 
             const popup = new mapboxgl.Popup({
