@@ -631,7 +631,6 @@ window.layers.initSurfaceLayers = function() {
                 }
             });
 
-            // Add modifications overlay layer
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
@@ -659,16 +658,50 @@ window.layers.initSurfaceLayers = function() {
                             '6', '#751203',
                             '#C2B280'
                         ],
-                        // If no gravel_condition, check surface type
+                        // Then check if it's a cycleway
                         [
                             'match',
-                            ['get', 'surface'],
-                            'unpaved', '#b8860b',
-                            'unknown', '#808080',
-                            'track', '#8B4513',
-                            'path', '#A0522D',
-                            'unclassified', '#DEB887',
-                            '#C2B280'  // default color
+                            ['get', 'highway'],
+                            ['cycleway', 'path', 'track'],
+                            [
+                                'case',
+                                // Check if cycleway is paved
+                                ['match', 
+                                    ['get', 'surface'],
+                                    ['asphalt', 'concrete', 'paved', 'metal', 'wood', 'boardwalk'],
+                                    true,
+                                    false
+                                ],
+                                '#9370DB', // Purple for paved cycleways
+                                // If not paved, check if it's an unpaved surface
+                                [
+                                    'match',
+                                    ['get', 'surface'],
+                                    [
+                                        'unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
+                                        'grass', 'grass_paver', 'earth', 'mud', 'sand', 'woodchips',
+                                        'pebblestone', 'gravel;grass', 'soil', 'rock', 'stones',
+                                        'natural', 'ground;grass', 'clay', 'dirt/sand', 'limestone',
+                                        'cobblestone:flattened', 'shell'
+                                    ],
+                                    '#C2B280', // Same color as other unpaved surfaces
+                                    'transparent' // Hide if surface type not matched
+                                ]
+                            ],
+                            // For non-cycleways, check surface
+                            [
+                                'match',
+                                ['get', 'surface'],
+                                [
+                                    'unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
+                                    'grass', 'grass_paver', 'earth', 'mud', 'sand', 'woodchips',
+                                    'pebblestone', 'gravel;grass', 'soil', 'rock', 'stones',
+                                    'natural', 'ground;grass', 'clay', 'dirt/sand', 'limestone',
+                                    'cobblestone:flattened', 'shell'
+                                ],
+                                '#C2B280', // Standard unpaved color
+                                'transparent' // Hide if not matched
+                            ]
                         ]
                     ],
                     'line-width': [
@@ -681,7 +714,7 @@ window.layers.initSurfaceLayers = function() {
                         12, 4,
                         14, 5
                     ],
-                    'line-opacity': 0.8
+                    'line-opacity': 0.7
                 }
             });
 
