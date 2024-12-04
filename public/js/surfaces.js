@@ -573,17 +573,19 @@ window.layers.initSurfaceLayers = function() {
                 'id': 'road-surfaces-layer',
                 'type': 'line',
                 'source': 'road-surfaces',
-                'source-layer': 'transportation', // This is the correct layer name
+                'source-layer': 'transportation',
                 'filter': [
                     'all',
-                    // Look for unpaved surfaces specifically
-                    ['==', ['get', 'surface'], 'unpaved'],
-                    // Include relevant road classes
-                    ['in', 
-                        ['get', 'class'],
-                        ['literal', ['minor', 'residential', 'primary', 'secondary', 'tertiary', 'track']]
+                    // Check for all types of unpaved surfaces
+                    ['any',
+                        ['==', ['get', 'surface'], 'unpaved'],
+                        ['==', ['get', 'surface'], 'gravel'],
+                        ['==', ['get', 'surface'], 'dirt'],
+                        ['==', ['get', 'surface'], 'earth'],
+                        ['==', ['get', 'surface'], 'grass'],
+                        ['==', ['get', 'surface'], 'ground']
                     ],
-                    // Make sure it's a road in the network
+                    // Make sure it's a road
                     ['==', ['get', 'network'], 'road']
                 ],
                 'layout': {
@@ -591,6 +593,7 @@ window.layers.initSurfaceLayers = function() {
                     'line-join': 'round',
                     'line-cap': 'round'
                 },
+                // Rest of your style properties remain the same
                 'paint': {
                     'line-color': [
                         'case',
