@@ -32,7 +32,7 @@ function initPOILayers() {
                 'type': 'circle',
                 'source': 'pois',
                 'source-layer': 'pois',
-                'minzoom': 11, // Start showing at zoom 11
+                'minzoom': 11,
                 'layout': {
                     'visibility': 'none'
                 },
@@ -41,17 +41,21 @@ function initPOILayers() {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        11, 4,  // Smaller at zoom 11
-                        14, 8,  // Larger at zoom 14+
-                        16, 10  // Maximum size
+                        11, 4,
+                        14, 8,
+                        16, 10
                     ],
                     'circle-color': [
                         'match',
                         ['get', 'amenity_type'],
-                        'toilets', '#e74c3c',  // Red for toilets
-                        ['get', 'tourism'],    // Check tourism if amenity_type doesn't match
-                        'camp_site', '#2ecc71', // Green for campsites
-                        'transparent'  // Hide others
+                        'toilets', '#e74c3c',      // Red for toilets
+                        'fuel', '#f1c40f',         // Yellow for service stations
+                        'cafe', '#9b59b6',         // Purple for cafes
+                        ['get', 'tourism'],
+                        'camp_site', '#2ecc71',    // Green for campsites
+                        ['get', 'shop'],
+                        'bicycle', '#3498db',      // Blue for bike shops
+                        'transparent'
                     ],
                     'circle-opacity': 0.8,
                     'circle-stroke-width': 2,
@@ -60,8 +64,10 @@ function initPOILayers() {
                 'filter': [
                     'any',
                     ['==', ['get', 'amenity_type'], 'toilets'],
-                    ['==', ['get', 'tourism'], 'camp_site']
-                    // Add your third type here
+                    ['==', ['get', 'tourism'], 'camp_site'],
+                    ['==', ['get', 'amenity_type'], 'fuel'],
+                    ['==', ['get', 'amenity_type'], 'cafe'],
+                    ['==', ['get', 'shop'], 'bicycle']
                 ]
             });
 
