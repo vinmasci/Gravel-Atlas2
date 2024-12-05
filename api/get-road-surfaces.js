@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
-const uri = process.env.MONGODB_URI;
 const cors = require('cors');
+const uri = process.env.MONGODB_URI;
 
 const corsMiddleware = cors({
     origin: ['https://gravel-atlas2.vercel.app', 'http://localhost:3000'],
@@ -18,7 +18,6 @@ async function getClient() {
             connectTimeoutMS: 10000
         });
         await client.connect();
-        console.log('📥 Connected to MongoDB');
     }
     return client;
 }
@@ -71,36 +70,26 @@ module.exports = async (req, res) => {
         validateBbox(west, south, east, north);
 
         const dbClient = await getClient();
-        console.log('📥 Fetching modifications from database');
+        console.log('📥 Fetching modifications within bbox');
 
-        // Get all user modifications
         const modifications = await dbClient
             .db('gravelatlas')
             .collection('road_modifications')
             .find({})
             .toArray();
 
-        console.log(`📥 Found ${modifications.length} modifications`);
-
-        // Create lookup map for modifications with string OSM IDs
         const modificationLookup = modifications.reduce((acc, mod) => {
-            const osmId = mod.osm_id.toString();
-            acc[osmId] = {
-                ...mod,
-                osm_id: osmId,
-                // Ensure all required fields are present
-                surface_quality: mod.surface_quality || 'intermediate',
-                votes: mod.votes || [],
+            acc[mod.osm_id] = {
+                osm_id: mod.osm_id,
+                gravel_condition: mod.gravel_condition,
                 notes: mod.notes || '',
-                osm_tags: mod.osm_tags || {
-                    surface: 'gravel',
-                    tracktype: 'grade3'
-                }
+                modified_by: mod.modified_by,
+                last_updated: mod.last_updated,
+                votes: mod.votes || [],
+                geometry: mod.geometry
             };
             return acc;
         }, {});
-
-        console.log('📥 Successfully processed modifications');
 
         return res.json({
             type: 'FeatureCollection',

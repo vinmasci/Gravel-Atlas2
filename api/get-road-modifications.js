@@ -18,7 +18,6 @@ async function getClient() {
             connectTimeoutMS: 10000
         });
         await client.connect();
-        console.log('📊 Connected to MongoDB');
     }
     return client;
 }
@@ -33,12 +32,11 @@ module.exports = async (req, res) => {
     }
 
     await new Promise((resolve) => corsMiddleware(req, res, resolve));
-    
+
     try {
         const dbClient = await getClient();
         console.log('📊 Fetching modifications from database');
-        
-        // Fetch all modifications
+
         const modifications = await dbClient
             .db('gravelatlas')
             .collection('road_modifications')
@@ -47,34 +45,27 @@ module.exports = async (req, res) => {
 
         console.log(`📊 Found ${modifications.length} modifications`);
 
-        // Convert to lookup object, ensuring osm_id is used as string key
+        // Convert to lookup object
         const modificationsLookup = modifications.reduce((acc, mod) => {
-            // Ensure osm_id is string for consistency
-            const osmId = mod.osm_id.toString();
-            acc[osmId] = {
-                ...mod,
-                osm_id: osmId,
-                // Ensure all required fields are present
-                surface_quality: mod.surface_quality || 'intermediate',
-                votes: mod.votes || [],
+            acc[mod.osm_id] = {
+                osm_id: mod.osm_id,
+                gravel_condition: mod.gravel_condition,
                 notes: mod.notes || '',
-                osm_tags: mod.osm_tags || {
-                    surface: 'gravel',
-                    tracktype: 'grade3'
-                }
+                modified_by: mod.modified_by,
+                last_updated: mod.last_updated,
+                votes: mod.votes || [],
+                geometry: mod.geometry
             };
             return acc;
         }, {});
 
-        console.log('📊 Successfully processed modifications');
-        
         return res.json({
             success: true,
             modifications: modificationsLookup
         });
 
     } catch (error) {
-        console.error('📊 Error fetching modifications:', error);
+        console.error('Error fetching modifications:', error);
         return res.status(500).json({
             success: false,
             error: 'Failed to fetch modifications'
