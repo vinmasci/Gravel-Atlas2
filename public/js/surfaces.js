@@ -154,23 +154,25 @@ window.layers.initSurfaceLayers = async function() {
                 'paint': {
                     'line-color': [
                         'case',
-                        // First check for modifications
-                        ['has', 'gravel_condition'],
+                        // First check if road has a modification in our cache
+                        ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
+                        // If modified, use the modification's gravel condition
                         [
                             'match',
-                            ['to-string', ['get', 'gravel_condition']],
-                            '0', '#01bf11',
-                            '1', '#badc58',
-                            '2', '#ffa801',
-                            '3', '#e67e22',
-                            '4', '#eb4d4b',
-                            '5', '#c0392b',
-                            '6', '#751203',
-                            '#C2B280'
+                            ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]]],
+                            '0', '#01bf11',  // Smooth surface - green
+                            '1', '#badc58',  // Well maintained - light green
+                            '2', '#ffa801',  // Occasional rough - yellow
+                            '3', '#e67e22',  // Frequent loose - orange
+                            '4', '#eb4d4b',  // Very rough - red
+                            '5', '#c0392b',  // Extremely rough - dark red
+                            '6', '#751203',  // Hike-a-bike - darker red
+                            '#C2B280'        // Default if no condition matches
                         ],
-                        // Check if it's a cycleway and determine color based on surface
+                        // If no modification exists, determine color based on road type and surface
                         [
-                            'all',
+                            'case',
+                            // Check if it's a cycleway
                             [
                                 'any',
                                 // Rail trails
@@ -194,25 +196,25 @@ window.layers.initSurfaceLayers = async function() {
                                     ['==', ['get', 'bicycle'], 'designated']
                                 ],
                                 ['==', ['get', 'cycleway'], 'track']
+                            ],
+                            [
+                                'match',
+                                ['get', 'surface'],
+                                ['asphalt', 'concrete', 'paved', 'metal'],
+                                '#9370DB',  // Purple for paved cycleways
+                                '#000080'   // Navy for unpaved cycleways
+                            ],
+                            // For non-cycleways, check surface type
+                            [
+                                'match',
+                                ['get', 'surface'],
+                                ['unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
+                                 'grass', 'earth', 'mud', 'sand', 'woodchips', 'pebblestone',
+                                 'gravel;grass', 'soil', 'rock', 'stones', 'natural', 'ground;grass',
+                                 'clay', 'dirt/sand', 'limestone', 'shell'],
+                                '#C2B280',  // Standard unpaved color
+                                '#C2B280'   // Default color for unknown surfaces
                             ]
-                        ],
-                        [
-                            'match',
-                            ['get', 'surface'],
-                            ['asphalt', 'concrete', 'paved', 'metal'],
-                            '#9370DB',  // Purple for paved cycleways
-                            '#000080'   // Navy for unpaved cycleways
-                        ],
-                        // Then check other surfaces
-                        [
-                            'match',
-                            ['get', 'surface'],
-                            ['unpaved', 'gravel', 'dirt', 'fine_gravel', 'compacted', 'ground',
-                            'grass', 'earth', 'mud', 'sand', 'woodchips', 'pebblestone',
-                            'gravel;grass', 'soil', 'rock', 'stones', 'natural', 'ground;grass',
-                            'clay', 'dirt/sand', 'limestone', 'shell'],
-                            '#C2B280',  // Standard unpaved color
-                            '#C2B280'   // Default color for unknown surfaces
                         ]
                     ],
                     'line-width': [
@@ -225,50 +227,56 @@ window.layers.initSurfaceLayers = async function() {
                         12, 4,
                         14, 5
                     ],
-'line-opacity': [
-    'case',
-    // Cycleways always full opacity
-    [
-        'any',
-        ['==', ['get', 'highway'], 'cycleway'],
-        ['all',
-            ['==', ['get', 'highway'], 'path'],
-            ['==', ['get', 'bicycle'], 'designated']
-        ]
-    ],
-    0.8,
-    // Check for known surface (not unknown/unclassified) and proper name
-    [
-        'all',
-        ['!', 
-            ['any',
-                ['==', ['get', 'surface'], 'unknown'],
-                ['==', ['get', 'surface'], 'unclassified'],
-                ['!', ['has', 'surface']]
-            ]
-        ],
-        ['!',
-            ['any',
-                ['==', ['get', 'name'], 'unknown'],
-                ['==', ['get', 'name'], 'unnamed'],
-                ['!', ['has', 'name']]
-            ]
-        ]
-    ],
-    0.8,  // Known surface & proper name
-    // Check for known surface only
-    [
-        '!',
-        ['any',
-            ['==', ['get', 'surface'], 'unknown'],
-            ['==', ['get', 'surface'], 'unclassified'],
-            ['!', ['has', 'surface']]
-        ]
-    ],
-    0.5,  // Known surface but unnamed/unknown name
-    // All other cases (unknown/unclassified surface)
-    0.2   // Made even less conspicuous
-]
+                    'line-opacity': [
+                        'case',
+                        // If road has a modification, make it more visible
+                        ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
+                        0.8,
+                        // Otherwise use original opacity rules
+                        [
+                            'case',
+                            // Cycleways always full opacity
+                            [
+                                'any',
+                                ['==', ['get', 'highway'], 'cycleway'],
+                                ['all',
+                                    ['==', ['get', 'highway'], 'path'],
+                                    ['==', ['get', 'bicycle'], 'designated']
+                                ]
+                            ],
+                            0.8,
+                            // Check for known surface and proper name
+                            [
+                                'all',
+                                ['!', 
+                                    ['any',
+                                        ['==', ['get', 'surface'], 'unknown'],
+                                        ['==', ['get', 'surface'], 'unclassified'],
+                                        ['!', ['has', 'surface']]
+                                    ]
+                                ],
+                                ['!',
+                                    ['any',
+                                        ['==', ['get', 'name'], 'unknown'],
+                                        ['==', ['get', 'name'], 'unnamed'],
+                                        ['!', ['has', 'name']]
+                                    ]
+                                ]
+                            ],
+                            0.8,  // Known surface & proper name
+                            // Check for known surface only
+                            [
+                                '!',
+                                ['any',
+                                    ['==', ['get', 'surface'], 'unknown'],
+                                    ['==', ['get', 'surface'], 'unclassified'],
+                                    ['!', ['has', 'surface']]
+                                ]
+                            ],
+                            0.5,  // Known surface but unnamed/unknown name
+                            0.2   // All other cases (unknown/unclassified surface)
+                        ]
+                    ]
                 },
                 'filter': [
                     'any',
