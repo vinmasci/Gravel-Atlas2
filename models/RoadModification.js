@@ -1,6 +1,27 @@
 // models/RoadModification.js
 const mongoose = require('mongoose');
 
+const voteSchema = new mongoose.Schema({
+    user_id: {
+        type: String,
+        required: true
+    },
+    userName: {
+        type: String,
+        required: true
+    },
+    condition: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 6
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now
+    }
+});
+
 const roadModificationSchema = new mongoose.Schema({
     osm_id: {
         type: String,
@@ -35,7 +56,15 @@ const roadModificationSchema = new mongoose.Schema({
         default: Date.now
     },
     notes: String,
-    // Fields for potential future OSM integration
+    votes: [voteSchema],
+    geometry: {
+        type: {
+            type: String,
+            enum: ['LineString'],
+            required: true
+        },
+        coordinates: [[Number]]
+    },
     osm_tags: {
         surface: String,
         smoothness: String,
@@ -44,5 +73,4 @@ const roadModificationSchema = new mongoose.Schema({
 });
 
 const RoadModification = mongoose.model('RoadModification', roadModificationSchema);
-
 module.exports = RoadModification;

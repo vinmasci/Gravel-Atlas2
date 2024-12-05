@@ -1,3 +1,4 @@
+// api/update-road-surface.js
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const uri = process.env.MONGODB_URI;
@@ -12,133 +13,112 @@ const corsMiddleware = cors({
 let client = null;
 
 async function getClient() {
-    console.log('🔍 DEBUG: Getting MongoDB client');
-    try {
-        if (!client) {
-            console.log('🔍 DEBUG: Creating new MongoDB client');
-            client = new MongoClient(uri, {
-                serverSelectionTimeoutMS: 10000,
-                connectTimeoutMS: 10000
-            });
-            console.log('🔍 DEBUG: Attempting to connect...');
-            await client.connect();
-            console.log('🔍 DEBUG: Successfully connected to MongoDB');
-        } else {
-            console.log('🔍 DEBUG: Using existing MongoDB client');
-        }
-        return client;
-    } catch (error) {
-        console.error('🔍 DEBUG: Error in getClient:', error);
-        throw error;
+    if (!client) {
+        client = new MongoClient(uri, {
+            serverSelectionTimeoutMS: 10000,
+            connectTimeoutMS: 10000
+        });
+        await client.connect();
+        console.log('📍 Connected to MongoDB');
     }
+    return client;
+}
+
+function mapToSurfaceQuality(condition) {
+    const mapping = {
+        '0': 'excellent',
+        '1': 'good',
+        '2': 'good',
+        '3': 'intermediate',
+        '4': 'bad',
+        '5': 'very_bad',
+        '6': 'very_bad'
+    };
+    return mapping[condition] || 'intermediate';
+}
+
+function mapToOSMTrackType(condition) {
+    const mapping = {
+        '0': 'grade1', // Smooth surface
+        '1': 'grade1', // Well maintained
+        '2': 'grade2', // Occasional rough
+        '3': 'grade3', // Frequent loose
+        '4': 'grade4', // Very rough
+        '5': 'grade5', // Extremely rough
+        '6': 'grade5'  // Hike-a-bike
+    };
+    return mapping[condition] || 'grade3';
 }
 
 module.exports = async (req, res) => {
-    console.log('🔍 DEBUG: Starting API request handling');
-    console.log('🔍 DEBUG: Request method:', req.method);
-    console.log('🔍 DEBUG: Request body:', JSON.stringify(req.body, null, 2));
-
     if (req.method === 'OPTIONS') {
+        res.setHeader('Access-Control-Allow-Origin', 'https://gravel-atlas2.vercel.app');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Max-Age', '3600');
         return res.status(204).end();
     }
 
     await new Promise((resolve) => corsMiddleware(req, res, resolve));
     
+    console.log('📍 API: Received request');
+    
     const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
 
-    console.log('🔍 DEBUG: Parsed request data:', {
-        osm_id,
-        gravel_condition,
-        notes,
-        user_id,
-        userName,
-        geometryPresent: !!geometry
+    // Log received data
+    console.log('📍 Received data:', { 
+        osm_id, 
+        gravel_condition, 
+        user_id, 
+        userName, 
+        hasGeometry: !!geometry 
     });
 
-    // Convert and validate OSM ID
-    const numericOsmId = parseInt(osm_id);
-    console.log('🔍 DEBUG: Converted OSM ID:', numericOsmId, 'Original:', osm_id);
-    
-    if (isNaN(numericOsmId)) {
-        console.log('🔍 DEBUG: Invalid OSM ID detected');
-        return res.status(400).json({
-            success: false,
-            error: 'Invalid OSM ID format'
-        });
-    }
-
-    // Field validation
-    if (!numericOsmId || gravel_condition === undefined || !user_id || !userName) {
-        console.log('🔍 DEBUG: Missing required fields:', {
-            hasOsmId: !!numericOsmId,
-            hasGravelCondition: gravel_condition !== undefined,
-            hasUserId: !!user_id,
-            hasUserName: !!userName
-        });
+    // Validate required fields
+    if (!osm_id || gravel_condition === undefined || !user_id || !userName) {
+        console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id, userName });
         return res.status(400).json({ 
             success: false,
             error: 'Missing required fields' 
         });
     }
 
-    // Geometry validation
-    if (geometry) {
-        console.log('🔍 DEBUG: Validating geometry:', {
-            type: geometry.type,
-            hasCoordinates: !!geometry.coordinates,
-            coordinatesLength: geometry.coordinates?.length
-        });
-        
-        if (!geometry.type || !geometry.coordinates) {
-            console.log('🔍 DEBUG: Invalid geometry detected');
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid geometry format'
-            });
-        }
-    }
-
-    let dbClient;
     try {
-        dbClient = await getClient();
-        console.log('🔍 DEBUG: Got MongoDB client');
-        
+        const dbClient = await getClient();
         const collection = dbClient.db('gravelatlas').collection('road_modifications');
-        console.log('🔍 DEBUG: Got collection reference');
+
+        // Convert osm_id to string
+        const osmIdString = osm_id.toString();
 
         // Get current document
-        console.log('🔍 DEBUG: Fetching current document for OSM ID:', numericOsmId);
-        const currentDoc = await collection.findOne({ osm_id: numericOsmId });
-        console.log('🔍 DEBUG: Current document:', currentDoc);
+        const currentDoc = await collection.findOne({ osm_id: osmIdString });
+        console.log('📍 Current document:', currentDoc);
         
-        // Prepare votes
+        // Prepare votes array
         let votes = currentDoc?.votes || [];
-        console.log('🔍 DEBUG: Current votes:', votes);
         
+        // Remove existing vote from this user if it exists
         votes = votes.filter(vote => vote.user_id !== user_id);
-        console.log('🔍 DEBUG: Filtered votes (removed user):', votes);
         
+        // Add new vote
         const newVote = {
             user_id,
             userName,
             condition: parseInt(gravel_condition),
             timestamp: new Date()
         };
-        console.log('🔍 DEBUG: New vote to add:', newVote);
-        
         votes.push(newVote);
-        console.log('🔍 DEBUG: Updated votes array:', votes);
 
-        // Calculate average
+        // Calculate average condition
         const averageCondition = Math.round(
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
-        console.log('🔍 DEBUG: Calculated average condition:', averageCondition);
 
-        // Prepare update
+        // Prepare update data
         const updateData = {
-            osm_id: numericOsmId,
+            osm_id: osmIdString,
             gravel_condition: averageCondition.toString(),
+            surface_quality: mapToSurfaceQuality(averageCondition.toString()),
             notes: notes || '',
             modified_by: user_id,
             last_updated: new Date(),
@@ -149,32 +129,25 @@ module.exports = async (req, res) => {
             }
         };
 
-        // Handle geometry
-        if (geometry) {
-            console.log('🔍 DEBUG: Processing geometry');
+        // Only include geometry if it's provided and valid
+        if (geometry && geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
             try {
-                if (geometry.type === 'LineString') {
-                    updateData.geometry = {
-                        type: geometry.type,
-                        coordinates: geometry.coordinates.map(coord => {
-                            console.log('🔍 DEBUG: Processing coordinate:', coord);
-                            return Array.isArray(coord) ? coord.map(Number) : Number(coord);
-                        })
-                    };
-                }
-                console.log('🔍 DEBUG: Processed geometry:', updateData.geometry);
+                updateData.geometry = {
+                    type: 'LineString',
+                    coordinates: geometry.coordinates.map(coord => 
+                        Array.isArray(coord) ? coord.map(Number) : Number(coord)
+                    )
+                };
             } catch (geoError) {
-                console.error('🔍 DEBUG: Error processing geometry:', geoError);
-                throw new Error('Failed to process geometry data');
+                console.error('📍 Geometry processing error:', geoError);
             }
         }
 
-        console.log('🔍 DEBUG: Final update data:', updateData);
+        console.log('📍 Update data prepared:', updateData);
 
         // Perform update
-        console.log('🔍 DEBUG: Attempting MongoDB update');
         const result = await collection.findOneAndUpdate(
-            { osm_id: numericOsmId },
+            { osm_id: osmIdString },
             { $set: updateData },
             { 
                 upsert: true,
@@ -182,43 +155,25 @@ module.exports = async (req, res) => {
             }
         );
 
-        console.log('🔍 DEBUG: MongoDB update result:', result);
-
         if (!result.value) {
-            console.error('🔍 DEBUG: No document returned after update');
-            throw new Error('MongoDB update failed - no document returned');
+            console.error('📍 No document returned after update');
+            throw new Error('MongoDB update failed');
         }
 
-        console.log('🔍 DEBUG: Sending success response');
-        return res.json({
+        console.log('📍 API: Update successful');
+        
+        res.json({
             success: true,
             modification: result.value
         });
 
     } catch (error) {
-        console.error('🔍 DEBUG: Final error:', error);
-        console.error('🔍 DEBUG: Error stack:', error.stack);
-        return res.status(500).json({
+        console.error('📍 API Error:', error);
+        res.status(500).json({
             success: false,
             error: error.message || 'Failed to update road surface'
         });
     }
 };
-
-function mapToOSMTrackType(condition) {
-    console.log('🔍 DEBUG: Mapping condition to track type:', condition);
-    const mapping = {
-        '0': 'grade1',
-        '1': 'grade1',
-        '2': 'grade2',
-        '3': 'grade3',
-        '4': 'grade4',
-        '5': 'grade5',
-        '6': 'grade5'
-    };
-    const result = mapping[condition] || 'grade3';
-    console.log('🔍 DEBUG: Mapped to:', result);
-    return result;
-}
 
 module.exports.mapToOSMTrackType = mapToOSMTrackType;
