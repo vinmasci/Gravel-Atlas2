@@ -287,10 +287,14 @@ map.addControl(navControl, 'top-left');
     },
  
     handleSurfaceToggle: async () => {
-        if (!map.getSource('road-surfaces')) {
-            window.layers.initSurfaceLayers();
+        try {
+            if (!map.getSource('road-surfaces')) {
+                await window.layers.initSurfaceLayers();
+            }
+            await layers.toggleSurfaceLayer();
+        } catch (error) {
+            console.error('Error in handleSurfaceToggle:', error);
         }
-        layers.toggleSurfaceLayer();
     }
  };
  
@@ -311,6 +315,9 @@ map.addControl(navControl, 'top-left');
         if (surfaceToggleBtn) {
             surfaceToggleBtn.addEventListener('click', async () => {
                 console.log('🔘 Surface toggle button clicked');
+                if (!map.getSource('road-surfaces')) {
+                    await window.layers.initSurfaceLayers();
+                }
                 await window.layers.toggleSurfaceLayer();
             });
         }
