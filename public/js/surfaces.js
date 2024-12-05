@@ -462,6 +462,7 @@ window.layers.initSurfaceLayers = async function() {
             map.on('mousemove', 'road-surfaces-layer', (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
+                    map.getCanvas().style.cursor = 'pointer';  // Add this line
                     const osmId = String(feature.properties.osm_id); // Convert to string!
                     console.log('Hover lookup:', {
                         osmId,
