@@ -454,39 +454,27 @@ map.addLayer({
             map.on('mousemove', 'road-surfaces-layer', (e) => {
                 if (e.features.length > 0) {
                     const feature = e.features[0];
-                    const osmId = feature.properties.osm_id;
-                    console.log('Hover OSM ID:', osmId); // Debug
-                    const modification = window.modificationCache.get(osmId);
-                    console.log('Hover modification:', modification); // Debug
+                    const osmId = String(feature.properties.osm_id); // Convert to string!
+                    console.log('Hover lookup:', {
+                        osmId,
+                        cacheKeys: Array.from(window.modificationCache.keys()),
+                        modification: window.modificationCache.get(osmId)
+                    });
                     
-                    if (modification) {
-                        feature.properties = {
-                            ...feature.properties,
-                            ...modification
-                        };
-                    }
-
-                    map.getCanvas().style.cursor = 'pointer';
+                    const modification = window.modificationCache.get(osmId);
                     
                     const html = `
-                    <div class="gravel-popup-content">
-                        <h4>${feature.properties.name || 'Unnamed Road'}</h4>
-                        <p><strong>Surface:</strong> ${feature.properties.surface || 'Unknown'}</p>
-                        ${modification?.gravel_condition ? 
-                            `<p><strong>Condition:</strong> ${getConditionIcon(modification.gravel_condition)}</p>` : 
-                            ''
-                        }
-                        ${feature.properties.highway ? 
-                            `<p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>` : 
-                            ''
-                        }
-                        ${modification ? 
-                            `<p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
-                             <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` : 
-                            ''
-                        }
-                    </div>
-                `;
+                        <div class="gravel-popup-content">
+                            <h4>${feature.properties.name || 'Unnamed Road'}</h4>
+                            <p><strong>Surface:</strong> ${feature.properties.surface || 'Unknown'}</p>
+                            ${modification ? 
+                                `<p><strong>Condition:</strong> ${getConditionIcon(modification.gravel_condition)}</p>
+                                 <p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
+                                 <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` 
+                                : ''}
+                            <p><strong>Type:</strong> ${feature.properties.highway || 'Unknown'}</p>
+                        </div>
+                    `;
 
                     popup.setLngLat(e.lngLat)
                         .setHTML(html)
@@ -520,22 +508,26 @@ window.layers.toggleSurfaceLayer = async function() {
             await window.layers.initSurfaceLayers();
         }
 
-        // Update button state
-        if (surfaceControl) {
-            surfaceControl.classList.add('loading');
-            surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-        }
+        // Log cache state
+        console.log('Cache state during toggle:', {
+            cache: Object.fromEntries(window.modificationCache),
+            layerExists: map.getLayer('road-modifications-layer'),
+            sourceExists: map.getSource('road-surfaces'),
+            layoutVisibility: map.getLayoutProperty('road-modifications-layer', 'visibility')
+        });
 
         // Toggle state
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        // Update layer visibility for both layers
+        // Update layer visibility
         map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
         map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
 
         if (window.layerVisibility.surfaces) {
             const zoomLevel = Math.floor(map.getZoom());
+            await loadModifications();  // Reload modifications
+            map.triggerRepaint();  // Force repaint
             
             if (zoomLevel < 8) {
                 if (surfaceControl) {
