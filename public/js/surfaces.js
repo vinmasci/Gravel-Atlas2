@@ -108,6 +108,12 @@ async function updateRoadModification(osmId, modificationData) {
     await window.layers.updateSurfaceData();
 }
 
+window.layers.updateSurfaceData = async function() {
+    if (window.layerVisibility.surfaces && map.getZoom() >= 8) {
+        await loadModifications();
+    }
+};
+
 window.layers.initSurfaceLayers = async function() {
     console.log('🚀 Initializing surface layers...');
     
