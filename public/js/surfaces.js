@@ -209,7 +209,8 @@ window.layers.initSurfaceLayers = async function() {
 'line-color': [
     'case',
     // First check if road has a modification in our cache
-    ['to-string', ['get', 'osm_id']], 
+    ['has', 
+    ['to-string', ['get', 'osm_id']],
     ['literal', Object.fromEntries(window.modificationCache)]],
     // If modified, use the modification's gravel condition
     [
