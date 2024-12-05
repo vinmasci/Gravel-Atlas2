@@ -218,18 +218,37 @@ window.layers.initSurfaceLayers = async function() {
         ]
     ],
     0.8,
-    // Non-cycleways: check if surface is known and named
+    // Check for known surface (not unknown/unclassified) and proper name
     [
         'all',
-        ['has', 'surface'],
-        ['has', 'name']
+        ['!', 
+            ['any',
+                ['==', ['get', 'surface'], 'unknown'],
+                ['==', ['get', 'surface'], 'unclassified'],
+                ['!', ['has', 'surface']]
+            ]
+        ],
+        ['!',
+            ['any',
+                ['==', ['get', 'name'], 'unknown'],
+                ['==', ['get', 'name'], 'unnamed'],
+                ['!', ['has', 'name']]
+            ]
+        ]
     ],
-    0.8,  // Known surface, named road
-    // Non-cycleways: check if surface is known but unnamed
-    ['has', 'surface'],
-    0.4,  // Known surface, unnamed road
-    // All other cases (unknown surface)
-    0.2   // Default for unknown surface roads
+    0.8,  // Known surface & proper name
+    // Check for known surface only
+    [
+        '!',
+        ['any',
+            ['==', ['get', 'surface'], 'unknown'],
+            ['==', ['get', 'surface'], 'unclassified'],
+            ['!', ['has', 'surface']]
+        ]
+    ],
+    0.5,  // Known surface but unnamed/unknown name
+    // All other cases (unknown/unclassified surface)
+    0.2   // Made even less conspicuous
 ]
                 },
                 'filter': [
