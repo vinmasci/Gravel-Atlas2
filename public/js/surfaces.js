@@ -53,32 +53,7 @@ function formatHighway(highway) {
         .join(' ');
 }
 
-function applyModificationsToFeatures() {
-    const features = map.querySourceFeatures('road-surfaces', {
-        sourceLayer: 'roads'
-    });
-    
-    features.forEach(feature => {
-        if (!feature.properties) return;
-        
-        const osmId = feature.properties.osm_id?.toString();
-        const modification = window.modificationCache.get(osmId);
-        
-        if (modification) {
-            // Apply modification properties to the feature
-            feature.properties.gravel_condition = modification.gravel_condition;
-            // Force a feature state update to trigger a repaint
-            map.setFeatureState(
-                {
-                    source: 'road-surfaces',
-                    sourceLayer: 'roads',
-                    id: feature.id
-                },
-                { modified: true }
-            );
-        }
-    });
-}
+
 
 async function loadModifications() {
     console.log('🔄 Loading modifications...');
