@@ -33,19 +33,14 @@ const roadModificationSchema = new mongoose.Schema({
         enum: ['0', '1', '2', '3', '4', '5', '6'],
         required: true,
         description: [
-            '0: Smooth gravel/dirt suitable for any bike',
-            '1: Well maintained gravel/dirt, some loose surface',
-            '2: Maintained gravel/dirt with occasional rough sections',
-            '3: Rough gravel/dirt with frequent loose sections',
-            '4: Very rough surface, large loose gravel, challenging',
-            '5: Technical surface requiring MTB skills',
-            '6: Extremely technical, MTB only'
+            '0: Smooth surface, any bike',
+            '1: Well maintained, gravel bike',
+            '2: Occasional rough surface',
+            '3: Frequent loose surface',
+            '4: Very rough surface',
+            '5: Extremely rough surface, MTB',
+            '6: Hike-A-Bike'
         ]
-    },
-    surface_quality: {
-        type: String,
-        enum: ['excellent', 'good', 'intermediate', 'bad', 'very_bad'],
-        required: true
     },
     modified_by: {
         type: String,
@@ -64,11 +59,6 @@ const roadModificationSchema = new mongoose.Schema({
             required: true
         },
         coordinates: [[Number]]
-    },
-    osm_tags: {
-        surface: String,
-        smoothness: String,
-        tracktype: String
     }
 });
 
