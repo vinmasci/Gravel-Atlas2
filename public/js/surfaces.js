@@ -141,41 +141,51 @@ async function updateRoadModification(osmId, modificationData) {
             'source': 'road-surfaces',
             'source-layer': 'roads',
             'layout': {
-                'visibility': map.getLayoutProperty('road-surfaces-layer', 'visibility'),
+                'visibility': 'visible',
                 'line-join': 'round',
                 'line-cap': 'round'
             },
             'paint': {
                 'line-color': [
-                    'case',
-                    ['has', ['to-string', ['get', 'osm_id']], ['literal', cacheData]],
-                    [
-                        'match',
-                        ['to-string', ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', cacheData]]]],
-                        '0', '#01bf11',
-                        '1', '#badc58',
-                        '2', '#ffa801',
-                        '3', '#e67e22',
-                        '4', '#eb4d4b',
-                        '5', '#c0392b',
-                        '6', '#751203',
-                        '#C2B280'
-                    ],
-                    '#C2B280'
+                    'match',
+                    ['to-string', ['get', 'gravel_condition']],
+                    '0', '#01bf11',  // Smooth surface - green
+                    '1', '#badc58',  // Well maintained - light green
+                    '2', '#ffa801',  // Occasional rough - yellow
+                    '3', '#e67e22',  // Frequent loose - orange
+                    '4', '#eb4d4b',  // Very rough - red
+                    '5', '#c0392b',  // Extremely rough - dark red
+                    '6', '#751203',  // Hike-a-bike - darker red
+                    '#C2B280'        // Default if no condition matches
                 ],
                 'line-width': [
                     'interpolate',
                     ['linear'],
                     ['zoom'],
-                    5, 1.5,
-                    8, 2.5,
-                    10, 3.5,
-                    12, 4.5,
-                    14, 5.5
+                    5, 3,     // Increased from 1.5
+                    8, 4,     // Increased from 2.5
+                    10, 5,    // Increased from 3.5
+                    12, 6,    // Increased from 4.5
+                    14, 7     // Increased from 5.5
                 ],
-                'line-opacity': 0.8
+                'line-opacity': 1,    // Changed from 0.8 to 1
+                'line-blur': 0.5,     // Added slight blur for softer edges
+                // Add black outline
+                'line-gap-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    5, 0.5,
+                    8, 1,
+                    10, 1.5,
+                    12, 2,
+                    14, 2.5
+                ]
             },
-            'filter': ['in', ['to-string', ['get', 'osm_id']], ['literal', Object.keys(cacheData)]]
+            'filter': ['in', 
+                ['to-string', ['get', 'osm_id']], 
+                ['literal', Object.keys(Object.fromEntries(window.modificationCache))]
+            ]
         });
         
         map.triggerRepaint();
