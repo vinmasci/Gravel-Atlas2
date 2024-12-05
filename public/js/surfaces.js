@@ -209,7 +209,8 @@ window.layers.initSurfaceLayers = async function() {
 'line-color': [
     'case',
     // First check if road has a modification in our cache
-    ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
+    ['to-string', ['get', 'osm_id']], 
+    ['literal', Object.fromEntries(window.modificationCache)]],
     // If modified, use the modification's gravel condition
     [
         'match',
@@ -387,7 +388,10 @@ map.addLayer({
         ],
         'line-opacity': 0.8
     },
-    'filter': ['in', ['string', ['get', 'osm_id']], ['literal', Object.keys(Object.fromEntries(window.modificationCache))]]
+'filter': ['in', 
+    ['to-string', ['get', 'osm_id']], // Convert osm_id to string for comparison
+    ['literal', Object.keys(Object.fromEntries(window.modificationCache))]
+]
 });
 
             // Add click handler
