@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
-const uri = process.env.MONGODB_URI;
 
+const uri = process.env.MONGODB_URI;
 const corsMiddleware = cors({
     origin: ['https://gravel-atlas2.vercel.app', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -33,37 +33,35 @@ module.exports = async (req, res) => {
     }
 
     await new Promise((resolve) => corsMiddleware(req, res, resolve));
-    
     console.log('📍 API: Received request');
-    
+
     const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
 
-    console.log('📍 Received data:', { 
-        osm_id, 
-        gravel_condition, 
-        user_id, 
-        userName, 
-        hasGeometry: !!geometry 
+    console.log('📍 Received data:', {
+        osm_id,
+        gravel_condition,
+        user_id,
+        userName,
+        hasGeometry: !!geometry
     });
 
     if (!osm_id || gravel_condition === undefined || !user_id || !userName) {
         console.log('📍 API: Missing required fields');
-        return res.status(400).json({ 
+        return res.status(400).json({
             success: false,
-            error: 'Missing required fields' 
+            error: 'Missing required fields'
         });
     }
 
     try {
         const dbClient = await getClient();
         const collection = dbClient.db('gravelatlas').collection('road_modifications');
-
         const osmIdString = osm_id.toString();
 
         // Get current document
         const currentDoc = await collection.findOne({ osm_id: osmIdString });
         console.log('📍 Current document:', currentDoc);
-        
+
         // Prepare votes array
         let votes = currentDoc?.votes || [];
         votes = votes.filter(vote => vote.user_id !== user_id);
@@ -101,29 +99,40 @@ module.exports = async (req, res) => {
 
         console.log('📍 Update data prepared:', updateData);
 
-        // Perform update
+        // Perform update with proper error handling
         const result = await collection.findOneAndUpdate(
             { osm_id: osmIdString },
             { $set: updateData },
-            { 
+            {
                 upsert: true,
                 returnDocument: 'after'
             }
         );
 
-        if (!result.value) {
-            throw new Error('MongoDB update failed');
+        // Check for successful update
+        if (!result.ok && !result.lastErrorObject?.updatedExisting && !result.lastErrorObject?.upserted) {
+            throw new Error('MongoDB update failed - no documents affected');
+        }
+
+        // Get the updated document
+        const updatedDoc = result.value || await collection.findOne({ osm_id: osmIdString });
+        
+        if (!updatedDoc) {
+            throw new Error('Failed to retrieve updated document');
         }
 
         console.log('📍 API: Update successful');
-        
         res.json({
             success: true,
-            modification: result.value
+            modification: updatedDoc
         });
 
     } catch (error) {
         console.error('📍 API Error:', error);
+        // Log more details about the error
+        if (error.code) console.error('MongoDB Error Code:', error.code);
+        if (error.codeName) console.error('MongoDB Error Name:', error.codeName);
+        
         res.status(500).json({
             success: false,
             error: error.message || 'Failed to update road surface'
