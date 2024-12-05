@@ -221,8 +221,10 @@ window.layers.initSurfaceLayers = async function() {
             console.log('Source loaded, loading initial modifications...');
             await loadModifications();
             
-            console.log('Adding layers with loaded modifications...');
-            
+            const cacheData = Object.fromEntries(window.modificationCache);
+            console.log('Cache data before layer creation:', cacheData);
+
+            // Add base layer first
             map.addLayer({
                 'id': 'road-surfaces-layer',
                 'type': 'line',
@@ -234,32 +236,25 @@ window.layers.initSurfaceLayers = async function() {
                     'line-cap': 'round'
                 },
                 'paint': {
-'line-color': [
-    'case',
-    // First check if road has a modification in our cache
-    ['has', 
-    ['to-string', ['get', 'osm_id']],
-    ['literal', Object.fromEntries(window.modificationCache)]],
-    // If modified, use the modification's gravel condition
-    [
-        'match',
-        ['to-string', ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]]]],
-        '0', '#01bf11',
-        '1', '#badc58',
-        '2', '#ffa801',
-        '3', '#e67e22',
-        '4', '#eb4d4b',
-        '5', '#c0392b',
-        '6', '#751203',
-        '#C2B280'
-    ],
-                        // If no modification exists, determine color based on road type and surface
+                    'line-color': [
+                        'case',
+                        ['has', ['to-string', ['get', 'osm_id']], ['literal', cacheData]],
+                        [
+                            'match',
+                            ['to-string', ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', cacheData]]]],
+                            '0', '#01bf11',
+                            '1', '#badc58',
+                            '2', '#ffa801',
+                            '3', '#e67e22',
+                            '4', '#eb4d4b',
+                            '5', '#c0392b',
+                            '6', '#751203',
+                            '#C2B280'
+                        ],
                         [
                             'case',
-                            // Check if it's a cycleway
                             [
                                 'any',
-                                // Rail trails
                                 ['all',
                                     ['any',
                                         ['==', ['get', 'railway'], 'abandoned'],
@@ -267,14 +262,11 @@ window.layers.initSurfaceLayers = async function() {
                                     ],
                                     ['==', ['get', 'highway'], 'cycleway']
                                 ],
-                                // Dedicated cycleways
                                 ['==', ['get', 'highway'], 'cycleway'],
-                                // Path with bicycle designation
                                 ['all',
                                     ['==', ['get', 'highway'], 'path'],
                                     ['==', ['get', 'bicycle'], 'designated']
                                 ],
-                                // Track with bicycle designation
                                 ['all',
                                     ['==', ['get', 'highway'], 'track'],
                                     ['==', ['get', 'bicycle'], 'designated']
@@ -285,10 +277,9 @@ window.layers.initSurfaceLayers = async function() {
                                 'match',
                                 ['get', 'surface'],
                                 ['asphalt', 'concrete', 'paved', 'metal'],
-                                '#9370DB',  // Purple for paved cycleways
-                                '#000080'   // Navy for unpaved cycleways
+                                '#9370DB',
+                                '#000080'
                             ],
-                            // For non-cycleways, check surface type
                             [
                                 'match',
                                 ['get', 'surface'],
@@ -296,8 +287,8 @@ window.layers.initSurfaceLayers = async function() {
                                  'grass', 'earth', 'mud', 'sand', 'woodchips', 'pebblestone',
                                  'gravel;grass', 'soil', 'rock', 'stones', 'natural', 'ground;grass',
                                  'clay', 'dirt/sand', 'limestone', 'shell'],
-                                '#C2B280',  // Standard unpaved color
-                                '#C2B280'   // Default color for unknown surfaces
+                                '#C2B280',
+                                '#C2B280'
                             ]
                         ]
                     ],
@@ -313,13 +304,10 @@ window.layers.initSurfaceLayers = async function() {
                     ],
                     'line-opacity': [
                         'case',
-                        // If road has a modification, make it more visible
-                        ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
+                        ['has', ['to-string', ['get', 'osm_id']], ['literal', cacheData]],
                         0.8,
-                        // Otherwise use original opacity rules
                         [
                             'case',
-                            // Cycleways always full opacity
                             [
                                 'any',
                                 ['==', ['get', 'highway'], 'cycleway'],
@@ -329,7 +317,6 @@ window.layers.initSurfaceLayers = async function() {
                                 ]
                             ],
                             0.8,
-                            // Check for known surface and proper name
                             [
                                 'all',
                                 ['!', 
@@ -347,8 +334,7 @@ window.layers.initSurfaceLayers = async function() {
                                     ]
                                 ]
                             ],
-                            0.6,  // Known surface & proper name
-                            // Check for known surface only
+                            0.6,
                             [
                                 '!',
                                 ['any',
@@ -357,21 +343,19 @@ window.layers.initSurfaceLayers = async function() {
                                     ['!', ['has', 'surface']]
                                 ]
                             ],
-                            0.4,  // Known surface but unnamed/unknown name
-                            0.2   // All other cases (unknown/unclassified surface)
+                            0.4,
+                            0.2
                         ]
                     ]
                 },
                 'filter': [
                     'any',
-                    // Show all cycleways
                     ['==', ['get', 'highway'], 'cycleway'],
                     ['all',
                         ['==', ['get', 'highway'], 'path'],
                         ['==', ['get', 'bicycle'], 'designated']
                     ],
                     ['==', ['get', 'cycleway'], 'track'],
-                    // Show unpaved roads
                     [
                         'all',
                         ['!=', ['get', 'surface'], 'asphalt'],
@@ -381,47 +365,52 @@ window.layers.initSurfaceLayers = async function() {
                 ]
             });
 
-            // Add right after the original road-surfaces-layer
-map.addLayer({
-    'id': 'road-modifications-layer',
-    'type': 'line',
-    'source': 'road-surfaces',
-    'source-layer': 'roads',
-    'layout': {
-        'visibility': 'visible',
-        'line-join': 'round',
-        'line-cap': 'round'
-    },
-    'paint': {
-        'line-color': [
-            'match',
-            ['to-string', ['get', 'gravel_condition']],
-            '0', '#01bf11',  // Smooth surface - green
-            '1', '#badc58',  // Well maintained - light green
-            '2', '#ffa801',  // Occasional rough - yellow
-            '3', '#e67e22',  // Frequent loose - orange
-            '4', '#eb4d4b',  // Very rough - red
-            '5', '#c0392b',  // Extremely rough - dark red
-            '6', '#751203',  // Hike-a-bike - darker red
-            '#C2B280'        // Default if no condition matches
-        ],
-        'line-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            5, 1.5,  // Slightly thicker than base layer
-            8, 2.5,
-            10, 3.5,
-            12, 4.5,
-            14, 5.5
-        ],
-        'line-opacity': 1
-    },
-'filter': ['in', 
-    ['to-string', ['get', 'osm_id']], // Convert osm_id to string for comparison
-    ['literal', Object.keys(Object.fromEntries(window.modificationCache))]
-]
-});
+            // Add modifications layer explicitly after base layer
+            map.addLayer({
+                'id': 'road-modifications-layer',
+                'type': 'line',
+                'source': 'road-surfaces',
+                'source-layer': 'roads',
+                'layout': {
+                    'visibility': 'visible',
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': [
+                        'match',
+                        ['to-string', ['get', 'gravel_condition']],
+                        '0', '#01bf11',
+                        '1', '#badc58',
+                        '2', '#ffa801',
+                        '3', '#e67e22',
+                        '4', '#eb4d4b',
+                        '5', '#c0392b',
+                        '6', '#751203',
+                        '#C2B280'
+                    ],
+                    'line-width': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        5, 1.5,
+                        8, 2.5,
+                        10, 3.5,
+                        12, 4.5,
+                        14, 5.5
+                    ],
+                    'line-opacity': 1
+                },
+                'filter': ['in', 
+                    ['to-string', ['get', 'osm_id']],
+                    ['literal', Object.keys(cacheData)]
+                ]
+            }, 'road-surfaces-layer');
+
+            console.log('✅ Layers initialized with modifications:', {
+                cacheSize: window.modificationCache.size,
+                modifiedRoads: Object.keys(cacheData)
+            });
 
             // Add click handler
             map.on('click', 'road-surfaces-layer', async (e) => {
