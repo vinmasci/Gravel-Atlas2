@@ -43,6 +43,7 @@ module.exports = async (req, res) => {
             .find({})
             .toArray();
 
+        console.log('Raw modifications from DB:', modifications);  // Add this line
         console.log(`📊 Found ${modifications.length} modifications`);
 
         // Convert to lookup object
