@@ -68,10 +68,13 @@ async function loadModifications() {
             window.modificationCache.set(osmId, mod);
         });
 
+        // Add debug logging
+        console.log('Cache contents:', Object.fromEntries(window.modificationCache));
+        console.log('First modification:', window.modificationCache.get('986064815'));
+
         SURFACE_CACHE.viewState.timestamp = Date.now();
         console.log(`✅ Loaded ${window.modificationCache.size} modifications`);
         
-        // Just trigger a repaint
         if (map.getSource('road-surfaces')) {
             map.triggerRepaint();
         }
@@ -152,23 +155,23 @@ window.layers.initSurfaceLayers = async function() {
                     'line-cap': 'round'
                 },
                 'paint': {
-                    'line-color': [
-                        'case',
-                        // First check if road has a modification in our cache
-                        ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
-                        // If modified, use the modification's gravel condition
-                        [
-                            'match',
-                            ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]]],
-                            '0', '#01bf11',  // Smooth surface - green
-                            '1', '#badc58',  // Well maintained - light green
-                            '2', '#ffa801',  // Occasional rough - yellow
-                            '3', '#e67e22',  // Frequent loose - orange
-                            '4', '#eb4d4b',  // Very rough - red
-                            '5', '#c0392b',  // Extremely rough - dark red
-                            '6', '#751203',  // Hike-a-bike - darker red
-                            '#C2B280'        // Default if no condition matches
-                        ],
+'line-color': [
+    'case',
+    // First check if road has a modification in our cache
+    ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
+    // If modified, use the modification's gravel condition
+    [
+        'match',
+        ['to-string', ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]]]],
+        '0', '#01bf11',
+        '1', '#badc58',
+        '2', '#ffa801',
+        '3', '#e67e22',
+        '4', '#eb4d4b',
+        '5', '#c0392b',
+        '6', '#751203',
+        '#C2B280'
+    ],
                         // If no modification exists, determine color based on road type and surface
                         [
                             'case',
