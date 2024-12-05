@@ -106,6 +106,12 @@ async function updateRoadModification(osmId, modificationData) {
     console.log('🔄 Updating modification for:', osmId);
     window.modificationCache.set(osmId, modificationData);
     await window.layers.updateSurfaceData();
+
+        // Force the map to update
+        if (map.getSource('road-surfaces')) {
+            map.setLayoutProperty('road-surfaces-layer', 'visibility', 'none');
+            map.setLayoutProperty('road-surfaces-layer', 'visibility', 'visible');
+        }
 }
 
 window.layers.updateSurfaceData = async function() {
