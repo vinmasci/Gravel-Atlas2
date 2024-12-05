@@ -459,8 +459,9 @@ window.layers.toggleSurfaceLayer = async function() {
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
         
-        // Update layer visibility
+        // Update layer visibility for both layers
         map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
+        map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
 
         if (window.layerVisibility.surfaces) {
             const zoomLevel = Math.floor(map.getZoom());
