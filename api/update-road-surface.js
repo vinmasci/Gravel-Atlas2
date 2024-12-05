@@ -11,7 +11,6 @@ const corsMiddleware = cors({
 
 let client = null;
 
-// Initialize MongoDB client
 async function getClient() {
     if (!client) {
         client = new MongoClient(uri, {
@@ -38,16 +37,25 @@ module.exports = async (req, res) => {
     
     const { osm_id, gravel_condition, notes, user_id, userName, geometry } = req.body;
 
-    console.log('📍 Received data:', { osm_id, gravel_condition, user_id, userName, hasGeometry: !!geometry });
+    // Convert osm_id to number if it's a string
+    const numericOsmId = parseInt(osm_id);
+    if (isNaN(numericOsmId)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid OSM ID format'
+        });
+    }
 
-    if (!osm_id || gravel_condition === undefined || !user_id || !userName) {
-        console.log('📍 API: Missing required fields', { osm_id, gravel_condition, user_id, userName });
+    // Validate required fields
+    if (!numericOsmId || gravel_condition === undefined || !user_id || !userName) {
+        console.log('📍 API: Missing required fields', { numericOsmId, gravel_condition, user_id, userName });
         return res.status(400).json({ 
             success: false,
             error: 'Missing required fields' 
         });
     }
 
+    // Validate geometry if provided
     if (geometry && (!geometry.type || !geometry.coordinates)) {
         console.log('📍 API: Invalid geometry format', geometry);
         return res.status(400).json({
@@ -58,16 +66,21 @@ module.exports = async (req, res) => {
 
     try {
         const dbClient = await getClient();
+        console.log('📍 Connected to MongoDB');
+        
         const collection = dbClient.db('gravelatlas').collection('road_modifications');
 
         // Get current document
-        const currentDoc = await collection.findOne({ osm_id });
+        const currentDoc = await collection.findOne({ osm_id: numericOsmId });
         console.log('📍 Current document:', currentDoc);
         
         // Prepare votes array
         let votes = currentDoc?.votes || [];
+        
+        // Remove existing vote from this user if it exists
         votes = votes.filter(vote => vote.user_id !== user_id);
         
+        // Add new vote
         const newVote = {
             user_id,
             userName,
@@ -76,12 +89,14 @@ module.exports = async (req, res) => {
         };
         votes.push(newVote);
 
+        // Calculate average condition
         const averageCondition = Math.round(
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
 
+        // Prepare update data
         const updateData = {
-            osm_id,
+            osm_id: numericOsmId,
             gravel_condition: averageCondition.toString(),
             notes: notes || '',
             modified_by: user_id,
@@ -93,14 +108,25 @@ module.exports = async (req, res) => {
             }
         };
 
+        // Handle geometry if provided
         if (geometry && geometry.type && geometry.coordinates) {
-            console.log('📍 Adding geometry to update data');
-            updateData.geometry = geometry;
+            console.log('📍 Processing geometry data');
+            if (geometry.type === 'LineString') {
+                updateData.geometry = {
+                    type: geometry.type,
+                    coordinates: geometry.coordinates.map(coord => 
+                        Array.isArray(coord) ? coord.map(Number) : Number(coord)
+                    )
+                };
+            }
+            console.log('📍 Processed geometry:', updateData.geometry);
         }
+
+        console.log('📍 Update data prepared:', updateData);
 
         // Perform update
         const result = await collection.findOneAndUpdate(
-            { osm_id: osm_id },
+            { osm_id: numericOsmId },
             { $set: updateData },
             { 
                 upsert: true,
@@ -108,11 +134,15 @@ module.exports = async (req, res) => {
             }
         );
 
+        console.log('📍 Database operation result:', result);
+
         if (!result.value) {
+            console.error('📍 No document returned after update');
             throw new Error('MongoDB update failed');
         }
 
         console.log('📍 API: Update successful');
+        
         res.json({
             success: true,
             modification: result.value
