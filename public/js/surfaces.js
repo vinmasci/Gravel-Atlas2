@@ -195,6 +195,7 @@ window.layers.initSurfaceLayers = async function() {
     
     if (!map.getSource('road-surfaces')) {
         try {
+            // Add source first
             map.addSource('road-surfaces', {
                 'type': 'vector',
                 'tiles': [
@@ -203,6 +204,24 @@ window.layers.initSurfaceLayers = async function() {
                 'minzoom': 5,
                 'maxzoom': 16
             });
+
+            // Ensure source is loaded
+            await new Promise((resolve) => {
+                if (map.isSourceLoaded('road-surfaces')) {
+                    resolve();
+                } else {
+                    map.once('sourcedata', (e) => {
+                        if (e.sourceId === 'road-surfaces' && map.isSourceLoaded('road-surfaces')) {
+                            resolve();
+                        }
+                    });
+                }
+            });
+
+            console.log('Source loaded, loading initial modifications...');
+            await loadModifications();
+            
+            console.log('Adding layers with loaded modifications...');
             
             map.addLayer({
                 'id': 'road-surfaces-layer',
@@ -328,7 +347,7 @@ window.layers.initSurfaceLayers = async function() {
                                     ]
                                 ]
                             ],
-                            0.8,  // Known surface & proper name
+                            0.6,  // Known surface & proper name
                             // Check for known surface only
                             [
                                 '!',
@@ -338,7 +357,7 @@ window.layers.initSurfaceLayers = async function() {
                                     ['!', ['has', 'surface']]
                                 ]
                             ],
-                            0.5,  // Known surface but unnamed/unknown name
+                            0.4,  // Known surface but unnamed/unknown name
                             0.2   // All other cases (unknown/unclassified surface)
                         ]
                     ]
@@ -502,32 +521,42 @@ window.layers.toggleSurfaceLayer = async function() {
     console.log('🔄 Toggle surface layer called');
     
     try {
+        if (surfaceControl) {
+            surfaceControl.classList.add('loading');
+            surfaceControl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        }
+
         // Initialize if needed
         if (!map.getSource('road-surfaces')) {
             console.log('📍 Initializing surface layers for first use');
             await window.layers.initSurfaceLayers();
+            // Give time for everything to settle
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Log cache state
         console.log('Cache state during toggle:', {
-            cache: Object.fromEntries(window.modificationCache),
-            layerExists: map.getLayer('road-modifications-layer'),
-            sourceExists: map.getSource('road-surfaces'),
+            cacheSize: window.modificationCache.size,
+            cacheKeys: Array.from(window.modificationCache.keys()),
+            layerExists: !!map.getLayer('road-modifications-layer'),
+            sourceExists: !!map.getSource('road-surfaces'),
             layoutVisibility: map.getLayoutProperty('road-modifications-layer', 'visibility')
         });
 
         // Toggle state
         window.layerVisibility.surfaces = !window.layerVisibility.surfaces;
         const visibility = window.layerVisibility.surfaces ? 'visible' : 'none';
-        
-        // Update layer visibility
-        map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
-        map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
+
+        // Ensure layers exist before updating
+        if (map.getLayer('road-surfaces-layer')) {
+            map.setLayoutProperty('road-surfaces-layer', 'visibility', visibility);
+        }
+        if (map.getLayer('road-modifications-layer')) {
+            map.setLayoutProperty('road-modifications-layer', 'visibility', visibility);
+        }
 
         if (window.layerVisibility.surfaces) {
             const zoomLevel = Math.floor(map.getZoom());
-            await loadModifications();  // Reload modifications
-            map.triggerRepaint();  // Force repaint
             
             if (zoomLevel < 8) {
                 if (surfaceControl) {
@@ -535,7 +564,11 @@ window.layers.toggleSurfaceLayer = async function() {
                     surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-magnifying-glass-plus"></i> Zoom in to see gravel';
                 }
             } else {
+                // Load new modifications and ensure they're applied
                 await loadModifications();
+                await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+                map.triggerRepaint();
+                
                 if (surfaceControl) {
                     surfaceControl.classList.add('active');
                     surfaceControl.innerHTML = '<i class="fa-sharp-duotone fa-solid fa-person-biking-mountain"></i> Gravel On';
