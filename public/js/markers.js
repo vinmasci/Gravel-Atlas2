@@ -15,7 +15,7 @@ function initPOILayers() {
                 'promoteId': 'osm_id'
             });
 
-            // Background circles layer
+            // Background circles layer with filter
             map.addLayer({
                 'id': 'poi-layer',
                 'type': 'circle',
@@ -35,31 +35,22 @@ function initPOILayers() {
                         'toilets', '#e74c3c',
                         'drinking_water', '#3498db',
                         'cafe', '#9b59b6',
-                        ['match', 
-                            ['get', 'tourism'],
-                            'camp_site', '#2ecc71',
-                            ['match',
-                                ['get', 'shop'],
-                                'supermarket', '#e67e22',
-                                'transparent'
-                            ]
-                        ]
+                        // Since we are filtering, we can simplify the expression
+                        /* Remaining color expressions */
+                        '#000000' // Default color if none match
                     ],
-                    'circle-opacity': [
-                        'case',
-                        ['any',
-                            ['==', ['get', 'amenity_type'], 'toilets'],
-                            ['==', ['get', 'amenity_type'], 'drinking_water'],
-                            ['==', ['get', 'amenity_type'], 'cafe'],
-                            ['==', ['get', 'tourism'], 'camp_site'],
-                            ['==', ['get', 'shop'], 'supermarket']
-                        ],
-                        0.8,
-                        0
-                    ],
+                    'circle-opacity': 0.8,
                     'circle-stroke-width': 2,
                     'circle-stroke-color': '#ffffff'
-                }
+                },
+                'filter': [
+                    'any',
+                    ['==', ['get', 'amenity_type'], 'toilets'],
+                    ['==', ['get', 'amenity_type'], 'drinking_water'],
+                    ['==', ['get', 'amenity_type'], 'cafe'],
+                    ['==', ['get', 'tourism'], 'camp_site'],
+                    ['==', ['get', 'shop'], 'supermarket']
+                ]
             });
 
             // Create icons in white with transparent background
@@ -67,7 +58,7 @@ function initPOILayers() {
                 createIcon(icon);
             });
 
-            // Icon layer
+            // Icon layer with filter
             map.addLayer({
                 'id': 'poi-icons',
                 'type': 'symbol',
@@ -81,15 +72,12 @@ function initPOILayers() {
                         'toilets', 'fa-restroom',
                         'drinking_water', 'fa-faucet',
                         'cafe', 'fa-mug-hot',
-                        ['match',
-                            ['get', 'tourism'],
-                            'camp_site', 'fa-campground',
-                            ['match',
-                                ['get', 'shop'],
-                                'supermarket', 'fa-shopping-cart',
-                                ''
-                            ]
-                        ]
+                        // Since we are filtering, we can simplify the expression
+                        ['get', 'tourism'],
+                        'camp_site', 'fa-campground',
+                        ['get', 'shop'],
+                        'supermarket', 'fa-shopping-cart',
+                        '' // Default to empty string if none match
                     ],
                     'icon-size': ['interpolate', ['linear'], ['zoom'],
                         0, 0.7,
@@ -101,7 +89,15 @@ function initPOILayers() {
                 'paint': {
                     'icon-opacity': 1,
                     'icon-color': '#ffffff'
-                }
+                },
+                'filter': [
+                    'any',
+                    ['==', ['get', 'amenity_type'], 'toilets'],
+                    ['==', ['get', 'amenity_type'], 'drinking_water'],
+                    ['==', ['get', 'amenity_type'], 'cafe'],
+                    ['==', ['get', 'tourism'], 'camp_site'],
+                    ['==', ['get', 'shop'], 'supermarket']
+                ]
             });
 
             // Popup for POIs
