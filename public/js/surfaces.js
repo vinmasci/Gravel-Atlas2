@@ -586,6 +586,43 @@ window.layers.toggleSurfaceLayer = async function() {
     }
 };
 
+// Add right before showGravelRatingModal function
+async function loadAndRenderElevation(feature) {
+    try {
+        const coordinates = feature.geometry.coordinates;
+        const response = await fetch('/api/get-elevation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ coordinates })
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch elevation data');
+        
+        const elevationData = await response.json();
+        const routeData = {
+            geojson: {
+                features: [{
+                    geometry: {
+                        coordinates: elevationData.coordinates
+                    }
+                }]
+            }
+        };
+        
+        renderElevationProfile(routeData);
+        
+    } catch (error) {
+        console.error('Error loading elevation data:', error);
+        document.getElementById('elevation-profile').innerHTML = `
+            <div style="text-align: center; padding: 10px; color: #dc2626;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Failed to load elevation data
+            </div>
+        `;
+    }
+}
+
 function showGravelRatingModal(feature) {
     console.log('📱 Opening modal for feature:', feature);
     
@@ -704,10 +741,11 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 14px; color: #333; margin-bottom: 6px;">Notes (optional)</label>
-            <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${existingMod?.notes || ''}</textarea>
-        </div>
+<div id="elevation-profile" style="margin-bottom: 16px;">
+    <div style="text-align: center; padding: 10px;">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading elevation data...
+    </div>
+</div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
 <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
     ${votes && votes.length > 0 ? 
@@ -725,6 +763,9 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
+
+    // Add this line right after:
+loadAndRenderElevation(feature);
 
     function updateColorPreview(value) {
         const colorPreview = document.getElementById('color-preview');
