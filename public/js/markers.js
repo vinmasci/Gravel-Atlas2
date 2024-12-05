@@ -15,6 +15,27 @@ function initPOILayers() {
                 'promoteId': 'osm_id'
             });
 
+            // Load icons and add them to the map
+            const icons = [
+                { name: 'bathroom', url: '/icons/bathroom.png' },
+                { name: 'water', url: '/icons/water.png' },
+                { name: 'cafe', url: '/icons/cafe.png' },
+                { name: 'camping', url: '/icons/camping.png' },
+                { name: 'supermarket', url: '/icons/supermarket.png' }
+            ];
+
+            icons.forEach(icon => {
+                if (!map.hasImage(icon.name)) {
+                    map.loadImage(icon.url, (error, image) => {
+                        if (error) {
+                            console.error('Error loading icon:', icon.url, error);
+                            return;
+                        }
+                        map.addImage(icon.name, image);
+                    });
+                }
+            });
+
             // Background circles layer with filter
             map.addLayer({
                 'id': 'poi-layer',
@@ -25,23 +46,9 @@ function initPOILayers() {
                     'visibility': 'none'
                 },
                 'paint': {
-                    'circle-radius': ['interpolate', ['linear'], ['zoom'],
-                        0, 10,
-                        22, 10
-                    ],
-                    'circle-color': [
-                        'match',
-                        ['get', 'amenity_type'],
-                        'toilets', '#e74c3c',
-                        'drinking_water', '#3498db',
-                        'cafe', '#9b59b6',
-                        // Since we are filtering, we can simplify the expression
-                        /* Remaining color expressions */
-                        '#000000' // Default color if none match
-                    ],
-                    'circle-opacity': 0.8,
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#ffffff'
+                    'circle-radius': 15, // Adjusted for better visibility
+                    'circle-color': 'rgba(0, 0, 0, 0)', // Transparent since we're using custom icons
+                    'circle-stroke-width': 0
                 },
                 'filter': [
                     'any',
@@ -53,11 +60,6 @@ function initPOILayers() {
                 ]
             });
 
-            // Create icons in white with transparent background
-            ['fa-restroom', 'fa-faucet', 'fa-mug-hot', 'fa-campground', 'fa-shopping-cart'].forEach(icon => {
-                createIcon(icon);
-            });
-
             // Icon layer with filter
             map.addLayer({
                 'id': 'poi-icons',
@@ -67,28 +69,20 @@ function initPOILayers() {
                 'layout': {
                     'visibility': 'none',
                     'icon-image': [
-                        'match',
-                        ['get', 'amenity_type'],
-                        'toilets', 'fa-restroom',
-                        'drinking_water', 'fa-faucet',
-                        'cafe', 'fa-mug-hot',
-                        // Since we are filtering, we can simplify the expression
-                        ['get', 'tourism'],
-                        'camp_site', 'fa-campground',
-                        ['get', 'shop'],
-                        'supermarket', 'fa-shopping-cart',
+                        'case',
+                        ['==', ['get', 'amenity_type'], 'toilets'], 'bathroom',
+                        ['==', ['get', 'amenity_type'], 'drinking_water'], 'water',
+                        ['==', ['get', 'amenity_type'], 'cafe'], 'cafe',
+                        ['==', ['get', 'tourism'], 'camp_site'], 'camping',
+                        ['==', ['get', 'shop'], 'supermarket'], 'supermarket',
                         '' // Default to empty string if none match
                     ],
-                    'icon-size': ['interpolate', ['linear'], ['zoom'],
-                        0, 0.7,
-                        22, 0.7
-                    ],
+                    'icon-size': 0.8, // Adjusted to typical POI icon size
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true
                 },
                 'paint': {
-                    'icon-opacity': 1,
-                    'icon-color': '#ffffff'
+                    'icon-opacity': 1
                 },
                 'filter': [
                     'any',
@@ -112,23 +106,23 @@ function initPOILayers() {
                 const properties = e.features[0].properties;
                 let name = properties.name || 'Unnamed';
                 let type = properties.amenity_type || properties.tourism || properties.shop || '';
-                let icon = '';
+                let iconUrl = '';
 
                 switch(type) {
                     case 'toilets':
-                        icon = '<i class="fa-solid fa-restroom"></i>';
+                        iconUrl = '/icons/bathroom.png';
                         break;
                     case 'drinking_water':
-                        icon = '<i class="fa-solid fa-faucet"></i>';
+                        iconUrl = '/icons/water.png';
                         break;
                     case 'cafe':
-                        icon = '<i class="fa-solid fa-mug-hot"></i>';
+                        iconUrl = '/icons/cafe.png';
                         break;
                     case 'camp_site':
-                        icon = '<i class="fa-solid fa-campground"></i>';
+                        iconUrl = '/icons/camping.png';
                         break;
                     case 'supermarket':
-                        icon = '<i class="fa-solid fa-shopping-cart"></i>';
+                        iconUrl = '/icons/supermarket.png';
                         break;
                 }
 
@@ -136,7 +130,7 @@ function initPOILayers() {
                     .setLngLat(e.features[0].geometry.coordinates)
                     .setHTML(`
                         <div style="padding: 8px;">
-                            <strong>${icon} ${name}</strong><br>
+                            <strong><img src="${iconUrl}" style="width:20px;height:20px;vertical-align:middle;"> ${name}</strong><br>
                             <span style="font-size: 12px;">${type}</span>
                         </div>
                     `)
@@ -152,41 +146,6 @@ function initPOILayers() {
             console.error('❌ Error in initPOILayers:', error);
             throw error;
         }
-    }
-}
-
-function createIcon(iconClass) {
-    const size = 40;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    
-    // Clear canvas with transparent background
-    ctx.clearRect(0, 0, size, size);
-    
-    // Draw icon in white
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${size * 0.7}px "Font Awesome 6 Free Solid"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    const iconUnicode = {
-        'fa-restroom': 'f7bd',
-        'fa-faucet': 'e005',
-        'fa-mug-hot': 'f7b6',
-        'fa-campground': 'f6bb',
-        'fa-shopping-cart': 'f07a'
-    };
-    
-    ctx.fillText(String.fromCharCode('0x' + iconUnicode[iconClass]), size/2, size/2);
-    
-    if (!map.hasImage(iconClass)) {
-        map.addImage(iconClass, {
-            width: size,
-            height: size,
-            data: ctx.getImageData(0, 0, size, size).data
-        });
     }
 }
 
@@ -210,7 +169,7 @@ async function loadPOIMarkers() {
 function removePOIMarkers() {
     console.log("Removing POI markers...");
     poiMarkers.forEach(marker => marker.remove());
-    poiMarkers = [];
+        poiMarkers = [];
     
     if (map.getLayer('poi-icons')) {
         map.setLayoutProperty('poi-icons', 'visibility', 'none');
