@@ -118,8 +118,51 @@ async function updateRoadModification(osmId, modificationData) {
     window.modificationCache.set(osmId, modificationData);
     await window.layers.updateSurfaceData();
     
-    // Just trigger a repaint
+    // Update both layers
     if (map.getSource('road-surfaces')) {
+        // Remove and re-add the modifications layer to refresh it with new cache data
+        if (map.getLayer('road-modifications-layer')) {
+            map.removeLayer('road-modifications-layer');
+        }
+        
+        map.addLayer({
+            'id': 'road-modifications-layer',
+            'type': 'line',
+            'source': 'road-surfaces',
+            'source-layer': 'roads',
+            'layout': {
+                'visibility': map.getLayoutProperty('road-surfaces-layer', 'visibility'),
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': [
+                    'match',
+                    ['get', 'gravel_condition'],
+                    '0', '#01bf11',
+                    '1', '#badc58',
+                    '2', '#ffa801',
+                    '3', '#e67e22',
+                    '4', '#eb4d4b',
+                    '5', '#c0392b',
+                    '6', '#751203',
+                    '#C2B280'
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    5, 1.5,
+                    8, 2.5,
+                    10, 3.5,
+                    12, 4.5,
+                    14, 5.5
+                ],
+                'line-opacity': 0.8
+            },
+            'filter': ['in', ['string', ['get', 'osm_id']], ['literal', Object.keys(Object.fromEntries(window.modificationCache))]]
+        });
+        
         map.triggerRepaint();
     }
 }
