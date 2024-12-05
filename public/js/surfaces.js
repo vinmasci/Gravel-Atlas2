@@ -334,6 +334,7 @@ window.layers.initSurfaceLayers = async function() {
 
             // Add click handler
             map.on('click', 'road-surfaces-layer', async (e) => {
+                console.log('🎯 Click handler start');  // Add this
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     console.log('Clicked feature:', feature);
@@ -355,9 +356,11 @@ window.layers.initSurfaceLayers = async function() {
 
                     const auth0 = await window.waitForAuth0();
                     if (!await auth0.isAuthenticated()) {
+                        console.log('❌ Auth not authenticated');  // Add this
                         return;
                     }
 
+                    console.log('🎯 About to show modal');  // Add this
                     showGravelRatingModal(feature);
                 }
             });
