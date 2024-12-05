@@ -779,7 +779,7 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-<div id="elevation-profile" style="margin-bottom: 16px; min-height: 200px;">
+<div id="elevation-profile" style="margin-bottom: 16px; min-height: 300px; width: 100%;">
     <div style="text-align: center; padding: 10px;">
         <i class="fa-solid fa-spinner fa-spin"></i> Loading elevation data...
     </div>
