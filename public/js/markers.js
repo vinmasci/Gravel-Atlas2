@@ -77,7 +77,7 @@ function initPOILayers() {
                         ['==', ['get', 'shop'], 'supermarket'], 'supermarket',
                         '' // Default to empty string if none match
                     ],
-                    'icon-size': 0.3, // Reduced size for smaller icons
+                    'icon-size': 0.8, // Reduced size for smaller icons
                     'icon-rotate': 0, // Ensure no rotation is applied
                     'icon-pitch-alignment': 'viewport',
                     'icon-rotation-alignment': 'viewport',
