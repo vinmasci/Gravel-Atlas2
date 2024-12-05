@@ -65,24 +65,25 @@ async function loadModifications() {
 
         window.modificationCache.clear();
         Object.entries(data.modifications).forEach(([osmId, mod]) => {
+            // Debug log before storing in cache
+            console.log('Adding to cache:', {
+                osmId,
+                gravel_condition: mod.gravel_condition,
+                type: typeof mod.gravel_condition
+            });
+            
             window.modificationCache.set(osmId, mod);
         });
 
-        // Add debug logging
-        console.log('Cache contents:', Object.fromEntries(window.modificationCache));
-        console.log('First modification:', window.modificationCache.get('986064815'));
-        console.log('Cache as literal:', ['literal', Object.fromEntries(window.modificationCache)]);
-        console.log('Cache keys:', Object.keys(Object.fromEntries(window.modificationCache)));
+        // Log the actual cache contents
+        console.log('Cache after loading:', Array.from(window.modificationCache.entries()).map(([k, v]) => ({
+            osmId: k,
+            gravel_condition: v.gravel_condition,
+            type: typeof v.gravel_condition
+        })));
 
         SURFACE_CACHE.viewState.timestamp = Date.now();
-        console.log(`✅ Loaded ${window.modificationCache.size} modifications`);
-        
-        if (map.getSource('road-surfaces')) {
-            map.triggerRepaint();
-        }
-        
         return true;
-
     } catch (error) {
         console.error('❌ Error loading modifications:', error);
         return false;
