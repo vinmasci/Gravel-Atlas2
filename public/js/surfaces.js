@@ -206,28 +206,36 @@ window.layers.initSurfaceLayers = async function() {
                         12, 4,
                         14, 5
                     ],
-                    'line-opacity': [
-                        'case',
-                        // Check if it's a cycleway (always full opacity)
-                        [
-                            'any',
-                            ['==', ['get', 'highway'], 'cycleway'],
-                            ['all',
-                                ['==', ['get', 'highway'], 'path'],
-                                ['==', ['get', 'bicycle'], 'designated']
-                            ]
-                        ],
-                        0.8,
-                        // Check for known surface
-                        ['has', 'surface'],
-                        [
-                            'case',
-                            ['has', 'name'],
-                            0.8,  // Named roads with known surface
-                            0.6   // Unnamed roads with known surface
-                        ],
-                        0.4     // Unknown surface
-                    ]
+'line-opacity': [
+    'case',
+    // Check if it's a cycleway (always full opacity)
+    [
+        'any',
+        ['==', ['get', 'highway'], 'cycleway'],
+        ['all',
+            ['==', ['get', 'highway'], 'path'],
+            ['==', ['get', 'bicycle'], 'designated']
+        ]
+    ],
+    0.8,
+    // For all other roads, check surface
+    [
+        'has', 'surface'  // If surface is known
+    ],
+    [
+        'case',
+        ['has', 'name'],
+        0.8,  // Named roads with known surface
+        0.6   // Unnamed roads with known surface
+    ],
+    // Unknown surface gets half opacity
+    [
+        'case',
+        ['has', 'name'],
+        0.4,  // Named roads with unknown surface
+        0.3   // Unnamed roads with unknown surface
+    ]
+]
                 },
                 'filter': [
                     'any',
