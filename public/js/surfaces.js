@@ -53,33 +53,6 @@ function formatHighway(highway) {
         .join(' ');
 }
 
-function applyModificationsToFeatures() {
-    const features = map.querySourceFeatures('road-surfaces', {
-        sourceLayer: 'roads'
-    });
-    
-    features.forEach(feature => {
-        if (!feature.properties) return;
-        
-        const osmId = feature.properties.osm_id?.toString();
-        const modification = window.modificationCache.get(osmId);
-        
-        if (modification) {
-            // Apply modification properties to the feature
-            feature.properties.gravel_condition = modification.gravel_condition;
-            // Force a feature state update to trigger a repaint
-            map.setFeatureState(
-                {
-                    source: 'road-surfaces',
-                    sourceLayer: 'roads',
-                    id: feature.id
-                },
-                { modified: true }
-            );
-        }
-    });
-}
-
 async function loadModifications() {
     console.log('🔄 Loading modifications...');
     try {
@@ -98,9 +71,8 @@ async function loadModifications() {
         SURFACE_CACHE.viewState.timestamp = Date.now();
         console.log(`✅ Loaded ${window.modificationCache.size} modifications`);
         
-        // Apply modifications after loading
+        // Just trigger a repaint
         if (map.getSource('road-surfaces')) {
-            applyModificationsToFeatures();
             map.triggerRepaint();
         }
         
@@ -141,9 +113,8 @@ async function updateRoadModification(osmId, modificationData) {
     window.modificationCache.set(osmId, modificationData);
     await window.layers.updateSurfaceData();
     
-    // Apply modifications and force repaint
+    // Just trigger a repaint
     if (map.getSource('road-surfaces')) {
-        applyModificationsToFeatures();
         map.triggerRepaint();
     }
 }
@@ -317,19 +288,6 @@ window.layers.initSurfaceLayers = async function() {
                     ]
                 ]
             });
-
-                        // Add new event handlers for modification updates
-                        map.on('sourcedata', (e) => {
-                            if (e.sourceId === 'road-surfaces' && e.isSourceLoaded && window.layerVisibility.surfaces) {
-                                applyModificationsToFeatures();
-                            }
-                        });
-            
-                        map.on('moveend', () => {
-                            if (window.layerVisibility.surfaces) {
-                                applyModificationsToFeatures();
-                            }
-                        });
 
             // Add click handler
             map.on('click', 'road-surfaces-layer', async (e) => {
