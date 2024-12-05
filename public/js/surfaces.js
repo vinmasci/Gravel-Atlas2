@@ -59,30 +59,23 @@ async function loadModifications() {
         const response = await fetch('/api/get-road-modifications');
         const data = await response.json();
         
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to load modifications');
-        }
+        console.log('Raw data from API:', data); // Debug the raw data
 
         window.modificationCache.clear();
         Object.entries(data.modifications).forEach(([osmId, mod]) => {
-            // Debug log before storing in cache
-            console.log('Adding to cache:', {
+            // Debug each modification before caching
+            console.log('Processing modification:', {
                 osmId,
                 gravel_condition: mod.gravel_condition,
-                type: typeof mod.gravel_condition
+                votes: mod.votes,
+                raw: mod
             });
-            
             window.modificationCache.set(osmId, mod);
         });
 
-        // Log the actual cache contents
-        console.log('Cache after loading:', Array.from(window.modificationCache.entries()).map(([k, v]) => ({
-            osmId: k,
-            gravel_condition: v.gravel_condition,
-            type: typeof v.gravel_condition
-        })));
+        // Debug the final cache state
+        console.log('Final cache state:', Object.fromEntries(window.modificationCache));
 
-        SURFACE_CACHE.viewState.timestamp = Date.now();
         return true;
     } catch (error) {
         console.error('❌ Error loading modifications:', error);
@@ -413,7 +406,7 @@ map.addLayer({
 
             // Add click handler
             map.on('click', 'road-surfaces-layer', async (e) => {
-                console.log('🎯 Click handler start');  // Add this
+                console.log('🎯 Click handler start');
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     console.log('Clicked feature:', feature);
@@ -423,23 +416,29 @@ map.addLayer({
                         console.error('No OSM ID found for feature');
                         return;
                     }
-
+            
+                    // Add debug log for cache lookup
+                    console.log('Looking up modification for OSM ID:', osmId);
+                    console.log('Cache contains:', Array.from(window.modificationCache.keys()));
+            
                     // Check for existing modification
-                    const modification = window.modificationCache.get(osmId);
+                    const modification = window.modificationCache.get(String(osmId));  // Convert to string
+                    console.log('Found modification:', modification);
+                    
                     if (modification) {
                         feature.properties = {
                             ...feature.properties,
                             ...modification
                         };
                     }
-
+            
                     const auth0 = await window.waitForAuth0();
                     if (!await auth0.isAuthenticated()) {
-                        console.log('❌ Auth not authenticated');  // Add this
+                        console.log('❌ Auth not authenticated');
                         return;
                     }
-
-                    console.log('🎯 About to show modal');  // Add this
+            
+                    console.log('🎯 About to show modal');
                     showGravelRatingModal(feature);
                 }
             });
@@ -456,7 +455,9 @@ map.addLayer({
                 if (e.features.length > 0) {
                     const feature = e.features[0];
                     const osmId = feature.properties.osm_id;
+                    console.log('Hover OSM ID:', osmId); // Debug
                     const modification = window.modificationCache.get(osmId);
+                    console.log('Hover modification:', modification); // Debug
                     
                     if (modification) {
                         feature.properties = {
@@ -618,9 +619,14 @@ function showGravelRatingModal(feature) {
     `;
 
     // Get existing modification if any
-    const existingMod = window.modificationCache.get(osmId);
+    const existingMod = window.modificationCache.get(String(osmId));
+    console.log('Modal existingMod:', existingMod); // Debug log
     console.log('Existing modification data:', existingMod); // Debug log
     const votes = existingMod?.votes || [];
+    console.log('Modal votes:', votes); // Debug
+
+    const currentCondition = existingMod?.gravel_condition;
+console.log('Modal current condition:', currentCondition); // Debug
     
     console.log('🗳️ Existing votes:', votes);
     
@@ -648,11 +654,13 @@ function showGravelRatingModal(feature) {
                 <div style="margin-top: 8px; font-size: 13px;">
                     <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                     <div><b>OSM ID:</b> ${osmId}</div>
-<div class="current-condition"><b>Current Condition:</b> ${
-    existingMod?.gravel_condition ? 
-    getConditionIcon(existingMod.gravel_condition) : 
-    '<span style="color: #666;">Requires update</span>'
-}</div>
+    <div class="current-condition">
+        <b>Current Condition:</b> 
+        ${currentCondition ? 
+            getConditionIcon(currentCondition) : 
+            '<span style="color: #666;">Requires update</span>'
+        }
+    </div>
                     ${feature.properties.highway ? `<div><b>Road Type:</b> ${formatHighway(feature.properties.highway)}</div>` : ''}
                     ${feature.properties.access ? `<div><b>Access:</b> ${formatAccess(feature.properties.access)}</div>` : ''}
                 </div>
@@ -683,9 +691,14 @@ function showGravelRatingModal(feature) {
             <textarea id="surface-notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;">${existingMod?.notes || ''}</textarea>
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-        <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
-            ${formattedVotes}
-        </div>
+<div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
+    ${votes.length > 0 ? 
+        votes.map(vote => 
+            `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${new Date(vote.timestamp).toLocaleDateString()}`
+        ).join('<br>') : 
+        'No votes yet'
+    }
+</div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
             <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
