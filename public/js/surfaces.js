@@ -125,6 +125,8 @@ async function updateRoadModification(osmId, modificationData) {
             map.removeLayer('road-modifications-layer');
         }
         
+        const cacheData = Object.fromEntries(window.modificationCache);
+        
         map.addLayer({
             'id': 'road-modifications-layer',
             'type': 'line',
@@ -138,15 +140,12 @@ async function updateRoadModification(osmId, modificationData) {
             'paint': {
                 'line-color': [
                     'match',
-                    ['get', 'gravel_condition'],
-                    '0', '#01bf11',
-                    '1', '#badc58',
-                    '2', '#ffa801',
-                    '3', '#e67e22',
-                    '4', '#eb4d4b',
-                    '5', '#c0392b',
-                    '6', '#751203',
-                    '#C2B280'
+                    ['get', 'osm_id'],
+                    ...Object.entries(cacheData).map(([id, mod]) => [
+                        id,
+                        getColorForGravelCondition(mod.gravel_condition)
+                    ]).flat(),
+                    'transparent'
                 ],
                 'line-width': [
                     'interpolate',
@@ -160,7 +159,7 @@ async function updateRoadModification(osmId, modificationData) {
                 ],
                 'line-opacity': 0.8
             },
-            'filter': ['in', ['string', ['get', 'osm_id']], ['literal', Object.keys(Object.fromEntries(window.modificationCache))]]
+            'filter': ['in', ['string', ['get', 'osm_id']], ['literal', Object.keys(cacheData)]]
         });
         
         map.triggerRepaint();
