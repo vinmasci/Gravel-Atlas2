@@ -157,12 +157,11 @@ window.layers.initSurfaceLayers = async function() {
                 'paint': {
 'line-color': [
     'case',
-    // First check if road has a modification in our cache
-    ['has', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]],
-    // If modified, use the modification's gravel condition
+    // First check if road has a modification in our cache using a simpler check
+    ['in', ['string', ['get', 'osm_id']], ['literal', ['26831506', '986064815']]],
     [
         'match',
-        ['to-string', ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', Object.fromEntries(window.modificationCache)]]]],
+        ['get', 'gravel_condition', ['literal', Object.fromEntries(window.modificationCache)]],
         '0', '#01bf11',
         '1', '#badc58',
         '2', '#ffa801',
