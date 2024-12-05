@@ -620,6 +620,32 @@ async function formatRoadForElevation(feature) {
     }
 }
 
+// Add this function to surfaces.js near your other elevation-related functions
+async function loadAndRenderElevation(feature) {
+    try {
+        console.log('Starting elevation load for feature:', feature);
+        const formattedRoad = await formatRoadForElevation(feature);
+        if (!formattedRoad) {
+            throw new Error('Could not format road data');
+        }
+        
+        console.log('Formatted road data:', formattedRoad);
+        // This function should be imported from your ui.js
+        renderElevationProfile(formattedRoad);
+        
+    } catch (error) {
+        console.error('Error loading elevation data:', error);
+        const elevationDiv = document.getElementById('elevation-profile');
+        if (elevationDiv) {
+            elevationDiv.innerHTML = `
+                <div style="text-align: center; padding: 10px; color: #dc2626;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Failed to load elevation data
+                </div>
+            `;
+        }
+    }
+}
+
 function showGravelRatingModal(feature) {
     console.log('📱 Opening modal for feature:', feature);
     
@@ -938,6 +964,7 @@ loadAndRenderElevation(feature);
 // Set up global references
 window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
 window.updateRoadModification = updateRoadModification;
+window.renderElevationProfile = renderElevationProfile;
 
 // Auto-refresh modifications periodically
 setInterval(async () => {
