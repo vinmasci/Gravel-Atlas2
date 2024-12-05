@@ -377,8 +377,7 @@ window.layers.initSurfaceLayers = async function() {
             });
 
             await loadModifications();
-            applyModificationsToFeatures();
-
+            
         } catch (error) {
             console.error('Error initializing surface layers:', error);
             throw error;
