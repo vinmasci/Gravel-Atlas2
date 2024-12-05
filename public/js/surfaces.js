@@ -473,13 +473,18 @@ map.addLayer({
                         <h4>${feature.properties.name || 'Unnamed Road'}</h4>
                         <p><strong>Surface:</strong> ${feature.properties.surface || 'Unknown'}</p>
                         ${modification?.gravel_condition ? 
-                          `<p><strong>Condition:</strong> ${getConditionIcon(modification.gravel_condition)}</p>` : 
-                          ''}
-                        <p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>
+                            `<p><strong>Condition:</strong> ${getConditionIcon(modification.gravel_condition)}</p>` : 
+                            ''
+                        }
+                        ${feature.properties.highway ? 
+                            `<p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>` : 
+                            ''
+                        }
                         ${modification ? 
-                          `<p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
-                           <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` : 
-                          ''}
+                            `<p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
+                             <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` : 
+                            ''
+                        }
                     </div>
                 `;
 
@@ -654,13 +659,11 @@ console.log('Modal current condition:', currentCondition); // Debug
                 <div style="margin-top: 8px; font-size: 13px;">
                     <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                     <div><b>OSM ID:</b> ${osmId}</div>
-    <div class="current-condition">
-        <b>Current Condition:</b> 
-        ${currentCondition ? 
-            getConditionIcon(currentCondition) : 
-            '<span style="color: #666;">Requires update</span>'
-        }
-    </div>
+<div class="current-condition"><b>Current Condition:</b> ${
+    currentCondition ? 
+    `${getConditionIcon(currentCondition)}` : 
+    '<span style="color: #666;">Requires update</span>'
+}</div>
                     ${feature.properties.highway ? `<div><b>Road Type:</b> ${formatHighway(feature.properties.highway)}</div>` : ''}
                     ${feature.properties.access ? `<div><b>Access:</b> ${formatAccess(feature.properties.access)}</div>` : ''}
                 </div>
@@ -692,7 +695,7 @@ console.log('Modal current condition:', currentCondition); // Debug
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
 <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
-    ${votes.length > 0 ? 
+    ${votes && votes.length > 0 ? 
         votes.map(vote => 
             `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${new Date(vote.timestamp).toLocaleDateString()}`
         ).join('<br>') : 
