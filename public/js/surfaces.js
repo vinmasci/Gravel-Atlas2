@@ -227,9 +227,9 @@ window.layers.initSurfaceLayers = async function() {
     0.8,  // Known surface, named road
     // Non-cycleways: check if surface is known but unnamed
     ['has', 'surface'],
-    0.6,  // Known surface, unnamed road
+    0.4,  // Known surface, unnamed road
     // All other cases (unknown surface)
-    0.3   // Default for unknown surface roads
+    0.2   // Default for unknown surface roads
 ]
                 },
                 'filter': [
@@ -580,31 +580,57 @@ function showGravelRatingModal(feature) {
         const gravelCondition = document.getElementById('gravel-condition').value;
         const notes = document.getElementById('surface-notes').value;
         
-        if (!gravelCondition) {
-            console.error('❌ No condition selected');
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Please select a condition';
-            setTimeout(() => {
-                saveButton.style.backgroundColor = '#007bff';
-                saveButton.textContent = 'Save';
-            }, 2000);
-            return;
-        }
-
-        if (!window.selectedFeature?.geometry) {
-            console.error('❌ No feature geometry found');
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = 'Error: Missing geometry';
-            return;
-        }
-
-        saveButton.disabled = true;
-        saveButton.textContent = 'Saving...';
-
+        // Add loading state management
+        let isLoading = false;
+        const setLoading = (loading) => {
+            isLoading = loading;
+            saveButton.disabled = loading;
+            saveButton.textContent = loading ? 'Saving...' : 'Save';
+        };
+    
+        const setButtonState = (type, message) => {
+            const states = {
+                error: { color: '#dc3545', icon: '❌' },
+                success: { color: '#28a745', icon: '✅' },
+                normal: { color: '#007bff', icon: '' }
+            };
+            const state = states[type];
+            saveButton.style.backgroundColor = state.color;
+            saveButton.textContent = `${state.icon} ${message}`;
+        };
+    
         try {
-            const userProfile = JSON.parse(localStorage.getItem('userProfile'));
-            if (!userProfile) throw new Error('No user profile found');
-        
+            // Validate condition
+            if (!gravelCondition) {
+                setButtonState('error', 'Please select a condition');
+                setTimeout(() => setButtonState('normal', 'Save'), 2000);
+                return;
+            }
+    
+            // Validate geometry
+            if (!window.selectedFeature?.geometry) {
+                setButtonState('error', 'Missing geometry');
+                return;
+            }
+    
+            // Get user profile
+            const userProfile = localStorage.getItem('userProfile');
+            if (!userProfile) {
+                setButtonState('error', 'Please log in');
+                return;
+            }
+    
+            const profile = JSON.parse(userProfile);
+            const osmId = window.selectedFeature.properties.osm_id;
+    
+            // Prevent double submissions
+            if (isLoading) return;
+            setLoading(true);
+    
+            // Prepare request with timeout
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
             const response = await fetch('/api/update-road-surface', {
                 method: 'POST',
                 headers: {
@@ -614,46 +640,68 @@ function showGravelRatingModal(feature) {
                     osm_id: osmId,
                     gravel_condition: parseInt(gravelCondition),
                     notes: notes || '',
-                    user_id: userProfile.auth0Id,
-                    userName: formatUserName(userProfile),
+                    user_id: profile.auth0Id,
+                    userName: formatUserName(profile),
                     geometry: window.selectedFeature.geometry
-                })
+                }),
+                signal: controller.signal
             });
-        
+    
+            clearTimeout(timeout);
+    
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `Server error: ${response.status}`);
             }
-        
+    
             const data = await response.json();
             
             if (!data.success) {
                 throw new Error(data.error || 'Failed to save vote');
             }
-        
+    
             console.log('✅ Vote saved successfully:', data);
-        
+    
             // Update cache and UI
             await updateRoadModification(osmId, data.modification);
-        
-            saveButton.style.backgroundColor = '#28a745';
-            saveButton.textContent = 'Saved!';
+    
+            setButtonState('success', 'Saved!');
             
-            setTimeout(closeModal, 1000);
-        
+            // Close modal after success
+            setTimeout(() => {
+                const modal = document.getElementById('gravel-rating-modal');
+                const backdrop = document.getElementById('gravel-rating-backdrop');
+                if (modal) modal.remove();
+                if (backdrop) backdrop.remove();
+            }, 1000);
+    
         } catch (error) {
             console.error('Error saving vote:', error);
-            saveButton.style.backgroundColor = '#dc3545';
-            saveButton.textContent = error.message || 'Error!';
-            saveButton.disabled = false;
             
-            // Keep error visible longer for user to read
+            // Handle specific error types
+            let errorMessage = 'Error!';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Request timeout';
+            } else if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Network error';
+            } else {
+                errorMessage = error.message || 'Server error';
+            }
+    
+            setButtonState('error', errorMessage);
+            
+            // Reset button after delay
             setTimeout(() => {
-                if (saveButton) {
-                    saveButton.style.backgroundColor = '#007bff';
-                    saveButton.textContent = 'Save';
-                }
+                if (!isLoading) return; // Don't reset if another request is in progress
+                setLoading(false);
+                setButtonState('normal', 'Save');
             }, 3000);
+    
+        } finally {
+            // Ensure loading state is cleared
+            setTimeout(() => {
+                setLoading(false);
+            }, 1000);
         }
     };
 }
