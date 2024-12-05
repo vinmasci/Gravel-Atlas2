@@ -77,7 +77,10 @@ function initPOILayers() {
                         ['==', ['get', 'shop'], 'supermarket'], 'supermarket',
                         '' // Default to empty string if none match
                     ],
-                    'icon-size': 0.8, // Adjusted to typical POI icon size
+                    'icon-size': 0.3, // Reduced size for smaller icons
+                    'icon-rotate': 0, // Ensure no rotation is applied
+                    'icon-pitch-alignment': 'viewport',
+                    'icon-rotation-alignment': 'viewport',
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true
                 },
@@ -169,7 +172,7 @@ async function loadPOIMarkers() {
 function removePOIMarkers() {
     console.log("Removing POI markers...");
     poiMarkers.forEach(marker => marker.remove());
-        poiMarkers = [];
+    poiMarkers = [];
     
     if (map.getLayer('poi-icons')) {
         map.setLayoutProperty('poi-icons', 'visibility', 'none');
