@@ -356,7 +356,7 @@ map.addLayer({
     'paint': {
         'line-color': [
             'match',
-            ['toString', ['get', 'gravel_condition']],
+            ['get', 'gravel_condition'],
             '0', '#01bf11',  // Smooth surface - green
             '1', '#badc58',  // Well maintained - light green
             '2', '#ffa801',  // Occasional rough - yellow
