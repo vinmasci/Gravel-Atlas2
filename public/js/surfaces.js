@@ -116,16 +116,23 @@ function formatUserName(profile) {
 
 async function updateRoadModification(osmId, modificationData) {
     console.log('🔄 Updating modification for:', osmId);
-    
-    // Ensure gravel_condition is a string
+    console.log('Modification data before processing:', modificationData); // Debug log
+
+    // Ensure types are consistent
     const normalizedData = {
         ...modificationData,
-        gravel_condition: String(modificationData.gravel_condition)
+        osm_id: String(modificationData.osm_id),
+        gravel_condition: String(modificationData.gravel_condition),
+        votes: (modificationData.votes || []).map(vote => ({
+            ...vote,
+            condition: String(vote.condition)
+        }))
     };
+
+    console.log('Normalized data:', normalizedData); // Debug log
     
-    window.modificationCache.set(osmId, normalizedData);
+    window.modificationCache.set(String(osmId), normalizedData);
     await window.layers.updateSurfaceData();
-    
     
     if (map.getSource('road-surfaces')) {
         if (map.getLayer('road-modifications-layer')) {
@@ -133,6 +140,7 @@ async function updateRoadModification(osmId, modificationData) {
         }
         
         const cacheData = Object.fromEntries(window.modificationCache);
+        console.log('Cache data before layer creation:', cacheData); // Debug log
         
         map.addLayer({
             'id': 'road-modifications-layer',
@@ -146,13 +154,21 @@ async function updateRoadModification(osmId, modificationData) {
             },
             'paint': {
                 'line-color': [
-                    'match',
-                    ['string', ['get', 'osm_id']],
-                    ...Object.entries(cacheData).map(([id, mod]) => [
-                        id,
-                        getColorForGravelCondition(mod.gravel_condition)
-                    ]).flat(),
-                    'transparent'
+                    'case',
+                    ['has', ['to-string', ['get', 'osm_id']], ['literal', cacheData]],
+                    [
+                        'match',
+                        ['to-string', ['get', 'gravel_condition', ['get', ['to-string', ['get', 'osm_id']], ['literal', cacheData]]]],
+                        '0', '#01bf11',
+                        '1', '#badc58',
+                        '2', '#ffa801',
+                        '3', '#e67e22',
+                        '4', '#eb4d4b',
+                        '5', '#c0392b',
+                        '6', '#751203',
+                        '#C2B280'
+                    ],
+                    '#C2B280'
                 ],
                 'line-width': [
                     'interpolate',
@@ -166,7 +182,7 @@ async function updateRoadModification(osmId, modificationData) {
                 ],
                 'line-opacity': 0.8
             },
-            'filter': ['in', ['string', ['get', 'osm_id']], ['literal', Object.keys(cacheData)]]
+            'filter': ['in', ['to-string', ['get', 'osm_id']], ['literal', Object.keys(cacheData)]]
         });
         
         map.triggerRepaint();
