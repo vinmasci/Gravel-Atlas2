@@ -60,6 +60,9 @@ module.exports = async (req, res) => {
             return acc;
         }, {});
 
+// Add the console.log RIGHT HERE, before the return statement
+console.log('ModificationLookup keys:', Object.keys(modificationsLookup));
+
         return res.json({
             success: true,
             modifications: modificationsLookup
