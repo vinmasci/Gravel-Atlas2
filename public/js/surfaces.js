@@ -173,7 +173,7 @@ async function updateRoadModification(osmId, modificationData) {
                     12, 4.5,
                     14, 5.5
                 ],
-                'line-opacity': 0.8
+                'line-opacity': 1
             },
             'filter': ['in', ['to-string', ['get', 'osm_id']], ['literal', Object.keys(cacheData)]]
         });
@@ -415,7 +415,7 @@ map.addLayer({
             12, 4.5,
             14, 5.5
         ],
-        'line-opacity': 0.8
+        'line-opacity': 1
     },
 'filter': ['in', 
     ['to-string', ['get', 'osm_id']], // Convert osm_id to string for comparison
