@@ -90,16 +90,16 @@ async function loadModifications() {
 }
 
 function getColorForGravelCondition(condition) {
-    const parsedCondition = parseInt(condition);
-    switch(parsedCondition) {
-        case 0: return '#01bf11'; // Green - Smooth surface
-        case 1: return '#badc58'; // Light green - Well maintained
-        case 2: return '#ffa801'; // Yellow - Occasional rough
-        case 3: return '#e67e22'; // Orange - Frequent loose
-        case 4: return '#eb4d4b'; // Red - Very rough
-        case 5: return '#c0392b'; // Dark red - Extremely rough
-        case 6: return '#751203'; // Darker red - Hike-a-bike
-        default: return '#C2B280'; // Default gravel color
+    const conditionStr = String(condition);
+    switch(conditionStr) {
+        case '0': return '#01bf11';
+        case '1': return '#badc58';
+        case '2': return '#ffa801';
+        case '3': return '#e67e22';
+        case '4': return '#eb4d4b';
+        case '5': return '#c0392b';
+        case '6': return '#751203';
+        default: return '#C2B280';
     }
 }
 
@@ -607,8 +607,8 @@ function showGravelRatingModal(feature) {
     console.log('🗳️ Existing votes:', votes);
     
     const averageCondition = votes.length > 0 
-        ? Math.round(votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length)
-        : undefined;
+    ? Math.round(votes.reduce((sum, vote) => sum + parseInt(vote.condition), 0) / votes.length).toString()
+    : undefined;
     
     console.log('📊 Calculated average condition:', averageCondition);
 
