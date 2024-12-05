@@ -71,6 +71,8 @@ async function loadModifications() {
         // Add debug logging
         console.log('Cache contents:', Object.fromEntries(window.modificationCache));
         console.log('First modification:', window.modificationCache.get('986064815'));
+        console.log('Cache as literal:', ['literal', Object.fromEntries(window.modificationCache)]);
+        console.log('Cache keys:', Object.keys(Object.fromEntries(window.modificationCache)));
 
         SURFACE_CACHE.viewState.timestamp = Date.now();
         console.log(`✅ Loaded ${window.modificationCache.size} modifications`);
