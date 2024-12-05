@@ -58,30 +58,69 @@ module.exports = async (req, res) => {
         const collection = dbClient.db('gravelatlas').collection('road_modifications');
         const osmIdString = osm_id.toString();
 
-        // Get current document
+        // Try to insert first
+        console.log('📍 Attempting direct insert first...');
+        try {
+            const insertData = {
+                osm_id: osmIdString,
+                gravel_condition: gravel_condition.toString(),
+                notes: notes || '',
+                modified_by: user_id,
+                last_updated: new Date(),
+                votes: [{
+                    user_id,
+                    userName,
+                    condition: parseInt(gravel_condition),
+                    timestamp: new Date()
+                }]
+            };
+
+            if (geometry && geometry.type === 'LineString') {
+                insertData.geometry = {
+                    type: 'LineString',
+                    coordinates: geometry.coordinates
+                };
+            }
+
+            const insertResult = await collection.insertOne(insertData);
+            console.log('📍 Insert result:', insertResult);
+
+            if (insertResult.acknowledged) {
+                console.log('📍 Successfully inserted new document');
+                return res.json({
+                    success: true,
+                    modification: insertData
+                });
+            }
+        } catch (insertError) {
+            // If error is duplicate key, proceed to update
+            if (insertError.code !== 11000) {
+                throw insertError;
+            }
+            console.log('📍 Document exists, proceeding to update...');
+        }
+
+        // Get existing document
         const currentDoc = await collection.findOne({ osm_id: osmIdString });
-        console.log('📍 Current document:', currentDoc);
+        console.log('📍 Found existing document:', currentDoc ? 'yes' : 'no');
 
         // Prepare votes array
         let votes = currentDoc?.votes || [];
         votes = votes.filter(vote => vote.user_id !== user_id);
-        
-        const newVote = {
+        votes.push({
             user_id,
             userName,
             condition: parseInt(gravel_condition),
             timestamp: new Date()
-        };
-        votes.push(newVote);
+        });
 
         // Calculate average condition
         const averageCondition = Math.round(
             votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
         );
 
-        // Prepare update data
+        // Prepare update
         const updateData = {
-            osm_id: osmIdString,
             gravel_condition: averageCondition.toString(),
             notes: notes || '',
             modified_by: user_id,
@@ -89,7 +128,6 @@ module.exports = async (req, res) => {
             votes
         };
 
-        // Handle geometry
         if (geometry && geometry.type === 'LineString') {
             updateData.geometry = {
                 type: 'LineString',
@@ -97,41 +135,38 @@ module.exports = async (req, res) => {
             };
         }
 
-        console.log('📍 Update data prepared:', updateData);
+        console.log('📍 Attempting update with data:', updateData);
 
-        // Perform update with proper error handling
-        const result = await collection.findOneAndUpdate(
+        const updateResult = await collection.updateOne(
             { osm_id: osmIdString },
-            { $set: updateData },
-            {
-                upsert: true,
-                returnDocument: 'after'
-            }
+            { $set: updateData }
         );
 
-        // Check for successful update
-        if (!result.ok && !result.lastErrorObject?.updatedExisting && !result.lastErrorObject?.upserted) {
-            throw new Error('MongoDB update failed - no documents affected');
+        console.log('📍 Update result:', updateResult);
+
+        if (!updateResult.acknowledged) {
+            throw new Error('MongoDB update not acknowledged');
         }
 
-        // Get the updated document
-        const updatedDoc = result.value || await collection.findOne({ osm_id: osmIdString });
-        
-        if (!updatedDoc) {
+        // Fetch the final document
+        const finalDoc = await collection.findOne({ osm_id: osmIdString });
+        if (!finalDoc) {
             throw new Error('Failed to retrieve updated document');
         }
 
         console.log('📍 API: Update successful');
         res.json({
             success: true,
-            modification: updatedDoc
+            modification: finalDoc
         });
 
     } catch (error) {
         console.error('📍 API Error:', error);
-        // Log more details about the error
-        if (error.code) console.error('MongoDB Error Code:', error.code);
-        if (error.codeName) console.error('MongoDB Error Name:', error.codeName);
+        console.error('Error details:', {
+            name: error.name,
+            code: error.code,
+            codeName: error.codeName
+        });
         
         res.status(500).json({
             success: false,
