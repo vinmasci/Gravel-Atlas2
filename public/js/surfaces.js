@@ -586,33 +586,30 @@ window.layers.toggleSurfaceLayer = async function() {
     }
 };
 
-// Add right before showGravelRatingModal function
+async function formatRoadForElevation(feature) {
+    if (!feature || !feature.geometry || !feature.geometry.coordinates) {
+        console.error('Invalid feature geometry:', feature);
+        return null;
+    }
+    
+    return {
+        geojson: {
+            features: [{
+                geometry: feature.geometry
+            }]
+        }
+    };
+}
+
 async function loadAndRenderElevation(feature) {
     try {
-        const coordinates = feature.geometry.coordinates;
-        const response = await fetch('/api/get-elevation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ coordinates })
-        });
+        const formattedRoad = await formatRoadForElevation(feature);
+        if (!formattedRoad) {
+            throw new Error('Could not format road data');
+        }
         
-        if (!response.ok) throw new Error('Failed to fetch elevation data');
-        
-        const elevationData = await response.json();
-        const routeData = {
-            geojson: {
-                features: [{
-                    geometry: {
-                        coordinates: elevationData.coordinates
-                    }
-                }]
-            }
-        };
-        
-        renderElevationProfile(routeData);
-        
+        console.log('Rendering elevation for road:', formattedRoad);
+        renderElevationProfile(formattedRoad);
     } catch (error) {
         console.error('Error loading elevation data:', error);
         document.getElementById('elevation-profile').innerHTML = `
