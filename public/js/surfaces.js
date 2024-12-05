@@ -468,24 +468,19 @@ map.addLayer({
                     map.getCanvas().style.cursor = 'pointer';
                     
                     const html = `
-                        <div class="gravel-popup-content">
-                            <h4>${feature.properties.name || 'Unnamed Road'}</h4>
-                            <p><strong>Surface:</strong> ${feature.properties.surface || 'Unknown'}</p>
-                            ${feature.properties.gravel_condition ? 
-                              `<p><strong>Condition:</strong> ${getConditionIcon(feature.properties.gravel_condition)}</p>` : 
-                              ''}
-                            ${feature.properties.highway ? 
-                              `<p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>` : 
-                              ''}
-                            ${feature.properties.access ? 
-                              `<p><strong>Access:</strong> ${formatAccess(feature.properties.access)}</p>` : 
-                              ''}
-                            ${modification ? 
-                              `<p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
-                               <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` : 
-                              ''}
-                        </div>
-                    `;
+                    <div class="gravel-popup-content">
+                        <h4>${feature.properties.name || 'Unnamed Road'}</h4>
+                        <p><strong>Surface:</strong> ${feature.properties.surface || 'Unknown'}</p>
+                        ${modification?.gravel_condition ? 
+                          `<p><strong>Condition:</strong> ${getConditionIcon(modification.gravel_condition)}</p>` : 
+                          ''}
+                        <p><strong>Type:</strong> ${formatHighway(feature.properties.highway)}</p>
+                        ${modification ? 
+                          `<p><strong>Last Updated:</strong> ${new Date(modification.last_updated).toLocaleDateString()}</p>
+                           <p><strong>Total Votes:</strong> ${modification.votes?.length || 0}</p>` : 
+                          ''}
+                    </div>
+                `;
 
                     popup.setLngLat(e.lngLat)
                         .setHTML(html)
@@ -624,6 +619,7 @@ function showGravelRatingModal(feature) {
 
     // Get existing modification if any
     const existingMod = window.modificationCache.get(osmId);
+    console.log('Existing modification data:', existingMod); // Debug log
     const votes = existingMod?.votes || [];
     
     console.log('🗳️ Existing votes:', votes);
@@ -652,11 +648,11 @@ function showGravelRatingModal(feature) {
                 <div style="margin-top: 8px; font-size: 13px;">
                     <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                     <div><b>OSM ID:</b> ${osmId}</div>
-                    <div class="current-condition"><b>Current Condition:</b> ${
-                        averageCondition !== undefined ? 
-                        getConditionIcon(averageCondition) : 
-                        '<span style="color: #666;">Requires update</span>'
-                    }</div>
+<div class="current-condition"><b>Current Condition:</b> ${
+    existingMod?.gravel_condition ? 
+    getConditionIcon(existingMod.gravel_condition) : 
+    '<span style="color: #666;">Requires update</span>'
+}</div>
                     ${feature.properties.highway ? `<div><b>Road Type:</b> ${formatHighway(feature.properties.highway)}</div>` : ''}
                     ${feature.properties.access ? `<div><b>Access:</b> ${formatAccess(feature.properties.access)}</div>` : ''}
                 </div>
