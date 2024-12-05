@@ -779,7 +779,7 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-<div id="elevation-profile" style="margin-bottom: 16px;">
+<div id="elevation-profile" style="margin-bottom: 16px; min-height: 200px;">
     <div style="text-align: center; padding: 10px;">
         <i class="fa-solid fa-spinner fa-spin"></i> Loading elevation data...
     </div>
@@ -801,9 +801,19 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
+    loadAndRenderElevation(feature);
 
-    // Add this line right after:
-loadAndRenderElevation(feature);
+    setTimeout(() => {
+        const canvas = document.querySelector('#elevation-profile canvas');
+        console.log('Canvas element exists:', !!canvas);
+        if (canvas) {
+            console.log('Canvas dimensions:', {
+                width: canvas.width,
+                height: canvas.height,
+                style: canvas.style.cssText
+            });
+        }
+    }, 1000);
 
     function updateColorPreview(value) {
         const colorPreview = document.getElementById('color-preview');
