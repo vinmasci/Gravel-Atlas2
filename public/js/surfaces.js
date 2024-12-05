@@ -118,9 +118,7 @@ async function updateRoadModification(osmId, modificationData) {
     window.modificationCache.set(osmId, modificationData);
     await window.layers.updateSurfaceData();
     
-    // Update both layers
     if (map.getSource('road-surfaces')) {
-        // Remove and re-add the modifications layer to refresh it with new cache data
         if (map.getLayer('road-modifications-layer')) {
             map.removeLayer('road-modifications-layer');
         }
@@ -140,7 +138,7 @@ async function updateRoadModification(osmId, modificationData) {
             'paint': {
                 'line-color': [
                     'match',
-                    ['get', 'osm_id'],
+                    ['string', ['get', 'osm_id']],
                     ...Object.entries(cacheData).map(([id, mod]) => [
                         id,
                         getColorForGravelCondition(mod.gravel_condition)
