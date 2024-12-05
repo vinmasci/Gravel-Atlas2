@@ -586,40 +586,37 @@ window.layers.toggleSurfaceLayer = async function() {
     }
 };
 
-// Add right before showGravelRatingModal function
-async function loadAndRenderElevation(feature) {
+async function formatRoadForElevation(feature) {
     try {
-        const coordinates = feature.geometry.coordinates;
+        console.log('Fetching elevation for coordinates:', feature.geometry.coordinates);
+        
+        // Call your elevation API with the road's coordinates
         const response = await fetch('/api/get-elevation', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ coordinates })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                coordinates: feature.geometry.coordinates 
+            })
         });
         
         if (!response.ok) throw new Error('Failed to fetch elevation data');
         
         const elevationData = await response.json();
-        const routeData = {
+        
+        // Create the format your renderElevationProfile expects
+        return {
             geojson: {
                 features: [{
                     geometry: {
-                        coordinates: elevationData.coordinates
+                        type: feature.geometry.type,
+                        coordinates: elevationData.coordinates // These will be [lng, lat, elevation]
                     }
                 }]
             }
         };
-        
-        renderElevationProfile(routeData);
-        
     } catch (error) {
-        console.error('Error loading elevation data:', error);
-        document.getElementById('elevation-profile').innerHTML = `
-            <div style="text-align: center; padding: 10px; color: #dc2626;">
-                <i class="fa-solid fa-triangle-exclamation"></i> Failed to load elevation data
-            </div>
-        `;
+        console.error('Error in formatRoadForElevation:', error);
+        return null;
     }
 }
 
