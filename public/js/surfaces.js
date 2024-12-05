@@ -588,9 +588,14 @@ window.layers.toggleSurfaceLayer = async function() {
 
 async function formatRoadForElevation(feature) {
     try {
-        console.log('Fetching elevation for coordinates:', feature.geometry.coordinates);
+        console.log('1. formatRoadForElevation called with:', feature);
+        if (!feature || !feature.geometry || !feature.geometry.coordinates) {
+            console.error('2. Invalid feature geometry:', feature);
+            return null;
+        }
         
         // Call your elevation API with the road's coordinates
+        console.log('3. Attempting to fetch elevation data');
         const response = await fetch('/api/get-elevation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -599,9 +604,13 @@ async function formatRoadForElevation(feature) {
             })
         });
         
-        if (!response.ok) throw new Error('Failed to fetch elevation data');
+        if (!response.ok) {
+            console.error('4. Failed to fetch elevation:', response.status);
+            throw new Error('Failed to fetch elevation data');
+        }
         
         const elevationData = await response.json();
+        console.log('5. Got elevation data:', elevationData);
         
         // Create the format your renderElevationProfile expects
         return {
@@ -622,15 +631,21 @@ async function formatRoadForElevation(feature) {
 
 // Add this function to surfaces.js near your other elevation-related functions
 async function loadAndRenderElevation(feature) {
+    console.log('A. loadAndRenderElevation called');
     try {
-        console.log('Starting elevation load for feature:', feature);
+        console.log('B. Starting elevation load for feature:', feature);
         const formattedRoad = await formatRoadForElevation(feature);
+        console.log('C. Got formatted road:', formattedRoad);
+        
         if (!formattedRoad) {
             throw new Error('Could not format road data');
         }
         
-        console.log('Formatted road data:', formattedRoad);
-        // This function should be imported from your ui.js
+        console.log('D. About to call renderElevationProfile');
+        if (typeof renderElevationProfile !== 'function') {
+            console.error('renderElevationProfile is not a function!', typeof renderElevationProfile);
+            return;
+        }
         renderElevationProfile(formattedRoad);
         
     } catch (error) {
