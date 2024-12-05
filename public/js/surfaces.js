@@ -302,6 +302,45 @@ window.layers.initSurfaceLayers = async function() {
                 ]
             });
 
+            // Add right after the original road-surfaces-layer
+map.addLayer({
+    'id': 'road-modifications-layer',
+    'type': 'line',
+    'source': 'road-surfaces',
+    'source-layer': 'roads',
+    'layout': {
+        'visibility': 'visible',
+        'line-join': 'round',
+        'line-cap': 'round'
+    },
+    'paint': {
+        'line-color': [
+            'match',
+            ['get', 'gravel_condition'],
+            '0', '#01bf11',  // Smooth surface - green
+            '1', '#badc58',  // Well maintained - light green
+            '2', '#ffa801',  // Occasional rough - yellow
+            '3', '#e67e22',  // Frequent loose - orange
+            '4', '#eb4d4b',  // Very rough - red
+            '5', '#c0392b',  // Extremely rough - dark red
+            '6', '#751203',  // Hike-a-bike - darker red
+            '#C2B280'        // Default if no condition matches
+        ],
+        'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            5, 1.5,  // Slightly thicker than base layer
+            8, 2.5,
+            10, 3.5,
+            12, 4.5,
+            14, 5.5
+        ],
+        'line-opacity': 0.8
+    },
+    'filter': ['in', ['string', ['get', 'osm_id']], ['literal', Object.keys(Object.fromEntries(window.modificationCache))]]
+});
+
             // Add click handler
             map.on('click', 'road-surfaces-layer', async (e) => {
                 console.log('🎯 Click handler start');  // Add this
