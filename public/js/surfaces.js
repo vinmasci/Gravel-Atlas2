@@ -115,8 +115,16 @@ function formatUserName(profile) {
 
 async function updateRoadModification(osmId, modificationData) {
     console.log('🔄 Updating modification for:', osmId);
-    window.modificationCache.set(osmId, modificationData);
+    
+    // Ensure gravel_condition is a string
+    const normalizedData = {
+        ...modificationData,
+        gravel_condition: String(modificationData.gravel_condition)
+    };
+    
+    window.modificationCache.set(osmId, normalizedData);
     await window.layers.updateSurfaceData();
+    
     
     if (map.getSource('road-surfaces')) {
         if (map.getLayer('road-modifications-layer')) {
@@ -356,7 +364,7 @@ map.addLayer({
     'paint': {
         'line-color': [
             'match',
-            ['get', 'gravel_condition'],
+            ['to-string', ['get', 'gravel_condition']],
             '0', '#01bf11',  // Smooth surface - green
             '1', '#badc58',  // Well maintained - light green
             '2', '#ffa801',  // Occasional rough - yellow
@@ -772,7 +780,7 @@ function showGravelRatingModal(feature) {
                 },
                 body: JSON.stringify({
                     osm_id: osmId,
-                    gravel_condition: parseInt(gravelCondition),
+                    gravel_condition: String(gravelCondition), 
                     notes: notes || '',
                     user_id: profile.auth0Id,
                     userName: formatUserName(profile),
