@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
                 votes: [{
                     user_id,
                     userName,
-                    condition: parseInt(gravel_condition),
+                    condition: gravel_condition.toString(), 
                     timestamp: new Date()
                 }]
             };
@@ -110,14 +110,14 @@ module.exports = async (req, res) => {
         votes.push({
             user_id,
             userName,
-            condition: parseInt(gravel_condition),
+            condition: gravel_condition.toString(), // Convert to string
             timestamp: new Date()
         });
 
         // Calculate average condition
         const averageCondition = Math.round(
-            votes.reduce((sum, vote) => sum + vote.condition, 0) / votes.length
-        );
+            votes.reduce((sum, vote) => sum + parseInt(vote.condition), 0) / votes.length
+        ).toString();
 
         // Prepare update
         const updateData = {

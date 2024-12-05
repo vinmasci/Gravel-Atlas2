@@ -81,11 +81,14 @@ module.exports = async (req, res) => {
         const modificationLookup = modifications.reduce((acc, mod) => {
             acc[mod.osm_id] = {
                 osm_id: mod.osm_id,
-                gravel_condition: mod.gravel_condition,
+                gravel_condition: String(mod.gravel_condition),
                 notes: mod.notes || '',
                 modified_by: mod.modified_by,
                 last_updated: mod.last_updated,
-                votes: mod.votes || [],
+                votes: (mod.votes || []).map(vote => ({
+                    ...vote,
+                    condition: String(vote.condition) // Ensure string
+                })),
                 geometry: mod.geometry
             };
             return acc;
