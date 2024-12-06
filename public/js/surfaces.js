@@ -814,10 +814,7 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-// Give the DOM time to create the elements
-setTimeout(() => {
     loadAndRenderElevation(feature);
-}, 100);
 
     setTimeout(() => {
         const canvas = document.querySelector('#elevation-profile canvas');
