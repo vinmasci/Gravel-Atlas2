@@ -644,35 +644,23 @@ async function loadAndDisplayElevation(feature) {
         const coordinates = await formatRoadForElevation(feature);
         if (!coordinates) return;
 
+        let attempts = 0;
+        const maxAttempts = 10;
+
         // Wait for canvas to be ready
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
             const checkCanvas = () => {
-                const container = document.getElementById('elevation-chart-preview');
-                const canvas = container?.querySelector('canvas');
-                console.log('Checking for canvas:', { container: !!container, canvas: !!canvas });
-                
+                attempts++;
+                const canvas = document.querySelector('#elevation-chart-preview canvas');
                 if (canvas) {
-                    // Clean up any existing chart
-                    const existingChart = window.Chart && Chart.getChart(canvas);
-                    if (existingChart) {
-                        existingChart.destroy();
-                    }
                     resolve();
+                } else if (attempts >= maxAttempts) {
+                    reject(new Error('Canvas not found after max attempts'));
                 } else {
                     setTimeout(checkCanvas, 50);
                 }
             };
             checkCanvas();
-        });
-
-        // Now we know canvas exists and is clean
-        const canvas = document.querySelector('#elevation-chart-preview canvas');
-        console.log('Canvas ready for drawing:', {
-            exists: !!canvas,
-            dimensions: canvas ? {
-                width: canvas.width,
-                height: canvas.height
-            } : null
         });
 
         updateLiveElevationProfile(coordinates);
@@ -894,6 +882,12 @@ console.log('Modal current condition:', currentCondition); // Debug
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
     
+    console.log('Modal HTML check:', {
+        elevationPreview: document.getElementById('elevation-preview'),
+        canvas: document.querySelector('#elevation-chart-preview'),
+        modalHtml: modal.innerHTML
+    });
+
     // Initial canvas check
     console.log('Initial Canvas check:', {
         container: document.getElementById('elevation-chart-preview'),
