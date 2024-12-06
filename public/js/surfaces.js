@@ -895,27 +895,42 @@ console.log('Modal current condition:', currentCondition); // Debug
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
     
-    // Debug to make sure canvas exists
-    console.log('Canvas check:', {
+    // Initial canvas check
+    console.log('Initial Canvas check:', {
         container: document.getElementById('elevation-chart-preview'),
         canvas: document.querySelector('#elevation-chart-preview canvas'),
         chart: window.Chart
     });
     
+    // Add observer to watch for DOM changes
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.removedNodes.length > 0) {
+                console.log('Something removed from modal:', mutation.removedNodes);
+                console.log('Removal happened in:', mutation.target);
+            }
+        });
+    });
+    
+    // Watch the modal for changes
+    observer.observe(modal, { childList: true, subtree: true });
+    
+    // Load elevation data
     loadAndDisplayElevation(feature);
-
+    
+    // Check canvas after a delay
     setTimeout(() => {
-        const canvas = document.querySelector('#elevation-profile canvas');
-        console.log('Canvas element exists:', !!canvas);
-        if (canvas) {
-            console.log('Canvas dimensions:', {
+        const canvas = document.querySelector('#elevation-chart-preview canvas');
+        console.log('Canvas check after delay:', {
+            exists: !!canvas,
+            dimensions: canvas ? {
                 width: canvas.width,
                 height: canvas.height,
                 style: canvas.style.cssText
-            });
-        }
+            } : null
+        });
     }, 1000);
-
+    
     function updateColorPreview(value) {
         const colorPreview = document.getElementById('color-preview');
         if (value === '') {
