@@ -711,8 +711,18 @@ async function loadAndDisplayElevation(feature) {
         console.log('Got elevation coordinates:', coordinates);
 
         // Process elevation data
-        const { stats } = window.elevationUtils.processElevationData(coordinates.coordinates);
+        const { stats } = window.elevationUtils.processElevationData(coordinates);
         
+        // Add debug logs right here before we try to update the UI
+console.log('About to update stats:', stats);
+console.log('Elements exist?', {
+    distance: document.getElementById('total-distance'),
+    gain: document.getElementById('elevation-gain'),
+    loss: document.getElementById('elevation-loss'),
+    max: document.getElementById('max-elevation')
+});
+
+
         // Update stats display
         document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)}`;
         document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}`;
