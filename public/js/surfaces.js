@@ -947,6 +947,11 @@ console.log('Modal current condition:', currentCondition); // Debug
             }
         });
     });
+
+    // After modal is appended, wait a short time before loading elevation data
+setTimeout(() => {
+    loadAndDisplayElevation(feature);
+}, 200);
     
     // Watch the modal for changes
     observer.observe(modal, { childList: true, subtree: true });
