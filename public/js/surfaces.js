@@ -829,28 +829,27 @@ console.log('Modal current condition:', currentCondition); // Debug
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
     
-        <!-- Elevation Preview Section -->
-        <div id="elevation-preview" class="elevation-preview">
-            <canvas id="elevation-chart-preview"></canvas>
-            <div class="elevation-stats">
-                <div class="stat-box">
-                    <div id="total-distance">0.00 km</div>
-                    <div>Distance</div>
-                </div>
-                <div class="stat-box">
-                    <div id="elevation-gain">↑ 0m</div>
-                    <div>Gain</div>
-                </div>
-                <div class="stat-box">
-                    <div id="elevation-loss">↓ 0m</div>
-                    <div>Loss</div>
-                </div>
-                <div class="stat-box">
-                    <div id="max-elevation">0m</div>
-                    <div>Max</div>
-                </div>
+    <div id="elevation-profile" style="padding: 15px;">
+        <div class="elevation-stats">
+            <div class="stat-box">
+                <div id="total-distance">0.00 km</div>
+                <div>Distance</div>
+            </div>
+            <div class="stat-box">
+                <div id="elevation-gain">↑ 0m</div>
+                <div>Gain</div>
+            </div>
+            <div class="stat-box">
+                <div id="elevation-loss">↓ 0m</div>
+                <div>Loss</div>
+            </div>
+            <div class="stat-box">
+                <div id="max-elevation">0m</div>
+                <div>Max</div>
             </div>
         </div>
+        <canvas id="elevation-chart-preview"></canvas>
+    </div>
     
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
         <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
