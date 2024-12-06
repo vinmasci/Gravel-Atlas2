@@ -1,3 +1,6 @@
+// At the start of surfaces.js
+console.log('Surfaces.js starting, elevation utils:', window.elevationUtils);
+
 // Initialize surface layer visibility
 if (!window.layerVisibility) {
     window.layerVisibility = {};

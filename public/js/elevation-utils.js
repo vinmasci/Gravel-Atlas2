@@ -224,3 +224,6 @@ window.elevationUtils = {
     processElevationData,
     calculateDistance
 };
+
+// At the end of elevation-utils.js
+console.log('Elevation utils loaded:', window.elevationUtils);
