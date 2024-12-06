@@ -8,6 +8,11 @@ if (!window.layers) {
     window.layers = {};
 }
 
+// Check for elevation utils
+if (!window.elevationUtils) {
+    console.error('Elevation utils not loaded!');
+}
+
 // Cache configuration
 const SURFACE_CACHE = {
     data: new Map(),
