@@ -634,22 +634,14 @@ async function formatRoadForElevation(feature) {
 
 // Add this function to surfaces.js near your other elevation-related functions
 async function loadAndRenderElevation(feature) {
-    console.log('A. loadAndRenderElevation called');
     try {
-        console.log('B. Starting elevation load for feature:', feature);
         const formattedRoad = await formatRoadForElevation(feature);
-        console.log('C. Got formatted road:', formattedRoad);
-        
         if (!formattedRoad) {
             throw new Error('Could not format road data');
         }
         
-        console.log('D. About to call renderElevationProfile');
-        if (typeof renderElevationProfile !== 'function') {
-            console.error('renderElevationProfile is not a function!', typeof renderElevationProfile);
-            return;
-        }
-        renderElevationProfile(formattedRoad);
+        // Use the working elevation profile function
+        updateLiveElevationProfile(formattedRoad.geojson.features[0].geometry.coordinates);
         
     } catch (error) {
         console.error('Error loading elevation data:', error);
@@ -782,9 +774,27 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-<div id="elevation-profile" style="margin-bottom: 16px; min-height: 300px; width: 100%;">
-    <div style="text-align: center; padding: 10px;">
-        <i class="fa-solid fa-spinner fa-spin"></i> Loading elevation data...
+<div style="margin-bottom: 16px;">
+    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+        <div class="stat-box" style="text-align: center;">
+            <div id="total-distance" style="font-size: 14px; font-weight: bold;"></div>
+            <div style="font-size: 12px; color: #666;">Distance</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div id="elevation-gain" style="font-size: 14px; font-weight: bold; color: #16a34a;"></div>
+            <div style="font-size: 12px; color: #666;">Gain</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div id="elevation-loss" style="font-size: 14px; font-weight: bold; color: #dc2626;"></div>
+            <div style="font-size: 12px; color: #666;">Loss</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div id="max-elevation" style="font-size: 14px; font-weight: bold; color: #2563eb;"></div>
+            <div style="font-size: 12px; color: #666;">Max</div>
+        </div>
+    </div>
+    <div id="elevation-chart-preview" style="height: 200px; position: relative; width: 100%;">
+        <canvas></canvas>
     </div>
 </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
