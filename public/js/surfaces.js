@@ -828,27 +828,30 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-    <div style="margin-bottom: 16px;">
-        <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-            <div class="stat-box" style="text-align: center;">
-                <div id="total-distance" style="font-size: 14px; font-weight: bold;">-</div>
-                <div style="font-size: 12px; color: #666;">Distance</div>
-            </div>
-            <div class="stat-box" style="text-align: center;">
-                <div id="elevation-gain" style="font-size: 14px; font-weight: bold; color: #16a34a;">-</div>
-                <div style="font-size: 12px; color: #666;">Gain</div>
-            </div>
-            <div class="stat-box" style="text-align: center;">
-                <div id="elevation-loss" style="font-size: 14px; font-weight: bold; color: #dc2626;">-</div>
-                <div style="font-size: 12px; color: #666;">Loss</div>
-            </div>
-            <div class="stat-box" style="text-align: center;">
-                <div id="max-elevation" style="font-size: 14px; font-weight: bold; color: #2563eb;">-</div>
-                <div style="font-size: 12px; color: #666;">Max</div>
+    
+        <!-- Elevation Preview Section -->
+        <div id="elevation-preview" class="elevation-preview">
+            <canvas id="elevation-chart-preview"></canvas>
+            <div class="elevation-stats">
+                <div class="stat-box">
+                    <div id="total-distance">0.00 km</div>
+                    <div>Distance</div>
+                </div>
+                <div class="stat-box">
+                    <div id="elevation-gain">↑ 0m</div>
+                    <div>Gain</div>
+                </div>
+                <div class="stat-box">
+                    <div id="elevation-loss">↓ 0m</div>
+                    <div>Loss</div>
+                </div>
+                <div class="stat-box">
+                    <div id="max-elevation">0m</div>
+                    <div>Max</div>
+                </div>
             </div>
         </div>
-        ${elevationChartHtml}
-    </div>
+    
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
         <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
             ${votes && votes.length > 0 ? 
