@@ -23,6 +23,11 @@ const SURFACE_CACHE = {
 // SECTION: Live Elevation Profile
 // ============================
 function updateLiveElevationProfile(newCoordinates) {
+    console.log('Starting updateLiveElevationProfile with:', {
+        coordinates: newCoordinates,
+        chartExists: !!window.Chart,
+        canvas: document.getElementById('elevation-chart-preview')
+    });
     if (!window.Chart) return;
 
     // Define gradient colors and thresholds
