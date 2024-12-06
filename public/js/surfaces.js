@@ -724,10 +724,11 @@ console.log('Elements exist?', {
 
 
         // Update stats display
-        document.getElementById('total-distance').innerHTML = `${stats.totalDistance.toFixed(2)}`;
-        document.getElementById('elevation-gain').innerHTML = `↑ ${Math.round(stats.elevationGain)}`;
-        document.getElementById('elevation-loss').innerHTML = `↓ ${Math.round(stats.elevationLoss)}`;
-        document.getElementById('max-elevation').innerHTML = `${Math.round(stats.maxElevation)}`;
+        document.getElementById('gravel-total-distance').textContent = `${stats.totalDistance.toFixed(2)}`;
+        document.getElementById('gravel-elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}`;
+        document.getElementById('gravel-elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}`;
+        document.getElementById('gravel-max-elevation').textContent = `${Math.round(stats.maxElevation)}`;
+        
 
         // Create chart
         if (window.currentElevationChart) {
@@ -924,19 +925,19 @@ console.log('Modal current condition:', currentCondition); // Debug
     <div style="margin-bottom: 16px;">
         <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
             <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
-                <div id="total-distance" style="font-size: 16px; font-weight: bold;">0.00</div>
+                <div id="gravel-total-distance" style="font-size: 16px; font-weight: bold;">0.00</div>
                 <div style="font-size: 12px; color: #666;">km</div>
             </div>
             <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
-                <div id="elevation-gain" style="font-size: 16px; font-weight: bold; color: #16a34a;">↑ 0</div>
+                <div id="gravel-elevation-gain" style="font-size: 16px; font-weight: bold; color: #16a34a;">↑ 0</div>
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
             <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
-                <div id="elevation-loss" style="font-size: 16px; font-weight: bold; color: #dc2626;">↓ 0</div>
+                <div id="gravel-elevation-loss" style="font-size: 16px; font-weight: bold; color: #dc2626;">↓ 0</div>
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
             <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
-                <div id="max-elevation" style="font-size: 16px; font-weight: bold; color: #2563eb;">0</div>
+                <div id="gravel-max-elevation" style="font-size: 16px; font-weight: bold; color: #2563eb;">0</div>
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
         </div>
