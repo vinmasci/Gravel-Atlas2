@@ -774,9 +774,27 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-<div id="elevation-profile" style="margin-bottom: 16px; min-height: 300px; width: 100%;">
-    <div style="text-align: center; padding: 10px;">
-        <i class="fa-solid fa-spinner fa-spin"></i> Loading elevation data...
+<div style="margin-bottom: 16px;">
+    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+        <div class="stat-box" style="text-align: center;">
+            <div id="total-distance" style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
+            <div style="font-size: 12px; color: #666;">Distance</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div id="elevation-gain" style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
+            <div style="font-size: 12px; color: #666;">Gain</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div id="elevation-loss" style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
+            <div style="font-size: 12px; color: #666;">Loss</div>
+        </div>
+        <div class="stat-box" style="text-align: center;">
+            <div id="max-elevation" style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
+            <div style="font-size: 12px; color: #666;">Max</div>
+        </div>
+    </div>
+    <div id="elevation-chart-preview" style="height: 200px; position: relative;">
+        <canvas></canvas>
     </div>
 </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
