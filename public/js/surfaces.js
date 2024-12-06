@@ -641,8 +641,11 @@ function ensureCanvasExists() {
 
 async function loadAndDisplayElevation(feature) {
     try {
+        console.log('Starting loadAndDisplayElevation');
         // Get coordinates
         const coordinates = await formatRoadForElevation(feature);
+        console.log('Got coordinates:', coordinates);
+
         if (!coordinates) {
             throw new Error('No elevation data available');
         }
@@ -650,13 +653,30 @@ async function loadAndDisplayElevation(feature) {
         // Clear any existing chart
         const container = document.getElementById('elevation-chart-preview');
         const canvas = container.querySelector('canvas');
+        console.log('Canvas before cleanup:', {
+            container: !!container,
+            canvas: !!canvas,
+            chartjs: !!window.Chart
+        });
+
         const existingChart = window.Chart && Chart.getChart(canvas);
         if (existingChart) {
             existingChart.destroy();
         }
 
         // Update elevation profile with a small delay to ensure DOM is ready
-        setTimeout(() => updateLiveElevationProfile(coordinates), 100);
+        setTimeout(() => {
+            console.log('About to call updateLiveElevationProfile with:', {
+                coordinates,
+                canvasReady: !!canvas,
+                dimensions: canvas ? {
+                    width: canvas.width,
+                    height: canvas.height,
+                    style: canvas.style.cssText
+                } : null
+            });
+            updateLiveElevationProfile(coordinates);
+        }, 100);
 
     } catch (error) {
         console.error('Error loading elevation:', error);
