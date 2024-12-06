@@ -589,97 +589,59 @@ window.layers.toggleSurfaceLayer = async function() {
     }
 };
 
+// Update formatRoadForElevation to match routes.js format
 async function formatRoadForElevation(feature) {
     try {
-        // Validate input
-        if (!feature?.geometry?.coordinates) {
-            console.error('Invalid feature geometry:', feature);
+        console.log('1. formatRoadForElevation called with:', feature);
+        
+        // Get coordinates from the feature, matching routes.js expectations
+        const coordinates = feature.geometry?.coordinates || feature._geometry?.coordinates;
+        if (!coordinates) {
+            console.error('2. Invalid feature geometry:', feature);
             return null;
         }
-
-        // Get elevation data from API
+        
+        // Call elevation API exactly like routes.js does
+        console.log('3. Attempting to fetch elevation data');
         const response = await fetch('/api/get-elevation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ coordinates: feature.geometry.coordinates })
+            body: JSON.stringify({ coordinates })
         });
 
         if (!response.ok) {
+            console.error('4. Failed to fetch elevation:', response.status);
             throw new Error('Failed to fetch elevation data');
         }
 
         const elevationData = await response.json();
+        console.log('5. Got elevation data:', elevationData);
 
-        // Calculate elevation statistics
-        let totalDistance = 0;
-        let elevationGain = 0;
-        let elevationLoss = 0;
-        let maxElevation = -Infinity;
-        let minElevation = Infinity;
+        // Return in the exact format updateLiveElevationProfile expects
+        return elevationData.coordinates;
 
-        elevationData.coordinates.forEach((coord, index) => {
-            // Update elevation extremes
-            maxElevation = Math.max(maxElevation, coord[2]);
-            minElevation = Math.min(minElevation, coord[2]);
-
-            // Calculate changes for non-first points
-            if (index > 0) {
-                const prevCoord = elevationData.coordinates[index - 1];
-                const distance = calculateDistance(
-                    prevCoord[1], prevCoord[0],
-                    coord[1], coord[0]
-                );
-                totalDistance += distance;
-
-                const elevDiff = coord[2] - prevCoord[2];
-                if (elevDiff > 0) elevationGain += elevDiff;
-                if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
-            }
-        });
-
-        // Update modal stats
-        const stats = {
-            totalDistance,
-            elevationGain,
-            elevationLoss,
-            maxElevation,
-            minElevation
-        };
-
-        // Update DOM elements
-        updateElevationStats(stats);
-
-        // Return formatted data for the elevation profile
-        return {
-            coordinates: elevationData.coordinates,
-            stats
-        };
     } catch (error) {
-        console.error('Error formatting road elevation:', error);
+        console.error('Error in formatRoadForElevation:', error);
         return null;
     }
 }
 
-function updateElevationStats(stats) {
-    // Update the stats display in the modal
-    document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)} km`;
-    document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}m`;
-    document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}m`;
-    document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}m`;
-}
-
+// Simplify loadAndDisplayElevation to just use updateLiveElevationProfile
 async function loadAndDisplayElevation(feature) {
-    const elevationData = await formatRoadForElevation(feature);
-    if (elevationData) {
-        updateLiveElevationProfile(elevationData.coordinates);
-    } else {
-        // Handle error state in the UI
+    try {
+        const coordinates = await formatRoadForElevation(feature);
+        if (coordinates) {
+            // Use the exact same function as routes.js
+            updateLiveElevationProfile(coordinates);
+        }
+    } catch (error) {
+        console.error('Error loading elevation:', error);
+        // Show error in the UI
         const elevationChart = document.getElementById('elevation-chart-preview');
         if (elevationChart) {
             elevationChart.innerHTML = `
-                <div class="flex items-center justify-center h-full text-gray-500">
-                    <span class="mr-2"><i class="fas fa-exclamation-triangle"></i></span>
-                    Unable to load elevation data
+                <div style="text-align: center; padding: 10px; color: #dc2626;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Failed to load elevation data
                 </div>
             `;
         }
@@ -867,8 +829,7 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-
-    loadAndDisplayElevation(feature);
+    loadAndDisplayElevation(feature);  // Single call to load elevation
 
     setTimeout(() => {
         const canvas = document.querySelector('#elevation-profile canvas');
