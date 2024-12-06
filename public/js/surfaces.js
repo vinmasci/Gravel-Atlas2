@@ -686,17 +686,29 @@ async function loadAndDisplayElevation(feature) {
     try {
         console.log('Starting elevation load for feature:', feature);
         
-        // Ensure container exists
-        const container = document.getElementById('elevation-chart-preview');
-        if (!container) {
-            console.error('Elevation chart container not found');
+        // Wait a moment for modal to be fully rendered
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Get the canvas element
+        const canvas = document.getElementById('elevation-chart');
+        if (!canvas) {
+            console.error('Canvas element not found');
             return;
         }
+        
+        // Set canvas dimensions
+        const container = canvas.parentElement;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.width = container.offsetWidth;
+        canvas.height = container.offsetHeight;
         
         const coordinates = await formatRoadForElevation(feature);
         if (!coordinates) {
             throw new Error('Could not format road data');
         }
+
+        console.log('Got elevation coordinates:', coordinates);
 
         // Process elevation data
         const { stats } = window.elevationUtils.processElevationData(coordinates);
@@ -707,48 +719,72 @@ async function loadAndDisplayElevation(feature) {
         document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}`;
         document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}`;
 
-        // Create chart with a small delay to ensure DOM is ready
-        setTimeout(() => {
-            createElevationChart('elevation-chart-preview', coordinates);
-        }, 100);
+        // Create chart
+        if (window.currentElevationChart) {
+            window.currentElevationChart.destroy();
+        }
+
+        window.currentElevationChart = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        data: coordinates.map((coord, index) => ({
+                            x: index === 0 ? 0 : stats.totalDistance * (index / (coordinates.length - 1)),
+                            y: coord[2]
+                        })),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => `Elevation: ${Math.round(context.parsed.y)}m`,
+                            title: (context) => `Distance: ${context[0].parsed.x.toFixed(2)}km`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Distance (km)'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Elevation (m)'
+                        }
+                    }
+                }
+            }
+        });
 
     } catch (error) {
         console.error('Error loading elevation:', error);
-        const elevationChart = document.getElementById('elevation-chart-preview');
-        if (elevationChart) {
-            elevationChart.innerHTML = `
-                <div class="error-message">
+        const container = document.getElementById('elevation-chart-container');
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #dc2626;">
                     <i class="fa-solid fa-triangle-exclamation"></i> 
                     Failed to load elevation data
-                </div>
-            `;
-        }
-    }
-}
-// Update the modal HTML to ensure canvas exists initially
-const elevationChartHtml = `
-    <div id="elevation-chart-preview" style="height: 200px; position: relative;">
-        <canvas style="width: 100%; height: 100%;"></canvas>
-    </div>
-`;
-
-async function loadAndRenderElevation(feature) {
-    try {
-        const formattedRoad = await formatRoadForElevation(feature);
-        if (!formattedRoad) {
-            throw new Error('Could not format road data');
-        }
-        
-        // Use the working elevation profile function
-        updateLiveElevationProfile(formattedRoad.geojson.features[0].geometry.coordinates);
-        
-    } catch (error) {
-        console.error('Error loading elevation data:', error);
-        const elevationDiv = document.getElementById('elevation-profile');
-        if (elevationDiv) {
-            elevationDiv.innerHTML = `
-                <div style="text-align: center; padding: 10px; color: #dc2626;">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Failed to load elevation data
                 </div>
             `;
         }
@@ -874,42 +910,30 @@ console.log('Modal current condition:', currentCondition); // Debug
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
     
-<!-- Elevation section -->
-<div style="margin-bottom: 16px;">
-    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <div style="font-size: 16px; font-weight: bold;">
-                <div id="total-distance">0.00</div>
+    <!-- Elevation section -->
+    <div style="margin-bottom: 16px;">
+        <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                <div id="total-distance" style="font-size: 16px; font-weight: bold;">0.00</div>
                 <div style="font-size: 12px; color: #666;">km</div>
             </div>
-            <div style="font-size: 12px; color: #666;">Distance</div>
-        </div>
-        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <div style="font-size: 16px; font-weight: bold; color: #16a34a;">
-                <div id="elevation-gain">↑ 0</div>
+            <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                <div id="elevation-gain" style="font-size: 16px; font-weight: bold; color: #16a34a;">↑ 0</div>
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
-            <div style="font-size: 12px; color: #666;">Gain</div>
-        </div>
-        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <div style="font-size: 16px; font-weight: bold; color: #dc2626;">
-                <div id="elevation-loss">↓ 0</div>
+            <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                <div id="elevation-loss" style="font-size: 16px; font-weight: bold; color: #dc2626;">↓ 0</div>
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
-            <div style="font-size: 12px; color: #666;">Loss</div>
-        </div>
-        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <div style="font-size: 16px; font-weight: bold; color: #2563eb;">
-                <div id="max-elevation">0</div>
+            <div class="stat-box" style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                <div id="max-elevation" style="font-size: 16px; font-weight: bold; color: #2563eb;">0</div>
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
-            <div style="font-size: 12px; color: #666;">Max</div>
+        </div>
+        <div id="elevation-chart-container" style="height: 200px; background: #f8f9fa; border-radius: 8px; padding: 15px;">
+            <canvas id="elevation-chart"></canvas>
         </div>
     </div>
-    <div id="elevation-chart-preview" style="height: 200px; position: relative; background: #f8f9fa; border-radius: 8px; padding: 15px;">
-        <canvas style="width: 100%; height: 100%;"></canvas>
-    </div>
-</div>
     
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
         <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
