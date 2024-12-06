@@ -8,6 +8,9 @@ if (!window.layers) {
     window.layers = {};
 }
 
+// Add this here
+window.renderElevationProfile = renderElevationProfile;
+
 // Cache configuration
 const SURFACE_CACHE = {
     data: new Map(),
@@ -989,7 +992,6 @@ console.log('Modal current condition:', currentCondition); // Debug
 // Set up global references
 window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
 window.updateRoadModification = updateRoadModification;
-window.renderElevationProfile = renderElevationProfile;
 
 // Auto-refresh modifications periodically
 setInterval(async () => {
