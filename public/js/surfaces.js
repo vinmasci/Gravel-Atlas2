@@ -22,249 +22,39 @@ const SURFACE_CACHE = {
 // ============================
 // SECTION: Live Elevation Profile
 // ============================
-function updateLiveElevationProfile(newCoordinates) {
-    console.log('Starting updateLiveElevationProfile with:', {
-        coordinates: newCoordinates,
-        chartExists: !!window.Chart,
-        canvas: document.getElementById('elevation-chart-preview')
-    });
-    if (!window.Chart) return;
-
-    // Define gradient colors and thresholds
-    const gradientColors = {
-        easy: '#01bf11',      // Green (0-3%)
-        moderate: '#ffa801',  // Yellow (3.1-8%)
-        hard: '#c0392b',      // Red (8.1-11%)
-        extreme: '#751203'    // Maroon (11.1%+)
-    };
-
-    function getGradientColor(gradient) {
-        const absGradient = Math.abs(gradient);
-        return absGradient <= 3 ? gradientColors.easy :
-               absGradient <= 8 ? gradientColors.moderate :
-               absGradient <= 11 ? gradientColors.hard :
-               gradientColors.extreme;
-    }
-
-    let totalDistance = 0;
-    let elevationGain = 0;
-    let elevationLoss = 0;
-    let minElevation = Infinity;
-    let maxElevation = -Infinity;
-
-    // Initialize segments
-    let lastSamplePoint = newCoordinates[0];
-    let distanceAccumulator = 0;
-    const minDistance = 0.1; // 100 meters in kilometers
-    let currentSegment = null;
-    const segments = [];
-
-    newCoordinates.forEach((coord, index) => {
-        const elevation = coord[2];
-        minElevation = Math.min(minElevation, elevation);
-        maxElevation = Math.max(maxElevation, elevation);
-
-        if (index > 0) {
-            const distance = calculateDistance(
-                lastSamplePoint[1], lastSamplePoint[0],
-                coord[1], coord[0]
-            );
-            totalDistance += distance;
-            distanceAccumulator += distance;
-
-            const elevDiff = elevation - lastSamplePoint[2];
-            if (elevDiff > 0) elevationGain += elevDiff;
-            if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
-
-            if (distanceAccumulator >= minDistance || index === newCoordinates.length - 1) {
-                const gradient = (elevDiff / (distanceAccumulator * 1000)) * 100;
-                const color = getGradientColor(gradient);
-
-                if (!currentSegment || currentSegment.borderColor !== color) {
-                    const lastPoint = currentSegment?.data[currentSegment.data.length - 1];
-
-                    currentSegment = {
-                        label: `Gradient: ${gradient.toFixed(1)}%`,
-                        data: lastPoint ? [lastPoint] : [],
-                        borderColor: color,
-                        backgroundColor: color,
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.2,
-                        pointRadius: 0,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointHitRadius: 10
-                    };
-                    segments.push(currentSegment);
-                }
-
-                lastSamplePoint = coord;
-                distanceAccumulator = 0;
-            }
-
-            if (currentSegment) {
-                currentSegment.data.push({
-                    x: totalDistance,
-                    y: elevation
-                });
-            }
-        } else {
-            const color = getGradientColor(0);
-            currentSegment = {
-                label: 'Gradient: 0%',
-                data: [{ x: 0, y: elevation }],
-                borderColor: color,
-                backgroundColor: color,
-                borderWidth: 2,
-                fill: true,
-                tension: 0.2,
-                pointRadius: 0,
-                pointHoverRadius: 6,
-                pointBackgroundColor: color,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointHitRadius: 10
-            };
-            segments.push(currentSegment);
+async function formatRoadForElevation(feature) {
+    try {
+        console.log('1. formatRoadForElevation called with:', feature);
+        
+        // Get coordinates from the feature
+        const coordinates = feature.geometry?.coordinates;
+        if (!coordinates) {
+            console.error('2. Invalid feature geometry:', feature);
+            return null;
         }
-    });
-
-    // Ensure the last point is included
-    if (currentSegment && newCoordinates.length > 0) {
-        const lastCoord = newCoordinates[newCoordinates.length - 1];
-        currentSegment.data.push({
-            x: totalDistance,
-            y: lastCoord[2]
+        
+        // Call elevation API
+        console.log('3. Attempting to fetch elevation data');
+        const response = await fetch('/api/get-elevation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coordinates })
         });
-    }
 
-    // Update stats display
-    document.getElementById('total-distance').textContent = `${totalDistance.toFixed(2)} km`;
-    document.getElementById('elevation-gain').textContent = `↑ ${Math.round(elevationGain)}m`;
-    document.getElementById('elevation-loss').textContent = `↓ ${Math.round(elevationLoss)}m`;
-    document.getElementById('max-elevation').textContent = `${Math.round(maxElevation)}m`;
-
-    const canvasId = 'elevation-chart-preview';
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) {
-        console.error(`Canvas element with ID ${canvasId} not found.`);
-        return;
-    }
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) existingChart.destroy();
-
-    const ctx = canvas.getContext('2d');
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: segments
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                tooltip: {
-                    mode: 'nearest',
-                    intersect: false,
-                    callbacks: {
-                        label: (context) => {
-                            // Only show tooltip for the dataset that is closest to the cursor
-                            if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
-                                const gradient = context.dataset.label.split(': ')[1];
-                                return [
-                                    `Elevation: ${Math.round(context.parsed.y)}m`,
-                                    `Gradient: ${gradient}`
-                                ];
-                            }
-                            return [];
-                        },
-                        title: (context) => {
-                            if (context[0]) {
-                                return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
-                            }
-                        }
-                    },
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    padding: 12,
-                    displayColors: false
-                },
-                legend: { display: false }
-            },
-            interaction: {
-                mode: 'nearest',
-                intersect: false,
-                axis: 'x'
-            },
-            scales: {
-                x: {
-                    type: 'linear',
-                    grid: {
-                        color: '#e0e0e0'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Distance (km)',
-                        font: { size: 10 }
-                    },
-                    min: 0,
-                    max: totalDistance
-                },
-                y: {
-                    type: 'linear',
-                    grid: {
-                        color: '#e0e0e0'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Elevation (m)',
-                        font: { size: 10 }
-                    },
-                    min: Math.floor(minElevation / 10) * 10, // Round down to nearest 10
-                    max: Math.ceil(maxElevation / 10) * 10,  // Round up to nearest 10
-                    ticks: {
-                        stepSize: 10
-                    }
-                }
-            },
-            elements: {
-                point: {
-                    radius: 0,
-                    hitRadius: 10
-                }
-            },
-            layout: {
-                padding: {
-                    top: 10,
-                    right: 10,
-                    bottom: 10,
-                    left: 10
-                }
-            }
+        if (!response.ok) {
+            console.error('4. Failed to fetch elevation:', response.status);
+            throw new Error('Failed to fetch elevation data');
         }
-    });
-}
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+        const elevationData = await response.json();
+        console.log('5. Got elevation data:', elevationData);
+
+        return elevationData.coordinates;
+
+    } catch (error) {
+        console.error('Error in formatRoadForElevation:', error);
+        return null;
+    }
 }
 
 // Initialize modification cache
@@ -887,36 +677,20 @@ function ensureCanvasExists() {
 async function loadAndDisplayElevation(feature) {
     try {
         const coordinates = await formatRoadForElevation(feature);
-        if (!coordinates) return;
+        if (!coordinates) {
+            throw new Error('Could not format road data');
+        }
 
-        let attempts = 0;
-        const maxAttempts = 10;
+        const { stats } = window.elevationUtils.processElevationData(coordinates);
+        
+        // Update stats display
+        document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)} km`;
+        document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}m`;
+        document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}m`;
+        document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}m`;
 
-        // Wait for canvas to be ready
-        await new Promise((resolve, reject) => {
-            const checkCanvas = () => {
-                attempts++;
-                const canvas = document.querySelector('#elevation-chart-preview canvas');
-                if (canvas) {
-                    resolve();
-                } else if (attempts >= maxAttempts) {
-                    reject(new Error('Canvas not found after max attempts'));
-                } else {
-                    setTimeout(checkCanvas, 50);
-                }
-            };
-            checkCanvas();
-        });
-
-        renderElevationProfile({
-            geojson: {
-                features: [{
-                    geometry: {
-                        coordinates: coordinates
-                    }
-                }]
-            }
-        });
+        // Create chart
+        window.elevationUtils.createElevationChart('elevation-chart-preview', coordinates);
 
     } catch (error) {
         console.error('Error loading elevation:', error);
