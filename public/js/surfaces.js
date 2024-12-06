@@ -908,7 +908,15 @@ async function loadAndDisplayElevation(feature) {
             checkCanvas();
         });
 
-        updateLiveElevationProfile(coordinates);
+        renderElevationProfile({
+            geojson: {
+                features: [{
+                    geometry: {
+                        coordinates: coordinates
+                    }
+                }]
+            }
+        });
 
     } catch (error) {
         console.error('Error loading elevation:', error);
@@ -1343,7 +1351,7 @@ console.log('Modal current condition:', currentCondition); // Debug
 // Set up global references
 window.toggleSurfaceLayer = window.layers.toggleSurfaceLayer;
 window.updateRoadModification = updateRoadModification;
-window.updateLiveElevationProfile = updateLiveElevationProfile;
+window.renderElevationProfile = renderElevationProfile;
 
 // Auto-refresh modifications periodically
 setInterval(async () => {
