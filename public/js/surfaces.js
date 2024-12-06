@@ -711,7 +711,7 @@ async function loadAndDisplayElevation(feature) {
         console.log('Got elevation coordinates:', coordinates);
 
         // Process elevation data
-        const { stats } = window.elevationUtils.processElevationData(coordinates);
+        const { stats } = window.elevationUtils.processElevationData(coordinates.coordinates);
         
         // Update stats display
         document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)}`;
