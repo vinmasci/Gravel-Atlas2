@@ -686,69 +686,66 @@ async function loadAndDisplayElevation(feature) {
     try {
         console.log('Starting elevation load for feature:', feature);
         
-        // Wait a moment for modal to be fully rendered
-        await new Promise(resolve => setTimeout(resolve, 100));
+        const coordinates = await formatRoadForElevation(feature);
+        if (!coordinates || !coordinates.coordinates) {
+            throw new Error('Invalid elevation data received');
+        }
+
+        console.log('Processing elevation data:', coordinates.coordinates);
         
-        // Get the canvas element
-        const canvas = document.getElementById('elevation-chart');
+        // Process elevation data
+        const { stats } = processElevationData(coordinates.coordinates);
+        console.log('Processed stats:', stats);
+
+        // Update stats display using the existing IDs
+        document.getElementById('total-distance').textContent = stats.totalDistance.toFixed(2);
+        document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}`;
+        document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}`;
+        document.getElementById('max-elevation').textContent = Math.round(stats.maxElevation);
+
+        // Use the correct canvas ID
+        const canvas = document.getElementById('elevation-chart-preview');
         if (!canvas) {
             console.error('Canvas element not found');
             return;
         }
-        
-        // Set canvas dimensions
+
+        // Rest of the chart creation code remains the same...
         const container = canvas.parentElement;
         canvas.style.width = '100%';
         canvas.style.height = '100%';
         canvas.width = container.offsetWidth;
         canvas.height = container.offsetHeight;
-        
-        const coordinates = await formatRoadForElevation(feature);
-        if (!coordinates) {
-            throw new Error('Could not format road data');
-        }
 
-        console.log('Got elevation coordinates:', coordinates);
+        const ctx = canvas.getContext('2d');
+        const chartData = coordinates.coordinates.map((coord, index) => ({
+            x: index === 0 ? 0 : stats.totalDistance * (index / (coordinates.coordinates.length - 1)),
+            y: coord[2]
+        }));
 
-        // Process elevation data
-        const { stats } = window.elevationUtils.processElevationData(coordinates);
-        
-        // Update stats display
-        document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)}`;
-        document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}`;
-        document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}`;
-        document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}`;
-
-        // Create chart
         if (window.currentElevationChart) {
             window.currentElevationChart.destroy();
         }
 
-        window.currentElevationChart = new Chart(canvas.getContext('2d'), {
+        window.currentElevationChart = new Chart(ctx, {
+            // Chart configuration remains the same...
             type: 'line',
             data: {
-                datasets: [
-                    {
-                        data: coordinates.map((coord, index) => ({
-                            x: index === 0 ? 0 : stats.totalDistance * (index / (coordinates.length - 1)),
-                            y: coord[2]
-                        })),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0
-                    }
-                ]
+                datasets: [{
+                    data: chartData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
@@ -771,7 +768,9 @@ async function loadAndDisplayElevation(feature) {
                         title: {
                             display: true,
                             text: 'Elevation (m)'
-                        }
+                        },
+                        min: Math.floor(stats.minElevation - 1),
+                        max: Math.ceil(stats.maxElevation + 1)
                     }
                 }
             }
@@ -779,7 +778,7 @@ async function loadAndDisplayElevation(feature) {
 
     } catch (error) {
         console.error('Error loading elevation:', error);
-        const container = document.getElementById('elevation-chart-container');
+        const container = document.getElementById('elevation-preview');
         if (container) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #dc2626;">
