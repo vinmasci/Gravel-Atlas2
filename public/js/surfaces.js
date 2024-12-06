@@ -641,32 +641,23 @@ function ensureCanvasExists() {
 
 async function loadAndDisplayElevation(feature) {
     try {
-        // First ensure canvas exists
-        if (!ensureCanvasExists()) {
-            console.error('Elevation chart container not found');
-            return;
+        // Get coordinates
+        const coordinates = await formatRoadForElevation(feature);
+        if (!coordinates) {
+            throw new Error('No elevation data available');
         }
 
-        const coordinates = await formatRoadForElevation(feature);
-        if (coordinates) {
-            // Small delay to ensure DOM is ready
-            setTimeout(() => {
-                if (window.Chart) {
-                    // Clean up any existing chart
-                    const container = document.getElementById('elevation-chart-preview');
-                    const canvas = container.querySelector('canvas');
-                    const existingChart = Chart.getChart(canvas);
-                    if (existingChart) {
-                        existingChart.destroy();
-                    }
-                    
-                    // Now update the elevation profile
-                    updateLiveElevationProfile(coordinates);
-                } else {
-                    console.error('Chart.js not loaded');
-                }
-            }, 100);
+        // Clear any existing chart
+        const container = document.getElementById('elevation-chart-preview');
+        const canvas = container.querySelector('canvas');
+        const existingChart = window.Chart && Chart.getChart(canvas);
+        if (existingChart) {
+            existingChart.destroy();
         }
+
+        // Update elevation profile with a small delay to ensure DOM is ready
+        setTimeout(() => updateLiveElevationProfile(coordinates), 100);
+
     } catch (error) {
         console.error('Error loading elevation:', error);
         const elevationChart = document.getElementById('elevation-chart-preview');
@@ -829,27 +820,42 @@ console.log('Modal current condition:', currentCondition); // Debug
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
     
-    <div id="elevation-profile" style="padding: 15px;">
-        <div class="elevation-stats">
-            <div class="stat-box">
-                <div id="total-distance">0.00 km</div>
-                <div>Distance</div>
+<!-- Elevation section -->
+<div style="margin-bottom: 16px;">
+    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 16px; font-weight: bold;">
+                <div id="total-distance">0.00</div>
+                <div style="font-size: 12px; color: #666;">km</div>
             </div>
-            <div class="stat-box">
-                <div id="elevation-gain">↑ 0m</div>
-                <div>Gain</div>
-            </div>
-            <div class="stat-box">
-                <div id="elevation-loss">↓ 0m</div>
-                <div>Loss</div>
-            </div>
-            <div class="stat-box">
-                <div id="max-elevation">0m</div>
-                <div>Max</div>
-            </div>
+            <div style="font-size: 12px; color: #666;">Distance</div>
         </div>
-        <canvas id="elevation-chart-preview"></canvas>
+        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 16px; font-weight: bold; color: #16a34a;">
+                <div id="elevation-gain">↑ 0</div>
+                <div style="font-size: 12px; color: #666;">m</div>
+            </div>
+            <div style="font-size: 12px; color: #666;">Gain</div>
+        </div>
+        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 16px; font-weight: bold; color: #dc2626;">
+                <div id="elevation-loss">↓ 0</div>
+                <div style="font-size: 12px; color: #666;">m</div>
+            </div>
+            <div style="font-size: 12px; color: #666;">Loss</div>
+        </div>
+        <div class="stat-box" style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 16px; font-weight: bold; color: #2563eb;">
+                <div id="max-elevation">0</div>
+                <div style="font-size: 12px; color: #666;">m</div>
+            </div>
+            <div style="font-size: 12px; color: #666;">Max</div>
+        </div>
     </div>
+    <div id="elevation-chart-preview" style="height: 200px; position: relative; background: #f8f9fa; border-radius: 8px; padding: 15px;">
+        <canvas style="width: 100%; height: 100%;"></canvas>
+    </div>
+</div>
     
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
         <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
@@ -868,7 +874,15 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-    loadAndDisplayElevation(feature);  // Single call to load elevation
+    
+    // Debug to make sure canvas exists
+    console.log('Canvas check:', {
+        container: document.getElementById('elevation-chart-preview'),
+        canvas: document.querySelector('#elevation-chart-preview canvas'),
+        chart: window.Chart
+    });
+    
+    loadAndDisplayElevation(feature);
 
     setTimeout(() => {
         const canvas = document.querySelector('#elevation-profile canvas');
