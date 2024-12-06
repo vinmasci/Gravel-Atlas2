@@ -684,12 +684,19 @@ function ensureCanvasExists() {
 
 async function loadAndDisplayElevation(feature) {
     try {
+        console.log('Starting loadAndDisplayElevation, elevation utils:', window.elevationUtils);
+        
         const coordinates = await formatRoadForElevation(feature);
+        console.log('Got coordinates:', coordinates);
+        
         if (!coordinates) {
             throw new Error('Could not format road data');
         }
 
+        console.log('About to process elevation data');
         const { stats } = window.elevationUtils.processElevationData(coordinates);
+        console.log('Processed stats:', stats);
+        
         
         // Update stats display
         document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)} km`;
@@ -697,6 +704,7 @@ async function loadAndDisplayElevation(feature) {
         document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}m`;
         document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}m`;
 
+        console.log('About to create chart');
         // Create chart
         window.elevationUtils.createElevationChart('elevation-chart-preview', coordinates);
 
