@@ -671,7 +671,7 @@ async function formatRoadForElevation(feature) {
 
 // Add this helper function to ensure canvas exists
 function ensureCanvasExists() {
-    const container = document.getElementById('elevation-chart-preview');
+    const container = document.getElementById('gravel-elevation-container');
     if (!container) return false;
     
     let canvas = container.querySelector('canvas');
@@ -690,7 +690,7 @@ async function loadAndDisplayElevation(feature) {
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Get the canvas element
-        const canvas = document.getElementById('elevation-chart');
+        const canvas = document.getElementById('gravel-elevation-chart');
         if (!canvas) {
             console.error('Canvas element not found');
             return;
@@ -789,7 +789,7 @@ console.log('Elements exist?', {
 
     } catch (error) {
         console.error('Error loading elevation:', error);
-        const container = document.getElementById('elevation-chart-container');
+        const container = document.getElementById('gravel-elevation-container');
         if (container) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #dc2626;">
@@ -941,7 +941,7 @@ console.log('Modal current condition:', currentCondition); // Debug
             </div>
         </div>
         <div id="elevation-chart-container" style="height: 200px; background: #f8f9fa; border-radius: 8px; padding: 15px;">
-            <canvas id="elevation-chart"></canvas>
+            <canvas id="gravel-elevation-chart"></canvas>
         </div>
     </div>
     
@@ -971,8 +971,8 @@ console.log('Modal current condition:', currentCondition); // Debug
 
     // Initial canvas check
     console.log('Initial Canvas check:', {
-        container: document.getElementById('elevation-chart-preview'),
-        canvas: document.querySelector('#elevation-chart-preview canvas'),
+        container: document.getElementById('gravel-elevation-container'),
+        canvas: document.querySelector('#gravel-elevation-chart'),
         chart: window.Chart
     });
     
@@ -993,9 +993,6 @@ setTimeout(() => {
     
     // Watch the modal for changes
     observer.observe(modal, { childList: true, subtree: true });
-    
-    // Load elevation data
-    loadAndDisplayElevation(feature);
     
     // Check canvas after a delay
     setTimeout(() => {
