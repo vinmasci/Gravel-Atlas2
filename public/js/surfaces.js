@@ -641,42 +641,41 @@ function ensureCanvasExists() {
 
 async function loadAndDisplayElevation(feature) {
     try {
-        console.log('Starting loadAndDisplayElevation');
-        // Get coordinates
         const coordinates = await formatRoadForElevation(feature);
-        console.log('Got coordinates:', coordinates);
+        if (!coordinates) return;
 
-        if (!coordinates) {
-            throw new Error('No elevation data available');
-        }
-
-        // Clear any existing chart
-        const container = document.getElementById('elevation-chart-preview');
-        const canvas = container.querySelector('canvas');
-        console.log('Canvas before cleanup:', {
-            container: !!container,
-            canvas: !!canvas,
-            chartjs: !!window.Chart
+        // Wait for canvas to be ready
+        await new Promise(resolve => {
+            const checkCanvas = () => {
+                const container = document.getElementById('elevation-chart-preview');
+                const canvas = container?.querySelector('canvas');
+                console.log('Checking for canvas:', { container: !!container, canvas: !!canvas });
+                
+                if (canvas) {
+                    // Clean up any existing chart
+                    const existingChart = window.Chart && Chart.getChart(canvas);
+                    if (existingChart) {
+                        existingChart.destroy();
+                    }
+                    resolve();
+                } else {
+                    setTimeout(checkCanvas, 50);
+                }
+            };
+            checkCanvas();
         });
 
-        const existingChart = window.Chart && Chart.getChart(canvas);
-        if (existingChart) {
-            existingChart.destroy();
-        }
+        // Now we know canvas exists and is clean
+        const canvas = document.querySelector('#elevation-chart-preview canvas');
+        console.log('Canvas ready for drawing:', {
+            exists: !!canvas,
+            dimensions: canvas ? {
+                width: canvas.width,
+                height: canvas.height
+            } : null
+        });
 
-        // Update elevation profile with a small delay to ensure DOM is ready
-        setTimeout(() => {
-            console.log('About to call updateLiveElevationProfile with:', {
-                coordinates,
-                canvasReady: !!canvas,
-                dimensions: canvas ? {
-                    width: canvas.width,
-                    height: canvas.height,
-                    style: canvas.style.cssText
-                } : null
-            });
-            updateLiveElevationProfile(coordinates);
-        }, 100);
+        updateLiveElevationProfile(coordinates);
 
     } catch (error) {
         console.error('Error loading elevation:', error);
@@ -930,7 +929,7 @@ console.log('Modal current condition:', currentCondition); // Debug
             } : null
         });
     }, 1000);
-    
+
     function updateColorPreview(value) {
         const colorPreview = document.getElementById('color-preview');
         if (value === '') {
