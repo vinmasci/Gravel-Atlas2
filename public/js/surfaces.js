@@ -940,7 +940,7 @@ console.log('Modal current condition:', currentCondition); // Debug
                 <div style="font-size: 12px; color: #666;">m</div>
             </div>
         </div>
-        <div id="elevation-chart-container" style="height: 200px; background: #f8f9fa; border-radius: 8px; padding: 15px;">
+        <div id="gravel-elevation-chart-container" style="height: 200px; background: #f8f9fa; border-radius: 8px; padding: 15px;">
             <canvas id="gravel-elevation-chart"></canvas>
         </div>
     </div>
@@ -965,7 +965,7 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     console.log('Modal HTML check:', {
         elevationPreview: document.getElementById('elevation-preview'),
-        canvas: document.querySelector('#elevation-chart-preview'),
+        canvas: document.querySelector('#gravel-elevation-chart'),
         modalHtml: modal.innerHTML
     });
 
@@ -996,7 +996,7 @@ setTimeout(() => {
     
     // Check canvas after a delay
     setTimeout(() => {
-        const canvas = document.querySelector('#elevation-chart-preview canvas');
+        const canvas = document.querySelector('#gravel-elevation-chart canvas');
         console.log('Canvas check after delay:', {
             exists: !!canvas,
             dimensions: canvas ? {
