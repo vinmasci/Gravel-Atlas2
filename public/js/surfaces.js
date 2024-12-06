@@ -591,48 +591,101 @@ window.layers.toggleSurfaceLayer = async function() {
 
 async function formatRoadForElevation(feature) {
     try {
-        console.log('1. formatRoadForElevation called with:', feature);
-        if (!feature || !feature.geometry || !feature.geometry.coordinates) {
-            console.error('2. Invalid feature geometry:', feature);
+        // Validate input
+        if (!feature?.geometry?.coordinates) {
+            console.error('Invalid feature geometry:', feature);
             return null;
         }
-        
-        // Call your elevation API with the road's coordinates
-        console.log('3. Attempting to fetch elevation data');
+
+        // Get elevation data from API
         const response = await fetch('/api/get-elevation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                coordinates: feature.geometry.coordinates 
-            })
+            body: JSON.stringify({ coordinates: feature.geometry.coordinates })
         });
-        
+
         if (!response.ok) {
-            console.error('4. Failed to fetch elevation:', response.status);
             throw new Error('Failed to fetch elevation data');
         }
-        
+
         const elevationData = await response.json();
-        console.log('5. Got elevation data:', elevationData);
-        
-        // Create the format your renderElevationProfile expects
-        return {
-            geojson: {
-                features: [{
-                    geometry: {
-                        type: feature.geometry.type,
-                        coordinates: elevationData.coordinates // These will be [lng, lat, elevation]
-                    }
-                }]
+
+        // Calculate elevation statistics
+        let totalDistance = 0;
+        let elevationGain = 0;
+        let elevationLoss = 0;
+        let maxElevation = -Infinity;
+        let minElevation = Infinity;
+
+        elevationData.coordinates.forEach((coord, index) => {
+            // Update elevation extremes
+            maxElevation = Math.max(maxElevation, coord[2]);
+            minElevation = Math.min(minElevation, coord[2]);
+
+            // Calculate changes for non-first points
+            if (index > 0) {
+                const prevCoord = elevationData.coordinates[index - 1];
+                const distance = calculateDistance(
+                    prevCoord[1], prevCoord[0],
+                    coord[1], coord[0]
+                );
+                totalDistance += distance;
+
+                const elevDiff = coord[2] - prevCoord[2];
+                if (elevDiff > 0) elevationGain += elevDiff;
+                if (elevDiff < 0) elevationLoss += Math.abs(elevDiff);
             }
+        });
+
+        // Update modal stats
+        const stats = {
+            totalDistance,
+            elevationGain,
+            elevationLoss,
+            maxElevation,
+            minElevation
+        };
+
+        // Update DOM elements
+        updateElevationStats(stats);
+
+        // Return formatted data for the elevation profile
+        return {
+            coordinates: elevationData.coordinates,
+            stats
         };
     } catch (error) {
-        console.error('Error in formatRoadForElevation:', error);
+        console.error('Error formatting road elevation:', error);
         return null;
     }
 }
 
-// Add this function to surfaces.js near your other elevation-related functions
+function updateElevationStats(stats) {
+    // Update the stats display in the modal
+    document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)} km`;
+    document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}m`;
+    document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}m`;
+    document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}m`;
+}
+
+async function loadAndDisplayElevation(feature) {
+    const elevationData = await formatRoadForElevation(feature);
+    if (elevationData) {
+        updateLiveElevationProfile(elevationData.coordinates);
+    } else {
+        // Handle error state in the UI
+        const elevationChart = document.getElementById('elevation-chart-preview');
+        if (elevationChart) {
+            elevationChart.innerHTML = `
+                <div class="flex items-center justify-center h-full text-gray-500">
+                    <span class="mr-2"><i class="fas fa-exclamation-triangle"></i></span>
+                    Unable to load elevation data
+                </div>
+            `;
+        }
+    }
+}
+
 async function loadAndRenderElevation(feature) {
     try {
         const formattedRoad = await formatRoadForElevation(feature);
@@ -734,7 +787,7 @@ console.log('Modal current condition:', currentCondition); // Debug
             .join('<br>')
         : 'No votes yet';
 
-    modal.innerHTML = `
+        modal.innerHTML = `
         <div style="position: absolute; top: 10px; right: 10px; cursor: pointer;" id="close-modal">
             <i class="fa-solid fa-times" style="font-size: 18px; color: #666;"></i>
         </div>
@@ -744,11 +797,11 @@ console.log('Modal current condition:', currentCondition); // Debug
                 <div style="margin-top: 8px; font-size: 13px;">
                     <div><b>Surface (OSM Data):</b> ${feature.properties.surface || 'Unknown'}</div>
                     <div><b>OSM ID:</b> ${osmId}</div>
-<div class="current-condition"><b>Current Condition:</b> ${
-    currentCondition ? 
-    `${getConditionIcon(currentCondition)}` : 
-    '<span style="color: #666;">Requires update</span>'
-}</div>
+                    <div class="current-condition"><b>Current Condition:</b> ${
+                        currentCondition ? 
+                        `${getConditionIcon(currentCondition)}` : 
+                        '<span style="color: #666;">Requires update</span>'
+                    }</div>
                     ${feature.properties.highway ? `<div><b>Road Type:</b> ${formatHighway(feature.properties.highway)}</div>` : ''}
                     ${feature.properties.access ? `<div><b>Access:</b> ${formatAccess(feature.properties.access)}</div>` : ''}
                 </div>
@@ -774,38 +827,38 @@ console.log('Modal current condition:', currentCondition); // Debug
             </select>
             <div id="color-preview" style="height: 4px; margin-top: 4px; border-radius: 2px;"></div>
         </div>
-<div style="margin-bottom: 16px;">
-    <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-        <div class="stat-box" style="text-align: center;">
-            <div id="total-distance" style="font-size: 14px; font-weight: bold;">${totalDistance.toFixed(2)} km</div>
-            <div style="font-size: 12px; color: #666;">Distance</div>
+        <div style="margin-bottom: 16px;">
+            <div class="elevation-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+                <div class="stat-box" style="text-align: center;">
+                    <div id="total-distance" style="font-size: 14px; font-weight: bold;">-</div>
+                    <div style="font-size: 12px; color: #666;">Distance</div>
+                </div>
+                <div class="stat-box" style="text-align: center;">
+                    <div id="elevation-gain" style="font-size: 14px; font-weight: bold; color: #16a34a;">-</div>
+                    <div style="font-size: 12px; color: #666;">Gain</div>
+                </div>
+                <div class="stat-box" style="text-align: center;">
+                    <div id="elevation-loss" style="font-size: 14px; font-weight: bold; color: #dc2626;">-</div>
+                    <div style="font-size: 12px; color: #666;">Loss</div>
+                </div>
+                <div class="stat-box" style="text-align: center;">
+                    <div id="max-elevation" style="font-size: 14px; font-weight: bold; color: #2563eb;">-</div>
+                    <div style="font-size: 12px; color: #666;">Max</div>
+                </div>
+            </div>
+            <div id="elevation-chart-preview" style="height: 200px; position: relative;">
+                <canvas></canvas>
+            </div>
         </div>
-        <div class="stat-box" style="text-align: center;">
-            <div id="elevation-gain" style="font-size: 14px; font-weight: bold; color: #16a34a;">↑ ${Math.round(elevationGain)}m</div>
-            <div style="font-size: 12px; color: #666;">Gain</div>
-        </div>
-        <div class="stat-box" style="text-align: center;">
-            <div id="elevation-loss" style="font-size: 14px; font-weight: bold; color: #dc2626;">↓ ${Math.round(elevationLoss)}m</div>
-            <div style="font-size: 12px; color: #666;">Loss</div>
-        </div>
-        <div class="stat-box" style="text-align: center;">
-            <div id="max-elevation" style="font-size: 14px; font-weight: bold; color: #2563eb;">${Math.round(maxElevation)}m</div>
-            <div style="font-size: 12px; color: #666;">Max</div>
-        </div>
-    </div>
-    <div id="elevation-chart-preview" style="height: 200px; position: relative;">
-        <canvas></canvas>
-    </div>
-</div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-<div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
-    ${votes && votes.length > 0 ? 
-        votes.map(vote => 
-            `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${new Date(vote.timestamp).toLocaleDateString()}`
-        ).join('<br>') : 
-        'No votes yet'
-    }
-</div>
+        <div class="votes-list" style="margin-bottom: 16px; font-size: 13px; color: #666;">
+            ${votes && votes.length > 0 ? 
+                votes.map(vote => 
+                    `${vote.userName} voted ${getConditionIcon(vote.condition)} on ${new Date(vote.timestamp).toLocaleDateString()}`
+                ).join('<br>') : 
+                'No votes yet'
+            }
+        </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button id="cancel-rating" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
             <button id="save-rating" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
@@ -814,7 +867,8 @@ console.log('Modal current condition:', currentCondition); // Debug
     
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
-    loadAndRenderElevation(feature);
+
+    loadAndDisplayElevation(feature);
 
     setTimeout(() => {
         const canvas = document.querySelector('#elevation-profile canvas');
