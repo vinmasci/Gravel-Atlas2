@@ -724,10 +724,10 @@ console.log('Elements exist?', {
 
 
         // Update stats display
-        document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)}`;
-        document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}`;
-        document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}`;
-        document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}`;
+        document.getElementById('total-distance').innerHTML = `${stats.totalDistance.toFixed(2)}`;
+        document.getElementById('elevation-gain').innerHTML = `↑ ${Math.round(stats.elevationGain)}`;
+        document.getElementById('elevation-loss').innerHTML = `↓ ${Math.round(stats.elevationLoss)}`;
+        document.getElementById('max-elevation').innerHTML = `${Math.round(stats.maxElevation)}`;
 
         // Create chart
         if (window.currentElevationChart) {
