@@ -135,23 +135,29 @@ function processElevationData(coordinates) {
     };
 }
 
-function createElevationChart(canvasId, coordinates, options = {}) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || !window.Chart) {
-        console.error(`Cannot create elevation chart: Canvas or Chart.js not found`);
+function createElevationChart(canvasId, coordinates) {
+    const canvas = document.getElementById(canvasId)?.querySelector('canvas');
+    if (!canvas) {
+        console.error('Canvas element not found:', canvasId);
         return null;
     }
 
-    // Destroy existing chart if it exists
+    // Clear any existing chart
     const existingChart = Chart.getChart(canvas);
     if (existingChart) {
         existingChart.destroy();
     }
 
-    const { segments, stats } = processElevationData(coordinates);
+    const { segments, stats } = window.elevationUtils.processElevationData(coordinates);
+    
+    // Set canvas dimensions explicitly
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-    // Create new chart
     const ctx = canvas.getContext('2d');
+    
     return new Chart(ctx, {
         type: 'line',
         data: {
@@ -159,62 +165,48 @@ function createElevationChart(canvasId, coordinates, options = {}) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: options.maintainAspectRatio ?? false,
+            maintainAspectRatio: false,
+            animation: false, // Disable animation for better performance
             plugins: {
                 tooltip: {
                     mode: 'nearest',
                     intersect: false,
                     callbacks: {
                         label: (context) => {
-                            if (context.datasetIndex === context.chart.tooltip.dataPoints[0].datasetIndex) {
-                                const gradient = context.dataset.label.split(': ')[1];
-                                return [
-                                    `Elevation: ${Math.round(context.parsed.y)}m`,
-                                    `Gradient: ${gradient}`
-                                ];
-                            }
-                            return [];
+                            const elevation = Math.round(context.parsed.y);
+                            return `Elevation: ${elevation}m`;
                         },
                         title: (context) => {
                             if (context[0]) {
                                 return `Distance: ${context[0].parsed.x.toFixed(2)}km`;
                             }
                         }
-                    },
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: { size: 14, weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    padding: 12,
-                    displayColors: false
+                    }
                 },
-                legend: { display: false }
+                legend: {
+                    display: false
+                }
             },
             scales: {
                 x: {
                     type: 'linear',
-                    grid: { color: '#e0e0e0' },
                     title: {
                         display: true,
-                        text: 'Distance (km)',
-                        font: { size: 10 }
+                        text: 'Distance (km)'
                     },
                     min: 0,
                     max: stats.totalDistance
                 },
                 y: {
                     type: 'linear',
-                    grid: { color: '#e0e0e0' },
                     title: {
                         display: true,
-                        text: 'Elevation (m)',
-                        font: { size: 10 }
+                        text: 'Elevation (m)'
                     },
                     min: Math.floor(stats.minElevation / 10) * 10,
-                    max: Math.ceil(stats.maxElevation / 10) * 10,
-                    ticks: { stepSize: 10 }
+                    max: Math.ceil(stats.maxElevation / 10) * 10
                 }
-            },
-            ...options
+            }
         }
     });
 }

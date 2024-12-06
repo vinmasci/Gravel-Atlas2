@@ -684,43 +684,47 @@ function ensureCanvasExists() {
 
 async function loadAndDisplayElevation(feature) {
     try {
-        console.log('Starting loadAndDisplayElevation, elevation utils:', window.elevationUtils);
+        console.log('Starting elevation load for feature:', feature);
+        
+        // Ensure container exists
+        const container = document.getElementById('elevation-chart-preview');
+        if (!container) {
+            console.error('Elevation chart container not found');
+            return;
+        }
         
         const coordinates = await formatRoadForElevation(feature);
-        console.log('Got coordinates:', coordinates);
-        
         if (!coordinates) {
             throw new Error('Could not format road data');
         }
 
-        console.log('About to process elevation data');
+        // Process elevation data
         const { stats } = window.elevationUtils.processElevationData(coordinates);
-        console.log('Processed stats:', stats);
-        
         
         // Update stats display
-        document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)} km`;
-        document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}m`;
-        document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}m`;
-        document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}m`;
+        document.getElementById('total-distance').textContent = `${stats.totalDistance.toFixed(2)}`;
+        document.getElementById('elevation-gain').textContent = `↑ ${Math.round(stats.elevationGain)}`;
+        document.getElementById('elevation-loss').textContent = `↓ ${Math.round(stats.elevationLoss)}`;
+        document.getElementById('max-elevation').textContent = `${Math.round(stats.maxElevation)}`;
 
-        console.log('About to create chart');
-        // Create chart
-        window.elevationUtils.createElevationChart('elevation-chart-preview', coordinates);
+        // Create chart with a small delay to ensure DOM is ready
+        setTimeout(() => {
+            createElevationChart('elevation-chart-preview', coordinates);
+        }, 100);
 
     } catch (error) {
         console.error('Error loading elevation:', error);
         const elevationChart = document.getElementById('elevation-chart-preview');
         if (elevationChart) {
             elevationChart.innerHTML = `
-                <div style="text-align: center; padding: 10px; color: #dc2626;">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Failed to load elevation data
+                <div class="error-message">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 
+                    Failed to load elevation data
                 </div>
             `;
         }
     }
 }
-
 // Update the modal HTML to ensure canvas exists initially
 const elevationChartHtml = `
     <div id="elevation-chart-preview" style="height: 200px; position: relative;">
