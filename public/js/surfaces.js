@@ -972,7 +972,7 @@ console.log('Modal current condition:', currentCondition); // Debug
     // Initial canvas check
     console.log('Initial Canvas check:', {
         container: document.getElementById('gravel-elevation-container'),
-        canvas: document.querySelector('#gravel-elevation-chart'),
+        canvas: document.querySelector('#gravel-elevation-chart canvas'),
         chart: window.Chart
     });
     
